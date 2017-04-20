@@ -351,8 +351,14 @@ class SIXS(backend.InputBase):
             try:
                 for dataframe in dataframes(scan, self.HPATH):
                     pixels = self.get_pixels(dataframe.detector)
+                    detector = ALL_DETECTORS[dataframe.detector.name]()
+                    mask = detector.mask.astype(numpy.bool)
+                    maskmatrix = load_matrix(self.config.maskmatrix)
+                    if maskmatrix is not None:
+                        mask = numpy.bitwise_or(mask, maskmatrix)
+
                     for index in range(job.firstpoint, job.lastpoint + 1):
-                        yield self.process_image(index, dataframe, pixels)
+                        yield self.process_image(index, dataframe, pixels, mask)
                 util.statuseol()
             except Exception as exc:
                 exc.args = errors.addmessage(exc.args, ', An error occured for scan {0} at point {1}. See above for more information'.format(self.dbg_scanno, self.dbg_pointno))
@@ -459,13 +465,8 @@ class FlyScanUHV(SIXS):
 
         return (image, attenuation, (mu, omega, delta, gamma))
 
-    def process_image(self, index, dataframe, pixels):
+    def process_image(self, index, dataframe, pixels, mask):
         util.status(str(index))
-        detector = ALL_DETECTORS[dataframe.detector.name]()
-        mask = detector.mask.astype(numpy.bool)
-        maskmatrix = load_matrix(self.config.maskmatrix)
-        if maskmatrix is not None:
-            mask = numpy.bitwise_or(mask, maskmatrix)
 
         # extract the data from the h5 nodes
 
@@ -618,7 +619,9 @@ def load_matrix(filename):
         if ext == '.txt':
             return numpy.array(numpy.loadtxt(filename), dtype=numpy.bool)
         elif ext == '.npy':
-            return numpy.array(numpy.load(filename), dtype=numpy.bool)
+            mask = numpy.array(numpy.load(filename), dtype=numpy.bool)
+            print("loaded mask sum: ", numpy.sum(mask))
+            return mask
         else:
             raise ValueError('unknown extension {0}, unable to load matrix!\n'.format(ext))
     else:
