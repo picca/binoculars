@@ -15,7 +15,7 @@
   You should have received a copy of the GNU General Public License
   along with the hkl library.  If not, see <http://www.gnu.org/licenses/>.
 
-  Copyright (C)      2015 Synchrotron SOLEIL
+  Copyright (C) 2015-2017 Synchrotron SOLEIL
                           L'Orme des Merisiers Saint-Aubin
                           BP 48 91192 GIF-sur-YVETTE CEDEX
 
@@ -165,6 +165,14 @@ def get_nxclass(hfile, nxclass, path="/"):
             pass
     return None
 
+
+def as_string(node):
+    if node.shape == ():
+        return str(node.read())
+    else:
+        return node[0][:-1]
+
+
 Diffractometer = namedtuple('Diffractometer',
                             ['name',  # name of the hkl diffractometer
                              'ub',  # the UB matrix
@@ -175,7 +183,7 @@ def get_diffractometer(hfile):
     """ Construct a Diffractometer from a NeXus file """
     node = get_nxclass(hfile, 'NXdiffractometer')
 
-    name = node.type[0][:-1]
+    name = as_string(node.type)
     ub = node.UB[:]
 
     factory = Hkl.factories()[name]
