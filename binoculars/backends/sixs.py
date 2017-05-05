@@ -170,7 +170,7 @@ def as_string(node):
     if node.shape == ():
         return str(node.read())
     else:
-        return node[0][:-1]
+        return node[0]
 
 
 Diffractometer = namedtuple('Diffractometer',
@@ -184,6 +184,9 @@ def get_diffractometer(hfile):
     node = get_nxclass(hfile, 'NXdiffractometer')
 
     name = as_string(node.type)
+    # remove the last "\n" char
+    name = name[:-1]
+
     ub = node.UB[:]
 
     factory = Hkl.factories()[name]
