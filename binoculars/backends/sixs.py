@@ -114,9 +114,9 @@ class QxQyQzProjection(backend.ProjectionBase):
                           [0         , 0           , 2* math.pi],
                           [0         , -2 * math.pi, 0]])
 
-        UB = numpy.array([[2* math.pi, 0           , 0],
-                          [0         , 2 * math.pi , 0],
-                          [0         , 0, 2 * math.pi]])
+        # UB = numpy.array([[2* math.pi, 0           , 0],
+        #                   [0         , 2 * math.pi , 0],
+        #                   [0         , 0, 2 * math.pi]])
         # the ki vector should be in the NexusFile or easily extracted
         # from the hkl library.
         ki = [1, 0, 0]
@@ -142,6 +142,18 @@ class QparQperProjection(QxQyQzProjection):
     def get_axis_labels(self):
         return 'Qpar', 'Qper'
 
+
+class Stereo(QxQyQzProjection):
+    def project(self, index, pdataframe):
+        qx, qy, qz = super(Stereo, self).project(index, pdataframe)
+        q = numpy.sqrt(qx*qx+qy*qy+qz*qz)
+        #ratio = qz + q
+        #x = qx / ratio
+        #y = qy / ratio
+        return q, qx, qy
+
+    def get_axis_labels(self):
+        return "Q", "Qx", "Qy"
 
 ###################
 # Common methodes #
