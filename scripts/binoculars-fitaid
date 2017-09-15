@@ -1,18 +1,27 @@
 #!/usr/bin/env python
 
-import h5py
 import sys
-import numpy
 import os.path
 import itertools
+
+import h5py
 import matplotlib.figure
 import matplotlib.image
+import numpy
 
-from PyQt4 import QtGui, QtCore, Qt
-from scipy.interpolate import griddata
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg, NavigationToolbar2QTAgg
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.pyplot import Rectangle
-from scipy.spatial import qhull
+
+from PyQt5.Qt import (Qt)
+from PyQt5.QtCore import (pyqtSignal)
+from PyQt5.QtWidgets import (QAction, QApplication, QSlider, QMenuBar, QTabWidget,
+                             QFileDialog, QStatusBar, QMessageBox, QRadioButton,
+                             QButtonGroup, QCheckBox, QPushButton, QHBoxLayout,
+                             QVBoxLayout, QSplitter, QTableWidgetItem, QTableWidget,
+                             QLabel, QLineEdit, QMainWindow, QWidget, QComboBox,
+                             QProgressDialog, QDoubleSpinBox)
+
+from scipy.interpolate import griddata
 
 
 def set_src():
@@ -37,29 +46,29 @@ except ImportError:
     import binoculars.util
 
 
-class Window(QtGui.QMainWindow):
+class Window(QMainWindow):
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
 
-        newproject = QtGui.QAction("New project", self)
+        newproject = QAction("New project", self)
         newproject.triggered.connect(self.newproject)
 
-        loadproject = QtGui.QAction("Open project", self)
+        loadproject = QAction("Open project", self)
         loadproject.triggered.connect(self.loadproject)
 
-        addspace = QtGui.QAction("Import space", self)
+        addspace = QAction("Import space", self)
         addspace.triggered.connect(self.add_to_project)
 
-        menu_bar = QtGui.QMenuBar()
+        menu_bar = QMenuBar()
         file = menu_bar.addMenu("&File")
         file.addAction(newproject)
         file.addAction(loadproject)
         file.addAction(addspace)
 
         self.setMenuBar(menu_bar)
-        self.statusbar = QtGui.QStatusBar()
+        self.statusbar = QStatusBar()
 
-        self.tab_widget = QtGui.QTabWidget(self)
+        self.tab_widget = QTabWidget(self)
         self.tab_widget.setTabsClosable(True)
         self.tab_widget.tabCloseRequested.connect(self.tab_widget.removeTab)
 
@@ -68,11 +77,11 @@ class Window(QtGui.QMainWindow):
         self.setStatusBar(self.statusbar)
 
     def newproject(self):
-        dialog = QtGui.QFileDialog(self, "project filename");
-        dialog.setFilter('binoculars fit file (*.fit)');
+        dialog = QFileDialog(self, "project filename");
+        dialog.setNameFilters(['binoculars fit file (*.fit)']);
         dialog.setDefaultSuffix('fit');
-        dialog.setFileMode(QtGui.QFileDialog.AnyFile);
-        dialog.setAcceptMode(QtGui.QFileDialog.AcceptSave);
+        dialog.setFileMode(QFileDialog.AnyFile);
+        dialog.setAcceptMode(QFileDialog.AcceptSave);
         if not dialog.exec_():
             return
         fname = dialog.selectedFiles()[0]
@@ -83,14 +92,14 @@ class Window(QtGui.QMainWindow):
             self.tab_widget.addTab(widget, short_filename(str(fname)))
             self.tab_widget.setCurrentWidget(widget)
         except Exception as e:
-            QtGui.QMessageBox.critical(self, 'New project', 'Unable to save project to {}: {}'.format(fname, e))
+            QMessageBox.critical(self, 'New project', 'Unable to save project to {}: {}'.format(fname, e))
 
     def loadproject(self, filename=None):
         if not filename:
-            dialog = QtGui.QFileDialog(self, "Load project");
-            dialog.setFilter('binoculars fit file (*.fit)');
-            dialog.setFileMode(QtGui.QFileDialog.ExistingFiles);
-            dialog.setAcceptMode(QtGui.QFileDialog.AcceptOpen);
+            dialog = QFileDialog(self, "Load project");
+            dialog.setNameFilters(['binoculars fit file (*.fit)']);
+            dialog.setFileMode(QFileDialog.ExistingFiles);
+            dialog.setAcceptMode(QFileDialog.AcceptOpen);
             if not dialog.exec_():
                 return
             fname = dialog.selectedFiles()[0]
@@ -101,7 +110,7 @@ class Window(QtGui.QMainWindow):
                 self.tab_widget.addTab(widget, short_filename(str(fname)))
                 self.tab_widget.setCurrentWidget(widget)
             except Exception as e:
-                QtGui.QMessageBox.critical(self, 'Load project', 'Unable to load project from {}: {}'.format(fname, e))
+                QMessageBox.critical(self, 'Load project', 'Unable to load project from {}: {}'.format(fname, e))
         else:
             widget = TopWidget(str(fname), parent=self)
             self.tab_widget.addTab(widget, 'fname')
@@ -109,14 +118,14 @@ class Window(QtGui.QMainWindow):
 
     def add_to_project(self, filename=None):
         if self.tab_widget.count() == 0:
-            QtGui.QMessageBox.warning(self, 'Warning', 'First select a file to store data')
+            QMessageBox.warning(self, 'Warning', 'First select a file to store data')
             self.newproject()
 
         if not filename:
-            dialog = QtGui.QFileDialog(self, "Import spaces");
-            dialog.setFilter('binoculars space file (*.hdf5)');
-            dialog.setFileMode(QtGui.QFileDialog.ExistingFiles);
-            dialog.setAcceptMode(QtGui.QFileDialog.AcceptOpen);
+            dialog = QFileDialog(self, "Import spaces");
+            dialog.setNameFilters(['binoculars space file (*.hdf5)']);
+            dialog.setFileMode(QFileDialog.ExistingFiles);
+            dialog.setAcceptMode(QFileDialog.AcceptOpen);
             if not dialog.exec_():
                 return
             fname = dialog.selectedFiles()
@@ -127,28 +136,28 @@ class Window(QtGui.QMainWindow):
                     widget = self.tab_widget.currentWidget()
                     widget.addspace(str(name))
                 except Exception as e:
-                    QtGui.QMessageBox.critical(self, 'Import spaces', 'Unable to import space {}: {}'.format(fname, e))
+                    QMessageBox.critical(self, 'Import spaces', 'Unable to import space {}: {}'.format(fname, e))
         else:
             widget = self.tab_widget.currentWidget()
             widget.addspace(filename)
 
 
-class TopWidget(QtGui.QWidget):
+class TopWidget(QWidget):
     def __init__(self, filename, parent=None):
         super(TopWidget, self).__init__(parent)
 
-        hbox = QtGui.QHBoxLayout()
-        vbox = QtGui.QVBoxLayout()
-        minihbox = QtGui.QHBoxLayout()
-        minihbox2 = QtGui.QHBoxLayout()
+        hbox = QHBoxLayout()
+        vbox = QVBoxLayout()
+        minihbox = QHBoxLayout()
+        minihbox2 = QHBoxLayout()
 
         self.database = FitData(filename)
         self.table = TableWidget(self.database)
         self.nav = ButtonedSlider()
-        self.nav.connect(self.nav, QtCore.SIGNAL('slice_index'), self.index_change)
+        self.nav.slice_index.connect(self.index_change)
         self.table.trigger.connect(self.active_change)
         self.table.check_changed.connect(self.refresh_plot)
-        self.tab_widget = QtGui.QTabWidget()
+        self.tab_widget = QTabWidget()
 
         self.fitwidget = FitWidget(self.database, self)
         self.integratewidget = IntegrateWidget(self.database, self)
@@ -160,14 +169,14 @@ class TopWidget(QtGui.QWidget):
         self.tab_widget.addTab(self.plotwidget, 'plot')
         self.tab_widget.addTab(self.peakwidget, 'Peaktracker')
 
-        self.emptywidget = QtGui.QWidget()
+        self.emptywidget = QWidget()
         self.emptywidget.setLayout(vbox)
 
         vbox.addWidget(self.table)
         vbox.addWidget(self.nav)
 
         self.functions = list()
-        self.function_box = QtGui.QComboBox()
+        self.function_box = QComboBox()
         for function in dir(binoculars.fit):
             cls = getattr(binoculars.fit, function)
             if isinstance(cls, type) and issubclass(cls, binoculars.fit.PeakFitBase):
@@ -179,9 +188,9 @@ class TopWidget(QtGui.QWidget):
         vbox.addLayout(minihbox)
         vbox.addLayout(minihbox2)
 
-        self.all_button = QtGui.QPushButton('fit all')
-        self.rod_button = QtGui.QPushButton('fit rod')
-        self.slice_button = QtGui.QPushButton('fit slice')
+        self.all_button = QPushButton('fit all')
+        self.rod_button = QPushButton('fit rod')
+        self.slice_button = QPushButton('fit slice')
 
         self.all_button.clicked.connect(self.fit_all)
         self.rod_button.clicked.connect(self.fit_rod)
@@ -191,9 +200,9 @@ class TopWidget(QtGui.QWidget):
         minihbox.addWidget(self.rod_button)
         minihbox.addWidget(self.slice_button)
 
-        self.allint_button = QtGui.QPushButton('int all')
-        self.rodint_button = QtGui.QPushButton('int rod')
-        self.sliceint_button = QtGui.QPushButton('int slice')
+        self.allint_button = QPushButton('int all')
+        self.rodint_button = QPushButton('int rod')
+        self.sliceint_button = QPushButton('int slice')
 
         self.allint_button.clicked.connect(self.int_all)
         self.rodint_button.clicked.connect(self.int_rod)
@@ -203,7 +212,7 @@ class TopWidget(QtGui.QWidget):
         minihbox2.addWidget(self.rodint_button)
         minihbox2.addWidget(self.sliceint_button)
 
-        splitter = QtGui.QSplitter(QtCore.Qt.Horizontal)
+        splitter = QSplitter(Qt.Horizontal)
 
         splitter.addWidget(self.emptywidget)
         splitter.addWidget(self.tab_widget)
@@ -218,7 +227,7 @@ class TopWidget(QtGui.QWidget):
 
     def addspace(self, filename=None):
         if filename == None:
-            filename = str(QtGui.QFileDialog.getOpenFileName(self, 'Open Project', '.', '*.hdf5'))
+            filename = str(QFileDialog.getOpenFileName(self, 'Open Project', '.', '*.hdf5'))
         self.table.addspace(filename)
 
     def active_change(self):
@@ -313,34 +322,34 @@ class TopWidget(QtGui.QWidget):
                         database.save_sliceattr(index, 'guessloc{0}'.format(param.lstrip('loc')), newval)
 
     def progressbox(self, rodkey, function, iterator, length):
-        pd = QtGui.QProgressDialog('Processing {0}'.format(rodkey), 'Cancel', 0, length)
-        pd.setWindowModality(QtCore.Qt.WindowModal)
+        pd = QProgressDialog('Processing {0}'.format(rodkey), 'Cancel', 0, length)
+        pd.setWindowModality(Qt.WindowModal)
         pd.show()
 
         def progress(index, item):
             pd.setValue(index)
             if pd.wasCanceled():
                 raise KeyboardInterrupt
-            QtGui.QApplication.processEvents()
+            QApplication.processEvents()
             function(*item)
         for index, item in enumerate(iterator):
             progress(index, item)
         pd.close()
 
 
-class TableWidget(QtGui.QWidget):
-    trigger = QtCore.pyqtSignal()
-    check_changed = QtCore.pyqtSignal()
+class TableWidget(QWidget):
+    trigger = pyqtSignal()
+    check_changed = pyqtSignal()
 
     def __init__(self, database, parent=None):
         super(TableWidget, self).__init__(parent)
 
-        hbox = QtGui.QHBoxLayout()
+        hbox = QHBoxLayout()
         self.database = database
 
         self.activeindex = 0
 
-        self.table = QtGui.QTableWidget(0, 5)
+        self.table = QTableWidget(0, 5)
         self.table.setHorizontalHeaderLabels(['', 'rod', 'axis', 'res', 'remove'])
 
         self.table.cellClicked.connect(self.setlength)
@@ -375,16 +384,16 @@ class TableWidget(QtGui.QWidget):
 
         axes = binoculars.space.Axes.fromfile(filename)
 
-        checkboxwidget = QtGui.QCheckBox()
+        checkboxwidget = QCheckBox()
         checkboxwidget.rodkey = rodkey
         checkboxwidget.setChecked(0)
         self.table.setCellWidget(index, 0, checkboxwidget)
         checkboxwidget.clicked.connect(self.check_changed)
 
-        item = QtGui.QTableWidgetItem(rodkey)
+        item = QTableWidgetItem(rodkey)
         self.table.setItem(index, 1, item)
 
-        axis = QtGui.QComboBox()
+        axis = QComboBox()
         for ax in axes:
             axis.addItem(ax.label)
         self.table.setCellWidget(index, 2, axis)
@@ -393,7 +402,7 @@ class TableWidget(QtGui.QWidget):
         elif index > 0:
             self.table.cellWidget(0, 2).setCurrentIndex(self.table.cellWidget(0, 2).currentIndex())
 
-        resolution = QtGui.QLineEdit()
+        resolution = QLineEdit()
         if not old_resolution == None:
             resolution.setText(str(old_resolution))
         elif index > 0:
@@ -404,7 +413,7 @@ class TableWidget(QtGui.QWidget):
         resolution.editingFinished.connect(activechange_callback(index))
         self.table.setCellWidget(index, 3, resolution)
 
-        buttonwidget = QtGui.QPushButton('remove')
+        buttonwidget = QPushButton('remove')
         buttonwidget.clicked.connect(remove_callback(rodkey))
         self.table.setCellWidget(index, 4, buttonwidget)
 
@@ -451,9 +460,9 @@ class FitData(object):
             for rodkey in self.rods():
                 spacename = db[rodkey].attrs['filename']
                 if not os.path.exists(spacename):
-                    warningbox = QtGui.QMessageBox(2, 'Warning', 'Cannot find space {0} at file {1}; locate proper space'.format(rodkey, spacename), buttons=QtGui.QMessageBox.Open)
+                    warningbox = QMessageBox(2, 'Warning', 'Cannot find space {0} at file {1}; locate proper space'.format(rodkey, spacename), buttons=QMessageBox.Open)
                     warningbox.exec_()
-                    spacename = str(QtGui.QFileDialog.getOpenFileName(caption='Open space {0}'.format(rodkey), directory='.', filter='*.hdf5'))
+                    spacename = str(QFileDialog.getOpenFileName(caption='Open space {0}'.format(rodkey), directory='.', filter='*.hdf5'))
                     if not spacename:
                         raise IOError('Select proper input')
                     db[rodkey].attrs['filename'] = spacename
@@ -584,7 +593,7 @@ class RodData(FitData):
             try:
                 group = db[self.rodkey][self.slicekey]['attrs']  # # else it breaks with the old fitaid
             except KeyError:
-                db[rodkey][slicekey].create_group('attrs')
+                db[self.rodkey][self.slicekey].create_group('attrs')
                 group = db[self.rodkey][self.slicekey]['attrs']
             if not key in group:
                 group.create_dataset(key, (self.rodlength(),))
@@ -620,24 +629,23 @@ class RodData(FitData):
 
     def load_loc(self, index):
         loc = list()
-        with h5py.File(self.filename, 'a') as db:
-            count = itertools.count()
+        count = itertools.count()
+        key = 'guessloc{0}'.format(next(count))
+        while self.load_sliceattr(index, key) != None:
+            loc.append(self.load_sliceattr(index, key))
             key = 'guessloc{0}'.format(next(count))
+        if len(loc) > 0:
+            return loc
+        else:
+            count = itertools.count()
+            key = 'loc{0}'.format(next(count))
             while self.load_sliceattr(index, key) != None:
                 loc.append(self.load_sliceattr(index, key))
-                key = 'guessloc{0}'.format(next(count))
+                key = 'loc{0}'.format(next(count))
             if len(loc) > 0:
                 return loc
             else:
-                count = itertools.count()
-                key = 'loc{0}'.format(next(count))
-                while self.load_sliceattr(index, key) != None:
-                    loc.append(self.load_sliceattr(index, key))
-                    key = 'loc{0}'.format(next(count))
-                if len(loc) > 0:
-                    return loc
-                else:
-                    return None
+                return None
 
     def save_loc(self, index, loc):
         for i, value in enumerate(loc):
@@ -666,9 +674,9 @@ class RodData(FitData):
 def short_filename(filename):
     return filename.split('/')[-1].split('.')[0]
 
-class HiddenToolbar(NavigationToolbar2QTAgg):
+class HiddenToolbar(NavigationToolbar2QT):
     def __init__(self, corner_callback, canvas):
-        NavigationToolbar2QTAgg.__init__(self, canvas, None)
+        super(HiddenToolbar, self).__init__(canvas, None)
         self._corner_callback = corner_callback
         self.zoom()
 
@@ -680,12 +688,12 @@ class HiddenToolbar(NavigationToolbar2QTAgg):
             self._corner_callback(event.xdata, event.ydata)
         self._corner_preclick = None
                 
-class FitWidget(QtGui.QWidget):
+class FitWidget(QWidget):
     def __init__(self, database ,parent=None):
         super(FitWidget, self).__init__(parent)
 
         self.database = database
-        vbox = QtGui.QHBoxLayout() 
+        vbox = QHBoxLayout() 
 
         self.figure = matplotlib.figure.Figure()
         self.canvas = FigureCanvasQTAgg(self.figure)
@@ -747,7 +755,7 @@ class FitWidget(QtGui.QWidget):
         else:
             return index
 
-class IntegrateWidget(QtGui.QWidget):
+class IntegrateWidget(QWidget):
     def __init__(self, database, parent = None):
         super(IntegrateWidget, self).__init__(parent)
         self.parent = parent
@@ -757,9 +765,9 @@ class IntegrateWidget(QtGui.QWidget):
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.toolbar = HiddenToolbar(self.loc_callback, self.canvas)
 
-        hbox = QtGui.QHBoxLayout() 
+        hbox = QHBoxLayout() 
 
-        splitter = QtGui.QSplitter(QtCore.Qt.Vertical)
+        splitter = QSplitter(Qt.Vertical)
         self.make_controlwidget()
 
         splitter.addWidget(self.canvas)
@@ -769,27 +777,27 @@ class IntegrateWidget(QtGui.QWidget):
         self.setLayout(hbox)  
 
     def make_controlwidget(self):
-        self.control_widget = QtGui.QWidget()
+        self.control_widget = QWidget()
 
-        integratebox = QtGui.QVBoxLayout()
-        intensitybox = QtGui.QHBoxLayout()
-        backgroundbox = QtGui.QHBoxLayout()
+        integratebox = QVBoxLayout()
+        intensitybox = QHBoxLayout()
+        backgroundbox = QHBoxLayout()
 
-        self.aroundroi = QtGui.QCheckBox('background around roi')
+        self.aroundroi = QCheckBox('background around roi')
         self.aroundroi.setChecked(1)
         self.aroundroi.clicked.connect(self.refresh_aroundroi)
 
-        self.hsize = QtGui.QDoubleSpinBox()
-        self.vsize = QtGui.QDoubleSpinBox()
+        self.hsize = QDoubleSpinBox()
+        self.vsize = QDoubleSpinBox()
 
-        intensitybox.addWidget(QtGui.QLabel('roi size:'))
+        intensitybox.addWidget(QLabel('roi size:'))
         intensitybox.addWidget(self.hsize)
         intensitybox.addWidget(self.vsize)
 
-        self.left = QtGui.QDoubleSpinBox()
-        self.right = QtGui.QDoubleSpinBox()
-        self.top = QtGui.QDoubleSpinBox()
-        self.bottom = QtGui.QDoubleSpinBox()
+        self.left = QDoubleSpinBox()
+        self.right = QDoubleSpinBox()
+        self.top = QDoubleSpinBox()
+        self.bottom = QDoubleSpinBox()
 
         self.hsize.valueChanged.connect(self.send)
         self.vsize.valueChanged.connect(self.send)
@@ -807,21 +815,21 @@ class IntegrateWidget(QtGui.QWidget):
         integratebox.addLayout(intensitybox)
         integratebox.addLayout(backgroundbox)
 
-        self.fromfit = QtGui.QRadioButton('peak from fit', self)
+        self.fromfit = QRadioButton('peak from fit', self)
         self.fromfit.setChecked(True)
         self.fromfit.toggled.connect(self.plot_box)
         self.fromfit.toggled.connect(self.refresh_tracker)
 
-        self.fromsegment = QtGui.QRadioButton('peak from segment', self)
+        self.fromsegment = QRadioButton('peak from segment', self)
         self.fromsegment.setChecked(False)
         self.fromsegment.toggled.connect(self.plot_box)
         self.fromsegment.toggled.connect(self.refresh_tracker)
 
-        self.trackergroup = QtGui.QButtonGroup(self)
+        self.trackergroup = QButtonGroup(self)
         self.trackergroup.addButton(self.fromfit)
         self.trackergroup.addButton(self.fromsegment)
 
-        radiobox = QtGui.QHBoxLayout()
+        radiobox = QHBoxLayout()
         radiobox.addWidget(self.fromfit)
         radiobox.addWidget(self.fromsegment)
 
@@ -1035,17 +1043,17 @@ class IntegrateWidget(QtGui.QWidget):
         else:
             return index
 
-class ButtonedSlider(QtGui.QWidget):
+class ButtonedSlider(QWidget):
     def __init__(self,parent=None):
         super(ButtonedSlider, self).__init__(parent)
 
-        self.navigation_button_left_end = QtGui.QPushButton('|<')
-        self.navigation_button_left_one = QtGui.QPushButton('<')
-        self.navigation_slider = QtGui.QSlider(Qt.Qt.Horizontal)
+        self.navigation_button_left_end = QPushButton('|<')
+        self.navigation_button_left_one = QPushButton('<')
+        self.navigation_slider = QSlider(Qt.Qt.Horizontal)
         self.navigation_slider.sliderReleased.connect(self.send)
 
-        self.navigation_button_right_one = QtGui.QPushButton('>')
-        self.navigation_button_right_end = QtGui.QPushButton('>|')
+        self.navigation_button_right_one = QPushButton('>')
+        self.navigation_button_right_end = QPushButton('>|')
 
         self.navigation_button_left_end.setMaximumWidth(20)
         self.navigation_button_left_one.setMaximumWidth(20)
@@ -1057,7 +1065,7 @@ class ButtonedSlider(QtGui.QWidget):
         self.navigation_button_right_end.clicked.connect(self.slider_change_right_end)
         self.navigation_button_right_one.clicked.connect(self.slider_change_right_one)
 
-        box = QtGui.QHBoxLayout() 
+        box = QHBoxLayout() 
         box.addWidget(self.navigation_button_left_end)
         box.addWidget(self.navigation_button_left_one)
         box.addWidget(self.navigation_slider)
@@ -1070,13 +1078,13 @@ class ButtonedSlider(QtGui.QWidget):
     def set_length(self,length):
         self.navigation_slider.setMinimum(0)
         self.navigation_slider.setMaximum(length - 1)
-        self.navigation_slider.setTickPosition(QtGui.QSlider.TicksBelow)
+        self.navigation_slider.setTickPosition(QSlider.TicksBelow)
         self.navigation_slider.setValue(0)
         self.setEnabled(True)
 
 
     def send(self):
-        self.emit(QtCore.SIGNAL('slice_index'), self.navigation_slider.value())
+        self.slice_index.emit(self.navigation_slider.value())
 
     def slider_change_left_one(self):
         self.navigation_slider.setValue(max(self.navigation_slider.value() - 1, 0))
@@ -1100,12 +1108,12 @@ class ButtonedSlider(QtGui.QWidget):
     def set_index(self, index):
         self.navigation_slider.setValue(index)
 
-class HiddenToolbar2(NavigationToolbar2QTAgg):
+class HiddenToolbar2(NavigationToolbar2QT):
     def __init__(self, canvas):
-        NavigationToolbar2QTAgg.__init__(self, canvas, None)
+        super(HiddenToolbar2, self).__init__(canvas, None)
         self.zoom()
 
-class OverviewWidget(QtGui.QWidget):
+class OverviewWidget(QWidget):
     def __init__(self, database, parent = None):
         super(OverviewWidget, self).__init__(parent)
 
@@ -1115,14 +1123,14 @@ class OverviewWidget(QtGui.QWidget):
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.toolbar = HiddenToolbar2(self.canvas)
 
-        self.table = QtGui.QTableWidget(0,2)
+        self.table = QTableWidget(0,2)
         self.make_table()
 
         self.table.cellClicked.connect(self.plot)
 
-        hbox = QtGui.QHBoxLayout() 
+        hbox = QHBoxLayout() 
 
-        splitter = QtGui.QSplitter(QtCore.Qt.Horizontal)
+        splitter = QSplitter(Qt.Horizontal)
 
         splitter.addWidget(self.canvas)
         splitter.addWidget(self.control_widget)
@@ -1140,17 +1148,17 @@ class OverviewWidget(QtGui.QWidget):
 
 
     def make_table(self):
-        self.control_widget = QtGui.QWidget()
-        vbox = QtGui.QVBoxLayout()
-        minibox = QtGui.QHBoxLayout()
+        self.control_widget = QWidget()
+        vbox = QVBoxLayout()
+        minibox = QHBoxLayout()
 
         vbox.addWidget(self.table)
         self.table.setHorizontalHeaderLabels(['','param'])
         for index, width in enumerate([25,50]):
             self.table.setColumnWidth(index, width)
-        self.log = QtGui.QCheckBox('log')
+        self.log = QCheckBox('log')
         self.log.clicked.connect(self.plot)
-        self.export_button = QtGui.QPushButton('export curves')
+        self.export_button = QPushButton('export curves')
 
         self.export_button.clicked.connect(self.export)
 
@@ -1160,7 +1168,7 @@ class OverviewWidget(QtGui.QWidget):
         self.control_widget.setLayout(vbox) 
 
     def export(self):
-        folder =  str(QtGui.QFileDialog.getExistingDirectory(self, "Select directory to save curves"))
+        folder =  str(QFileDialog.getExistingDirectory(self, "Select directory to save curves"))
         params = self.select()
         for param in params:
             for database in self.databaselist:
@@ -1187,7 +1195,7 @@ class OverviewWidget(QtGui.QWidget):
             index = self.table.rowCount()
             self.table.insertRow(index)
 
-            checkboxwidget = QtGui.QCheckBox()
+            checkboxwidget = QCheckBox()
             if param in params:
                 checkboxwidget.setChecked(1)
             else:
@@ -1195,7 +1203,7 @@ class OverviewWidget(QtGui.QWidget):
             self.table.setCellWidget(index,0, checkboxwidget)
             checkboxwidget.clicked.connect(self.plot)
 
-            item = QtGui.QLabel(param)
+            item = QLabel(param)
             self.table.setCellWidget(index, 1, item)
 
         self.plot()
@@ -1228,25 +1236,25 @@ class OverviewWidget(QtGui.QWidget):
             self.ax.semilogy()
         self.canvas.draw()
 
-class PeakWidget(QtGui.QWidget):
+class PeakWidget(QWidget):
     def __init__(self, database,  parent=None):
         super(PeakWidget, self).__init__(parent)
         self.database = database
 
         # create a QTableWidget
-        self.table = QtGui.QTableWidget(0, 3, self)
+        self.table = QTableWidget(0, 3, self)
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.verticalHeader().setVisible(False)
         self.table.itemChanged.connect(self.save)
 
-        self.btn_add_row = QtGui.QPushButton('+', self)
+        self.btn_add_row = QPushButton('+', self)
         self.btn_add_row.clicked.connect(self.add_row)
         
-        self.buttonRemove = QtGui.QPushButton('-', self)
+        self.buttonRemove = QPushButton('-', self)
         self.buttonRemove.clicked.connect(self.remove)
 
-        vbox = QtGui.QVBoxLayout()
-        hbox = QtGui.QHBoxLayout()
+        vbox = QVBoxLayout()
+        hbox = QHBoxLayout()
 
         hbox.addWidget(self.btn_add_row)
         hbox.addWidget(self.buttonRemove)
@@ -1270,7 +1278,7 @@ class PeakWidget(QtGui.QWidget):
         self.table.insertRow(rowindex)
         if row is not None:
             for index in range(3):
-                newitem = QtGui.QTableWidgetItem(str(row[index]))
+                newitem = QTableWidgetItem(str(row[index]))
                 self.table.setItem(rowindex, index, newitem)
 
     def remove(self):
@@ -1356,7 +1364,7 @@ def find_unused_rodkey(rodkey, rods):
             return newkey
 
 if __name__ == "__main__":
-    app = QtGui.QApplication(sys.argv)
+    app = QApplication(sys.argv)
 
     main = Window()
     main.resize(1000, 600)

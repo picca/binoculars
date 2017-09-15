@@ -46,7 +46,7 @@ Depends: ${misc:Depends},
          python-matplotlib,
          python-pyfai,
          pymca,
-         python-qt4,
+         python-pyqt5,
          python-scipy,
 Suggests: python-xrayutilities
 Description: Data reduction and analysis software for two-dimensional detectors in surface X-ray diffraction - Python2
