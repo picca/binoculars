@@ -14,6 +14,9 @@ import matplotlib.figure
 import matplotlib.image
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT
+from matplotlib.pyplot import rcParams
+
+rcParams['image.cmap'] = 'jet'
 
 # from mpl_toolkits.mplot3d import Axes3D
 
