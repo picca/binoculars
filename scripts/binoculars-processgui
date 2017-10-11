@@ -9,18 +9,17 @@ import sys
 import os
 import time
 
-from PyQt5.Qt import (Qt)
+from PyQt5.Qt import (Qt)  # noqa
+from PyQt5.QtGui import (QColor, QPalette)
 from PyQt5.QtWidgets import (QAction, QApplication, QTabWidget,
                              QFileDialog, QMessageBox,
                              QPushButton, QHBoxLayout,
                              QVBoxLayout, QSplitter, QTableWidgetItem, QTableWidget,
                              QLabel, QLineEdit, QMainWindow, QWidget, QComboBox,
-                             QProgressDialog, QPalette, QDockWidget,
-                             QColor)
+                             QProgressDialog, QDockWidget)
 
 
 def set_src():
-    import sys
     import os.path as osp
     dirpath = osp.join(osp.dirname(osp.abspath(__file__)), osp.pardir)
     sys.path.insert(0, osp.abspath(dirpath))
@@ -91,7 +90,7 @@ class Window(QMainWindow):
         self.ListCommand.setColumnWidth(1, 80)
         self.ListCommand.setRowCount(0)
         self.buttonDelete = QPushButton('Delete', self)
-        self.buttonDetete.clicked.connect(self.removeConf)
+        self.buttonDelete.clicked.connect(self.removeConf)
         self.process = QPushButton('run', self)
         self.process.setStyleSheet("background-color: darkred")
         self.process.clicked.connect(self.run)
@@ -183,7 +182,7 @@ class Window(QMainWindow):
 
 
 class Table(QWidget):
-    def __init__(self, label,  parent=None):
+    def __init__(self, label, parent=None):
         super(Table, self).__init__()
 
         # create a QTableWidget
@@ -246,7 +245,7 @@ class Table(QWidget):
                 if len(value) > 1:
                     box.setCurrentIndex(box.findText(value[1], Qt.MatchFixedString))
                 else:
-                        box.setCurrentIndex(box.findText(cfg[item], Qt.MatchFixedString))
+                    box.setCurrentIndex(box.findText(cfg[item], Qt.MatchFixedString))
             elif item not in self.get_keys():
                 self.add_row()
                 row = self.table.rowCount()
