@@ -110,13 +110,13 @@ class QxQyQzProjection(backend.ProjectionBase):
 
         # TODO factorize with HklProjection. Here a trick in order to
         # compute Qx Qy Qz in the omega basis.
-        UB = numpy.array([[2* math.pi, 0           , 0],
-                          [0         , 0           , 2* math.pi],
-                          [0         , -2 * math.pi, 0]])
+        UB = numpy.array([[1, 0, 0],
+                          [0, 0, 1],
+                          [0,-1, 0]])
 
-        # UB = numpy.array([[2* math.pi, 0           , 0],
-        #                   [0         , 2 * math.pi , 0],
-        #                   [0         , 0, 2 * math.pi]])
+        # UB = numpy.array([[1, 0, 0],
+        #                   [0, 1, 0],
+        #                   [0, 0, 1]])
         # the ki vector should be in the NexusFile or easily extracted
         # from the hkl library.
         ki = [1, 0, 0]
