@@ -433,7 +433,10 @@ class SIXS(backend.InputBase):
         filename = None
         if self.config.nexusdir:
             dirname = self.config.nexusdir
-            files  = [f for f in os.listdir(dirname) if str(scanno).zfill(5) in f]
+            files = [f for f in os.listdir(dirname)
+                     if ((str(scanno).zfill(5) in f)
+                         and (os.path.splitext(f)[1] in ['.hdf5', '.nxs']))
+                     ]
             if files is not []:
                 filename = os.path.join(dirname, files[0])
         else:
