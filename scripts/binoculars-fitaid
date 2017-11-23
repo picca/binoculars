@@ -1044,12 +1044,14 @@ class IntegrateWidget(QWidget):
             return index
 
 class ButtonedSlider(QWidget):
+    slice_index = pyqtSignal(int)
+
     def __init__(self,parent=None):
         super(ButtonedSlider, self).__init__(parent)
 
         self.navigation_button_left_end = QPushButton('|<')
         self.navigation_button_left_one = QPushButton('<')
-        self.navigation_slider = QSlider(Qt.Qt.Horizontal)
+        self.navigation_slider = QSlider(Qt.Horizontal)
         self.navigation_slider.sliderReleased.connect(self.send)
 
         self.navigation_button_right_one = QPushButton('>')
