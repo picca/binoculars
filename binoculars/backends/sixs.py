@@ -92,7 +92,6 @@ class HKLProjection(backend.ProjectionBase):
     def get_axis_labels(self):
         return 'H', 'K', 'L'
 
-
 class HKProjection(HKLProjection):
     def project(self, index, pdataframe):
         h, k, l = super(HKProjection, self).project(index, pdataframe)
@@ -114,6 +113,14 @@ class QxQyQzProjection(backend.ProjectionBase):
                           [0, 0, 1],
                           [0,-1, 0]])
 
+        if self.config.mu_offset is not None:
+            UB = numpy.dot(UB,
+                           M(self.config.mu_offset, [0, 1, 0]))
+
+        if self.config.omega_offset is not None:
+            UB = numpy.dot(UB,
+                           M(self.config.omega_offset, [0, 0, -1]))
+
         # UB = numpy.array([[1, 0, 0],
         #                   [0, 1, 0],
         #                   [0, 0, 1]])
@@ -133,6 +140,22 @@ class QxQyQzProjection(backend.ProjectionBase):
     def get_axis_labels(self):
         return "Qx", "Qy", "Qz"
 
+    def parse_config(self, config):
+        super(QxQyQzProjection, self).parse_config(config)
+
+        # omega offset for the sample in degree then convert into radian
+        omega_offset = config.pop('omega_offset', None)
+        if omega_offset is not None:
+            self.config.omega_offset = math.radians(float(omega_offset))
+        else:
+            self.config.omega_offset = None
+
+        # omega offset for the sample in degree then convert into radian
+        mu_offset = config.pop('mu_offset', None)
+        if mu_offset is not None:
+            self.config.mu_offset = math.radians(float(mu_offset))
+        else:
+            self.config.mu_offset = None
 
 class QparQperProjection(QxQyQzProjection):
     def project(self, index, pdataframe):
