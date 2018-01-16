@@ -40,6 +40,15 @@ from gi.repository import Hkl
 
 from .. import backend, errors, util
 
+# TODO
+# - Angles delta gamma. nom de 2 ou 3 moteurs. omega puis delta
+#   gamma pour chaque pixels.
+
+# - aller cherche dans le fichier NeXuS le x0, y0 ainsi que le sdd.
+
+# - travailler en qx qy qz, il faut rajouter un paramètre optionnel
+# - qui permet de choisir une rotation azimuthal de Qx Qy.
+
 ###############
 # Projections #
 ###############
@@ -583,6 +592,7 @@ class FlyScanUHV(SIXS):
         return intensity, weights, (index, pdataframe)
 
     def get_pixels(self, detector):
+        # works only for flat detector.
         detector = ALL_DETECTORS[detector.name]()
         y, x, _ = detector.calc_cartesian_positions()
         y0 = y[self.config.centralpixel[1], self.config.centralpixel[0]]
