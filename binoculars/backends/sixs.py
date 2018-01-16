@@ -1,19 +1,19 @@
 # -*- encoding: utf-8 -*-
-'''
- This file is part of the binoculars project.
+'''This file is part of the binoculars project.
 
-  The BINoculars library is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+  The BINoculars library is free software: you can redistribute it
+  and/or modify it under the terms of the GNU General Public License
+  as published by the Free Software Foundation, either version 3 of
+  the License, or (at your option) any later version.
 
-  The BINoculars library is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  The BINoculars library is distributed in the hope that it will be
+  useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with the hkl library.  If not, see <http://www.gnu.org/licenses/>.
+  along with the hkl library.  If not, see
+  <http://www.gnu.org/licenses/>.
 
   Copyright (C) 2015-2017 Synchrotron SOLEIL
                           L'Orme des Merisiers Saint-Aubin
@@ -109,9 +109,9 @@ class QxQyQzProjection(backend.ProjectionBase):
 
         # TODO factorize with HklProjection. Here a trick in order to
         # compute Qx Qy Qz in the omega basis.
-        UB = numpy.array([[1, 0, 0],
-                          [0, 0, 1],
-                          [0,-1, 0]])
+        UB = numpy.array([[1,  0, 0],
+                          [0,  0, 1],
+                          [0, -1, 0]])
 
         if self.config.mu_offset is not None:
             UB = numpy.dot(UB,
@@ -170,9 +170,9 @@ class Stereo(QxQyQzProjection):
     def project(self, index, pdataframe):
         qx, qy, qz = super(Stereo, self).project(index, pdataframe)
         q = numpy.sqrt(qx*qx+qy*qy+qz*qz)
-        #ratio = qz + q
-        #x = qx / ratio
-        #y = qy / ratio
+        # ratio = qz + q
+        # x = qx / ratio
+        # y = qy / ratio
         return q, qx, qy
 
     def get_axis_labels(self):
@@ -404,30 +404,49 @@ class SIXS(backend.InputBase):
                         mask = numpy.bitwise_or(mask, maskmatrix)
 
                     for index in range(job.firstpoint, job.lastpoint + 1):
-                        yield self.process_image(index, dataframe, pixels, mask)
+                        yield self.process_image(index, dataframe, pixels, mask)  # noqa
                 util.statuseol()
             except Exception as exc:
-                exc.args = errors.addmessage(exc.args, ', An error occured for scan {0} at point {1}. See above for more information'.format(self.dbg_scanno, self.dbg_pointno))
+                exc.args = errors.addmessage(exc.args, ', An error occured for scan {0} at point {1}. See above for more information'.format(self.dbg_scanno, self.dbg_pointno))  # noqa
                 raise
             self.metadata.add_section('sixs_backend', self.metadict)
 
     def parse_config(self, config):
         super(SIXS, self).parse_config(config)
-        self.config.xmask = util.parse_multi_range(config.pop('xmask', None))  # Optional, select a subset of the image range in the x direction. all by default
-        self.config.ymask = util.parse_multi_range(config.pop('ymask', None))  # Optional, select a subset of the image range in the y direction. all by default
-        self.config.nexusdir = config.pop('nexusdir', None)  # location of the nexus files (take precedence on nexusfile)
-        self.config.nexusfile = config.pop('nexusfile', None)  # Location of the specfile
-        self.config.pr = config.pop('pr', None)  # Optional, all range by default
+        # Optional, select a subset of the image range in the x
+        # direction. all by default
+        self.config.xmask = util.parse_multi_range(config.pop('xmask', None))
+
+        # Optional, select a subset of the image range in the y
+        # direction. all by default
+        self.config.ymask = util.parse_multi_range(config.pop('ymask', None))
+
+        # location of the nexus files (take precedence on nexusfile)
+        self.config.nexusdir = config.pop('nexusdir', None)
+
+        # Location of the specfile
+        self.config.nexusfile = config.pop('nexusfile', None)
+
+        # Optional, all range by default
+        self.config.pr = config.pop('pr', None)
         if self.config.xmask is None:
             self.config.xmask = slice(None)
         if self.config.ymask is None:
             self.config.ymask = slice(None)
         if self.config.pr:
-            self.config.pr = util.parse_tuple(self.config.pr, length=2, type=int)
-        self.config.sdd = float(config.pop('sdd'))  # sample to detector distance (mm)
-        self.config.centralpixel = util.parse_tuple(config.pop('centralpixel'), length=2, type=int)  # x,y
-        self.config.maskmatrix = config.pop('maskmatrix', None)  # Optional, if supplied pixels where the mask is 0 will be removed
-        self.config.detrot = config.pop('detrot', None)  # detector rotation around x (1, 0, 0)
+            self.config.pr = util.parse_tuple(self.config.pr, length=2, type=int)  # noqa
+
+        # sample to detector distance (mm)
+        self.config.sdd = float(config.pop('sdd'))
+
+        # x,y coordinates of the central pixel
+        self.config.centralpixel = util.parse_tuple(config.pop('centralpixel'), length=2, type=int)  # noqa
+
+        # Optional, if supplied pixels where the mask is 0 will be removed
+        self.config.maskmatrix = config.pop('maskmatrix', None)
+
+        # detector rotation around x (1, 0, 0)
+        self.config.detrot = config.pop('detrot', None)
         if self.config.detrot is not None:
             try:
                 self.config.detrot = float(self.config.detrot)
@@ -438,7 +457,7 @@ class SIXS(backend.InputBase):
         attenuation_coefficient = config.pop('attenuation_coefficient', None)
         if attenuation_coefficient is not None:
             try:
-                self.config.attenuation_coefficient = float(attenuation_coefficient)
+                self.config.attenuation_coefficient = float(attenuation_coefficient)  # noqa
             except ValueError:
                 self.config.attenuation_coefficient = None
         else:
@@ -449,7 +468,7 @@ class SIXS(backend.InputBase):
             return False
         command = ','.join(command).replace(' ', ',')
         scans = util.parse_multi_range(command)
-        return dict(first=min(scans), last=max(scans), range=','.join(str(scan) for scan in scans))
+        return dict(first=min(scans), last=max(scans), range=','.join(str(scan) for scan in scans))  # noqa
 
     # CONVENIENCE FUNCTIONS
     def get_filename(self, scanno):
@@ -463,9 +482,9 @@ class SIXS(backend.InputBase):
             if files is not []:
                 filename = os.path.join(dirname, files[0])
         else:
-            filename = self.config.nexusfile.format(scanno=str(scanno).zfill(5))
+            filename = self.config.nexusfile.format(scanno=str(scanno).zfill(5))  # noqa
         if not os.path.exists(filename):
-            raise errors.ConfigError('nexus filename does not exist: {0}'.format(filename))
+            raise errors.ConfigError('nexus filename does not exist: {0}'.format(filename))  # noqa
         return filename
 
     @staticmethod
@@ -475,6 +494,7 @@ class SIXS(backend.InputBase):
 
 
 HItem = namedtuple("HItem", ["name", "optional"])
+
 
 class FlyScanUHV(SIXS):
     HPATH = {
@@ -499,7 +519,7 @@ class FlyScanUHV(SIXS):
                 if node is not None:
                     attenuation = node[index + offset]
                 else:
-                    raise Exception("you asked for attenuation but the file does not contain attenuation informations.")
+                    raise Exception("you asked for attenuation but the file does not contain attenuation informations.")  # noqa
             except IndexError:
                 attenuation = WRONG_ATTENUATION
         return attenuation
@@ -559,8 +579,6 @@ class FlyScanUHV(SIXS):
             P = numpy.dot(P, M(math.radians(self.config.detrot), [1, 0, 0]))
 
         pdataframe = PDataFrame(pixels, k, dataframe.diffractometer.ub, R, P)
-
-        # util.status('{4}| gamma: {0}, delta: {1}, theta: {2}, mu: {3}'.format(gamma, delta, theta, mu, time.ctime(time.time())))
 
         return intensity, weights, (index, pdataframe)
 
@@ -672,6 +690,6 @@ def load_matrix(filename):
             print("loaded mask sum: ", numpy.sum(mask))
             return mask
         else:
-            raise ValueError('unknown extension {0}, unable to load matrix!\n'.format(ext))
+            raise ValueError('unknown extension {0}, unable to load matrix!\n'.format(ext))  # noqa
     else:
-        raise IOError('filename: {0} does not exist. Can not load matrix'.format(filename))
+        raise IOError('filename: {0} does not exist. Can not load matrix'.format(filename))  # noqa
