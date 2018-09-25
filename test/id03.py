@@ -30,12 +30,12 @@ class TestCase(unittest.TestCase):
 
         space1 = binoculars.space.Space.from_image(self.projection.config.resolution, self.projection.get_axis_labels(), projected, intensity, weights, limits = limits[0])
 
-        print space1
+        print(space1)
         intensity, weights, coords = imagedata.next()
         projected = self.projection.project(*coords)
 
         space2 = binoculars.space.Space.from_image(self.projection.config.resolution, self.projection.get_axis_labels(), projected, intensity, weights)
-        print space1 + space2
+        print(space1 + space2)
 
     def tearDown(self):
         os.remove('mask.npy')

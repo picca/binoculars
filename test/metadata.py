@@ -14,7 +14,7 @@ class TestCase(unittest.TestCase):
         test = {'string' : 'string', 'numpy.array' : numpy.arange(10),  'list' : range(10), 'tuple' : tuple(range(10))}
         metasection = binoculars.util.MetaBase()
         metasection.add_section('first', test)
-        print metasection
+        print(metasection)
 
         metadata = binoculars.util.MetaData()
         metadata.add_dataset(metasection)
@@ -34,12 +34,12 @@ class TestCase(unittest.TestCase):
         space.tofile('test2.hdf5')
         testspace = binoculars.space.Space.fromfile('test2.hdf5')
 
-        print (space + testspace).metadata
+        print(space + testspace).metadata
 
-        print '--------------------------------------------------------'
-        print metadata
-        print metadata.serialize()
-        print binoculars.util.MetaData.fromserial(metadata.serialize())
+        print('--------------------------------------------------------')
+        print(metadata)
+        print(metadata.serialize())
+        print(binoculars.util.MetaData.fromserial(metadata.serialize()))
 
     def tearDown(self):
         os.remove('test.hdf5')

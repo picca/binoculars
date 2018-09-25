@@ -11,7 +11,7 @@ class TestCase(unittest.TestCase):
     def test_IO(self):
         self.cfg.totxtfile('test.txt')
         self.cfg.tofile('test.hdf5')
-        print binoculars.util.ConfigFile.fromfile('test.hdf5')
+        print(binoculars.util.ConfigFile.fromfile('test.hdf5'))
         self.assertRaises(IOError, binoculars.util.ConfigFile.fromtxtfile, '')
         self.assertRaises(IOError, binoculars.util.ConfigFile.fromfile, '')
 
