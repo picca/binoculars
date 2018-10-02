@@ -6,6 +6,8 @@ Files: *
 Copyright: 2012-2015 European Synchrotron Radiation Facility
            Willem Onderwaater <onderwaa@esrf.fr>
 	   Sander Roobol <roobol@physics.leidenuniv.nl>
+	   2015-2018 Synchrotron SOLEIL
+	   Frédéric-Emmanuel Picca <picca@synchrotron-soleil.fr>
 License: GPL-3.0+
 
 Files: debian/*

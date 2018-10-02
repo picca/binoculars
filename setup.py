@@ -1,3 +1,5 @@
+# -*- encoding: utf-8 -*-
+
 import os
 
 from setuptools import setup, find_packages
@@ -35,7 +37,7 @@ install_requires = ['h5py',
 setup(name='binoculars', version='0.0.1',
       description=description,
       long_description=long_description,
-      packages=find_packages(),
+      packages=find_packages(exclude=["*.test", "*.test.*", "test.*", "test"]),
       install_requires=install_requires,
       scripts=scripts,
       author="Willem Onderwaater, Sander Roobol, Frédéric-Emmanuel Picca",
@@ -47,5 +49,5 @@ setup(name='binoculars', version='0.0.1',
           'Development Status :: 3 - Alpha',
           'Operating System :: POSIX',
           'Operating System :: Unix',
-          'Programming Language :: Python :: 2.7 3.6 3.7']
+          'Programming Language :: Python :: 2.7 3.5 3.6 3.7']
       )

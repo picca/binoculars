@@ -229,8 +229,8 @@ class IO7Input(backend.InputBase):
     def get_scan(self, scanno):
         filename = os.path.join(self.config.datafilefolder, str(scanno) + '.dat')
         if not os.path.exists(filename):
-	        raise errors.ConfigError('datafile filename does not exist: {0}'.format(filename))
-	return dnp.io.load(filename)
+            raise errors.ConfigError('datafile filename does not exist: {0}'.format(filename))
+        return dnp.io.load(filename)
 
     @staticmethod
     def apply_mask(data, xmask, ymask):
