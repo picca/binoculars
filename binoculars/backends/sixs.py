@@ -203,19 +203,23 @@ def get_nxclass(hfile, nxclass, path="/"):
     """
     for node in hfile.walk_nodes(path):
         try:
-            if nxclass == node._v_attrs['NX_class']:
+            if nxclass == as_string(node._v_attrs['NX_class']):
                 return node
         except KeyError:
             pass
     return None
 
+def as_string(text):
+    if hasattr(text, "decode"):
+        text = text.decode()
+    return text
 
-def as_string(node):
+def node_as_string(node):
     if node.shape == ():
-        return str(node.read())
+        content = node.read().tostring()
     else:
-        return node[0]
-
+        content = node[0]
+    return as_string(content)
 
 Diffractometer = namedtuple('Diffractometer',
                             ['name',  # name of the hkl diffractometer
@@ -227,7 +231,7 @@ def get_diffractometer(hfile):
     """ Construct a Diffractometer from a NeXus file """
     node = get_nxclass(hfile, 'NXdiffractometer')
 
-    name = as_string(node.type)
+    name = node_as_string(node.type)
     # remove the last "\n" char
     name = name[:-1]
 
