@@ -35,6 +35,13 @@ else:
     import cPickle as pickle
     import ConfigParser as configparser
 
+
+def as_string(text):
+    if hasattr(text, "decode"):
+        text = text.decode()
+    return text
+
+
 class OrderedOperation(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         oops = getattr(namespace, 'ordered_operations', [])
@@ -523,7 +530,7 @@ class ConfigFile(MetaBase):
             try:
                 config = fp['configuration']
                 if 'command' in config.attrs:
-                    configobj.command = json.loads(config.attrs['command'].decode('utf8'))
+                    configobj.command = json.loads(as_string(config.attrs['command']))
                 for section in config:
                     if isinstance(config[section],  h5py._hl.group.Group):  # new
                         setattr(configobj, section, dict((key, config[section][key].value) for key in config[section]))

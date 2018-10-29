@@ -39,6 +39,7 @@ from pyFAI.detectors import ALL_DETECTORS
 from gi.repository import Hkl
 
 from .. import backend, errors, util
+from ..util import as_string
 
 # TODO
 # - Angles delta gamma. nom de 2 ou 3 moteurs. omega puis delta
@@ -208,11 +209,6 @@ def get_nxclass(hfile, nxclass, path="/"):
         except KeyError:
             pass
     return None
-
-def as_string(text):
-    if hasattr(text, "decode"):
-        text = text.decode()
-    return text
 
 def node_as_string(node):
     if node.shape == ():
