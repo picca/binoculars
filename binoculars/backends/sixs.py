@@ -188,6 +188,15 @@ class Stereo(QxQyQzProjection):
     def get_axis_labels(self):
         return "Q", "Qx", "Qy"
 
+
+class QIndex(Stereo):
+    def project(self, index, pdataframe):
+        q, qx, qy = super(QIndex, self).project(index, pdataframe)
+        return q, numpy.ones_like(q) * index
+
+    def get_axis_labels(self):
+        return "Q", "Index"
+
 ###################
 # Common methodes #
 ###################
