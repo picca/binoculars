@@ -15,7 +15,7 @@ Build-Depends: debhelper (>= 9),
 Standards-Version: 4.1.2
 Vcs-Browser: https://salsa.debian.org/science-team/binoculars
 Vcs-Git: https://salsa.debian.org/science-team/binoculars.git
-Homepage: https://github.com/id03/binoculars
+Homepage: https://github.com/picca/binoculars
 
 Package: binoculars
 Architecture: all
