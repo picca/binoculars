@@ -1,3 +1,9 @@
+binoculars (0.0.3-1) unstable; urgency=medium
+
+  * Imported upstream v0.0.3
+
+ -- Picca Frédéric-Emmanuel <picca@debian.org>  Fri, 07 Dec 2018 11:08:06 +0100
+
 binoculars (0.0.2-1) unstable; urgency=medium
 
   * Initial release (Closes: #910077)
