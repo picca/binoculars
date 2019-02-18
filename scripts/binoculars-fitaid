@@ -649,7 +649,7 @@ class RodData(FitData):
 
     def save_loc(self, index, loc):
         for i, value in enumerate(loc):
-            self.save_sliceattr(index, 'guessloc{0}'.format(i), value) 
+            self.save_sliceattr(index, 'guessloc{0}'.format(i), value)
 
     def save_segments(self, segments):
         with h5py.File(self.filename, 'a') as db:
@@ -674,6 +674,7 @@ class RodData(FitData):
 def short_filename(filename):
     return filename.split('/')[-1].split('.')[0]
 
+
 class HiddenToolbar(NavigationToolbar2QT):
     def __init__(self, corner_callback, canvas):
         super(HiddenToolbar, self).__init__(canvas, None)
@@ -682,18 +683,19 @@ class HiddenToolbar(NavigationToolbar2QT):
 
     def press(self, event):
         self._corner_preclick = self._views()
-        
+
     def release(self, event):
         if self._corner_preclick == self._views():
             self._corner_callback(event.xdata, event.ydata)
         self._corner_preclick = None
-                
+
+
 class FitWidget(QWidget):
     def __init__(self, database ,parent=None):
         super(FitWidget, self).__init__(parent)
 
         self.database = database
-        vbox = QHBoxLayout() 
+        vbox = QHBoxLayout()
 
         self.figure = matplotlib.figure.Figure()
         self.canvas = FigureCanvasQTAgg(self.figure)
@@ -705,7 +707,7 @@ class FitWidget(QWidget):
     def loc_callback(self, x, y):
         if self.ax:
             self.database.save_loc(self.currentindex(), numpy.array([x, y]))
-            
+
     def plot(self, index = None):
         if index == None:
             index = self.currentindex()
@@ -765,7 +767,7 @@ class IntegrateWidget(QWidget):
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.toolbar = HiddenToolbar(self.loc_callback, self.canvas)
 
-        hbox = QHBoxLayout() 
+        hbox = QHBoxLayout()
 
         splitter = QSplitter(Qt.Vertical)
         self.make_controlwidget()
@@ -773,8 +775,8 @@ class IntegrateWidget(QWidget):
         splitter.addWidget(self.canvas)
         splitter.addWidget(self.control_widget)
 
-        hbox.addWidget(splitter) 
-        self.setLayout(hbox)  
+        hbox.addWidget(splitter)
+        self.setLayout(hbox)
 
     def make_controlwidget(self):
         self.control_widget = QWidget()
@@ -811,7 +813,7 @@ class IntegrateWidget(QWidget):
         backgroundbox.addWidget(self.right)
         backgroundbox.addWidget(self.top)
         backgroundbox.addWidget(self.bottom)
-                
+
         integratebox.addLayout(intensitybox)
         integratebox.addLayout(backgroundbox)
 
@@ -834,7 +836,7 @@ class IntegrateWidget(QWidget):
         radiobox.addWidget(self.fromsegment)
 
         integratebox.addLayout(radiobox)
-       
+
         self.control_widget.setLayout(integratebox)
 
     def refresh_aroundroi(self):
@@ -873,7 +875,7 @@ class IntegrateWidget(QWidget):
             self.aroundroi.setChecked(True)
         self.refresh_aroundroi()
 
-        axes = self.database.paxes()    
+        axes = self.database.paxes()
 
         self.hsize.setSingleStep(axes[1].res)
         self.hsize.setDecimals(len(str(axes[1].res)) - 2)
@@ -922,9 +924,9 @@ class IntegrateWidget(QWidget):
                 else:
                     fitstructurefactor = numpy.sqrt(fitintensity.sum() - numpy.alen(fitintensity) * 1.0 / numpy.alen(fitbkg) * fitbkg.sum())
                 self.database.save_sliceattr(index, 'fitsf', fitstructurefactor)
-                
+
             niintensity = space[self.intkey(loc, axes)].get_masked().compressed()
-            
+
             try:
                 intensity = interpolate(space[self.intkey(loc, axes)]).flatten()
                 bkg = numpy.hstack(space[bkgkey].get_masked().compressed() for bkgkey in self.bkgkeys(loc, axes))
@@ -1023,7 +1025,7 @@ class IntegrateWidget(QWidget):
 
     def plot_box(self):
         loc = self.get_loc()
-        if len(self.figure.get_axes()) != 0 and loc != None: 
+        if len(self.figure.get_axes()) != 0 and loc != None:
             ax = self.figure.get_axes()[0]
             axes = self.figure.space_axes
             key = self.intkey(loc, axes)
@@ -1067,7 +1069,7 @@ class ButtonedSlider(QWidget):
         self.navigation_button_right_end.clicked.connect(self.slider_change_right_end)
         self.navigation_button_right_one.clicked.connect(self.slider_change_right_one)
 
-        box = QHBoxLayout() 
+        box = QHBoxLayout()
         box.addWidget(self.navigation_button_left_end)
         box.addWidget(self.navigation_button_left_one)
         box.addWidget(self.navigation_slider)
@@ -1130,15 +1132,15 @@ class OverviewWidget(QWidget):
 
         self.table.cellClicked.connect(self.plot)
 
-        hbox = QHBoxLayout() 
+        hbox = QHBoxLayout()
 
         splitter = QSplitter(Qt.Horizontal)
 
         splitter.addWidget(self.canvas)
         splitter.addWidget(self.control_widget)
 
-        hbox.addWidget(splitter) 
-        self.setLayout(hbox)  
+        hbox.addWidget(splitter)
+        self.setLayout(hbox)
 
     def select(self):
         selection = []
@@ -1167,7 +1169,7 @@ class OverviewWidget(QWidget):
         minibox.addWidget(self.log)
         minibox.addWidget(self.export_button)
         vbox.addLayout(minibox)
-        self.control_widget.setLayout(vbox) 
+        self.control_widget.setLayout(vbox)
 
     def export(self):
         folder =  str(QFileDialog.getExistingDirectory(self, "Select directory to save curves"))
@@ -1233,7 +1235,7 @@ class OverviewWidget(QWidget):
                     x, y = database.all_from_key(param)
                     self.ax.plot(x, y, '+', label = '{0} - {1}'.format(param, database.rodkey))
 
-        self.ax.legend()    
+        self.ax.legend()
         if self.log.checkState():
             self.ax.semilogy()
         self.canvas.draw()
@@ -1251,7 +1253,7 @@ class PeakWidget(QWidget):
 
         self.btn_add_row = QPushButton('+', self)
         self.btn_add_row.clicked.connect(self.add_row)
-        
+
         self.buttonRemove = QPushButton('-', self)
         self.buttonRemove.clicked.connect(self.remove)
 
@@ -1311,11 +1313,11 @@ def get_coords(x, coords):
         return coords[0,1:]
 
     args = numpy.argsort(coords[:,0])
-       
+
     x0 = coords[args,0]
     x1 = coords[args,1]
     x2 = coords[args,2]
-       
+
     if x < x0.min():
         first = 0
         last = 1
@@ -1327,13 +1329,13 @@ def get_coords(x, coords):
         last = numpy.searchsorted(x0, x)
 
     a1 = (x1[last] - x1[first]) / (x0[last] - x0[first])
-    b1 = x1[first] - a1 * x0[first] 
+    b1 = x1[first] - a1 * x0[first]
     a2 = (x2[last] - x2[first]) / (x0[last] - x0[first])
-    b2 = x2[first] - a2 * x0[first] 
+    b2 = x2[first] - a2 * x0[first]
 
     return numpy.array([a1 * x + b1, a2 * x + b2])
 
-    
+
 
 def interpolate(space):
     data = space.get_masked()
@@ -1345,7 +1347,7 @@ def interpolate(space):
     elif grid.shape[0] == 0:
         return data.compressed()
     else:
-        interpolated = griddata(grid, data.compressed(), open)            
+        interpolated = griddata(grid, data.compressed(), open)
         values = data.data.copy()
         values[mask] = interpolated
         mask = numpy.isnan(values)
@@ -1372,5 +1374,5 @@ if __name__ == "__main__":
     main.resize(1000, 600)
     main.show()
 
-    
+
     sys.exit(app.exec_())
