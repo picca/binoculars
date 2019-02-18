@@ -89,7 +89,7 @@ class Axis(object):
             else:
                 raise IndexError('slice stop must be integer')
             return self.__class__(self.imin + start, self.imin + stop - 1, self.res, self.label)
-        elif isinstance(key, int):
+        elif isinstance(key, int) or isinstance(key, numpy.int64):
             if key >= len(self):  # to support iteration
                 raise IndexError('key out of range')
             return (self.imin + key) * self.res
