@@ -681,11 +681,17 @@ class HiddenToolbar(NavigationToolbar2QT):
         self._corner_callback = corner_callback
         self.zoom()
 
+    def _generate_key(self):
+        limits = []
+        for a in self.canvas.figure.get_axes():
+            limits.append([a.get_xlim(), a.get_ylim()])
+        return limits
+
     def press(self, event):
-        self._corner_preclick = self._views()
+        self._corner_preclick = self._generate_key()
 
     def release(self, event):
-        if self._corner_preclick == self._views():
+        if self._corner_preclick == self._generate_key():
             self._corner_callback(event.xdata, event.ydata)
         self._corner_preclick = None
 
