@@ -1,0 +1,22 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE=1
+export PYBUILD_NAME=binoculars
+export PYBUILD_AFTER_INSTALL=rm -rf {destdir}/usr/bin/
+
+%:
+	dh $@ --with python3,sphinxdoc --buildsystem=pybuild
+
+override_dh_install:
+	dh_numpy3
+	dh_install
+
+        # install scripts into binoculars
+	python3 setup.py install_scripts -d debian/binoculars/usr/bin
+
+override_dh_sphinxdoc:
+ifeq (,$(findstring nodocs, $(DEB_BUILD_OPTIONS)))
+	PYTHONPATH=. http_proxy='127.0.0.1:9' sphinx-build -N -bhtml doc/source build/html # HTML generator
+	dh_installdocs -p binoculars-doc "build/html"
+	dh_sphinxdoc -O--buildsystem=pybuild
+endif
