@@ -84,7 +84,8 @@ class PeakFitBase(FitBase):
         else:
             linparams = numpy.zeros(len(self.cxdata) + 1)
 
-        simbackground = linparams[-1] + numpy.sum(numpy.vstack(param * grid.flatten() for (param, grid) in zip(linparams[:-1], self.cxdata)), axis=0)
+        simbackground = linparams[-1] + numpy.sum(numpy.vstack([param * grid.flatten()
+                                                                for (param, grid) in zip(linparams[:-1], self.cxdata)]), axis=0)
         signal = self.cydata - simbackground
 
         if self.argmax != None:
@@ -92,7 +93,7 @@ class PeakFitBase(FitBase):
         else:
             argmax = tuple((signal * grid).sum() / signal.sum() for grid in self.cxdata)
 
-        argmax_bkg = linparams[-1] + numpy.sum(numpy.vstack(param * grid.flatten() for (param, grid) in zip(linparams[:-1], argmax)))
+        argmax_bkg = linparams[-1] + numpy.sum(numpy.vstack([param * grid.flatten() for (param, grid) in zip(linparams[:-1], argmax)]))
 
         try:
             maximum = self.space[argmax] - argmax_bkg
@@ -107,8 +108,8 @@ class PeakFitBase(FitBase):
     def _linfit(self, coordinates, intensity):
         coordinates = list(coordinates)
         coordinates.append(numpy.ones_like(coordinates[0]))
-        matrix = numpy.vstack(coords.flatten() for coords in coordinates).T
-        return numpy.linalg.lstsq(matrix, intensity)[0]
+        matrix = numpy.vstack([coords.flatten() for coords in coordinates]).T
+        return numpy.linalg.lstsq(matrix, intensity, rcond=None)[0]
 
 
 class AutoDimensionFit(FitBase):

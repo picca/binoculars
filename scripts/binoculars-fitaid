@@ -920,9 +920,10 @@ class IntegrateWidget(QWidget):
             key = space.get_key(self.intkey(loc, axes))
 
             fitdata = self.database.load_data(index, 'fit')
-            if fitdata != None:
+            if fitdata is not None:
                 fitintensity = fitdata[key].data.flatten()
-                fitbkg = numpy.hstack(fitdata[space.get_key(bkgkey)].data.flatten() for bkgkey in self.bkgkeys(loc, axes))
+                fitbkg = numpy.hstack([fitdata[space.get_key(bkgkey)].data.flatten()
+                                       for bkgkey in self.bkgkeys(loc, axes)])
                 if numpy.alen(fitbkg) == 0:
                     fitstructurefactor = fitintensity.sum()
                 elif numpy.alen(fitintensity) == 0:
@@ -935,13 +936,14 @@ class IntegrateWidget(QWidget):
 
             try:
                 intensity = interpolate(space[self.intkey(loc, axes)]).flatten()
-                bkg = numpy.hstack(space[bkgkey].get_masked().compressed() for bkgkey in self.bkgkeys(loc, axes))
+                bkg = numpy.hstack([space[bkgkey].get_masked().compressed()
+                                    for bkgkey in self.bkgkeys(loc, axes)])
                 interdata = space.get_masked()
                 interdata[key] = intensity.reshape(interdata[key].shape)
                 interdata[key].mask = numpy.zeros_like(interdata[key])
                 self.database.save_data(index, 'inter',  interdata)
-            except Exception as e:
-                print('Warning error interpolating slice {0}: {1}'.format(index, e.message))
+            except ValueError as e:
+                print('Warning error interpolating silce {0}: {1}'.format(index, e))
                 intensity = numpy.array([])
                 bkg = numpy.array([])
 
@@ -963,7 +965,8 @@ class IntegrateWidget(QWidget):
     def intkey(self, coords, axes):
         vsize = self.vsize.value() / 2
         hsize = self.hsize.value() / 2
-        return tuple(ax.restrict(slice(coord - size, coord + size)) for ax, coord, size in zip(axes, coords, [vsize, hsize]))
+        return tuple(ax.restrict(slice(coord - size, coord + size))
+                     for ax, coord, size in zip(axes, coords, [vsize, hsize]))
 
     def bkgkeys(self, coords, axes):
         aroundroi = self.database.load('aroundroi')
@@ -1192,12 +1195,17 @@ class OverviewWidget(QWidget):
         while self.table.rowCount() > 0:
             self.table.removeRow(0)
 
-        allparams = list(list(param for param in database.all_attrkeys() if not param.startswith('mask')) for database in databaselist)
+        allparams = [[param
+                      for param in database.all_attrkeys()
+                      if not param.startswith('mask')]
+                     for database in databaselist]
 
-        allparams.extend(list(['locx_s', 'locy_s']) for database in databaselist if database.load_segments() is not None)
+        allparams.extend([['locx_s', 'locy_s']]
+                         for database in databaselist
+                         if database.load_segments() is not None)
 
         if len(allparams) > 0:
-            uniqueparams = numpy.unique(numpy.hstack(params for params in allparams))
+            uniqueparams = numpy.unique(numpy.hstack([params for params in allparams]))
         else:
             uniqueparams = []
 
@@ -1228,14 +1236,16 @@ class OverviewWidget(QWidget):
                 if param == 'locx_s':
                     segments = database.load_segments()
                     if segments is not None:
-                        x = numpy.hstack(database.get_index_value(index) for index in range(database.rodlength()))
-                        y = numpy.vstack(get_coords(xvalue, segments) for xvalue in x)
+                        x = numpy.hstack([database.get_index_value(index)
+                                          for index in range(database.rodlength())])
+                        y = numpy.vstack([get_coords(xvalue, segments) for xvalue in x])
                         self.ax.plot(x, y[:,0], '+', label = '{0} - {1}'.format('locx_s', database.rodkey))
                 elif param == 'locy_s':
                     segments = database.load_segments()
                     if segments is not None:
-                        x = numpy.hstack(database.get_index_value(index) for index in range(database.rodlength()))
-                        y = numpy.vstack(get_coords(xvalue, segments) for xvalue in x)
+                        x = numpy.hstack([database.get_index_value(index)
+                                          for index in range(database.rodlength())])
+                        y = numpy.vstack([get_coords(xvalue, segments) for xvalue in x])
                         self.ax.plot(x, y[:,1], '+', label = '{0} - {1}'.format('locy_s', database.rodkey))
                 else:
                     x, y = database.all_from_key(param)
@@ -1342,12 +1352,13 @@ def get_coords(x, coords):
     return numpy.array([a1 * x + b1, a2 * x + b2])
 
 
-
 def interpolate(space):
     data = space.get_masked()
     mask = data.mask
-    grid = numpy.vstack(numpy.ma.array(g, mask=mask).compressed() for g in space.get_grid()).T
-    open = numpy.vstack(numpy.ma.array(g, mask=numpy.invert(mask)).compressed() for g in space.get_grid()).T
+    grid = numpy.vstack([numpy.ma.array(g, mask=mask).compressed()
+                         for g in space.get_grid()]).T
+    open = numpy.vstack([numpy.ma.array(g, mask=numpy.invert(mask)).compressed()
+                         for g in space.get_grid()]).T
     if open.shape[0] == 0:
         return data.compressed()
     elif grid.shape[0] == 0:
@@ -1359,8 +1370,10 @@ def interpolate(space):
         mask = numpy.isnan(values)
         if mask.sum() > 0:
             data = numpy.ma.array(values, mask = mask)
-            grid = numpy.vstack(numpy.ma.array(g, mask=mask).compressed() for g in space.get_grid()).T
-            open = numpy.vstack(numpy.ma.array(g, mask=numpy.invert(mask)).compressed() for g in space.get_grid()).T
+            grid = numpy.vstack([numpy.ma.array(g, mask=mask).compressed()
+                                 for g in space.get_grid()]).T
+            open = numpy.vstack([numpy.ma.array(g, mask=numpy.invert(mask)).compressed()
+                                 for g in space.get_grid()]).T
             interpolated = griddata(grid, data.compressed(), open, method = 'nearest')
             values[mask] = interpolated
         return values
