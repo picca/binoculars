@@ -1,9 +1,8 @@
 from __future__ import print_function, with_statement, division
 
 import os
-import sys
 
-# for scripted useage
+
 def run(args):
     '''Parameters
         args: string
@@ -95,9 +94,10 @@ def save(filename, space):
         raise TypeError("'{0!r}' is not a binoculars space".format(space))
 
 
-def plotspace(space, log=True, clipping=0.0, fit=None, norm=None, colorbar=True, labels=True, **plotopts):
-    '''
-        plots a space with the correct axes. The space can be either one or two dimensinal.
+def plotspace(space, log=True, clipping=0.0, fit=None, norm=None,
+              colorbar=True, labels=True, **plotopts):
+    '''plots a space with the correct axes. The space can be either one
+        or two dimensinal.
 
         Parameters
         space: binoculars space
@@ -107,7 +107,9 @@ def plotspace(space, log=True, clipping=0.0, fit=None, norm=None, colorbar=True,
         clipping: 0 < float < 1
             cuts a lowest and highst value on the color scale
         fit: numpy.ndarray
-            same shape and the space. If one dimensional the fit will be overlayed.
+
+            same shape and the space. If one dimensional the fit will
+            be overlayed.
         norm: matplotlib.colors
             object defining the colorscale
         colorbar: bool
@@ -115,7 +117,8 @@ def plotspace(space, log=True, clipping=0.0, fit=None, norm=None, colorbar=True,
         labels: bool
             show or not show the labels
         plotopts: keyword arguments
-            keywords that will be accepted by matplotlib.pyplot.plot or matplotlib.pyplot.imshow
+            keywords that will be accepted by matplotlib.pyplot.plot
+            or matplotlib.pyplot.imshow
 
         Examples:
         >>> space
@@ -133,23 +136,33 @@ def plotspace(space, log=True, clipping=0.0, fit=None, norm=None, colorbar=True,
 
     if isinstance(space, binoculars.space.Space):
         if space.dimension == 3:
-            from mpl_toolkits.mplot3d import Axes3D
+            from mpl_toolkits.mplot3d import Axes3D  # noqa
             ax = pyplot.gcf().gca(projection='3d')
-            return binoculars.plot.plot(space, pyplot.gcf(), ax, log=log, clipping=clipping, fit=None, norm=norm, colorbar=colorbar, labels=labels, **plotopts)
+            return binoculars.plot.plot(space, pyplot.gcf(), ax, log=log,
+                                        clipping=clipping, fit=None, norm=norm,
+                                        colorbar=colorbar, labels=labels,
+                                        **plotopts)
         if fit is not None and space.dimension == 2:
             ax = pyplot.gcf().add_subplot(121)
-            binoculars.plot.plot(space, pyplot.gcf(), ax, log=log, clipping=clipping, fit=None, norm=norm, colorbar=colorbar, labels=labels, **plotopts)
+            binoculars.plot.plot(space, pyplot.gcf(), ax, log=log,
+                                 clipping=clipping, fit=None, norm=norm,
+                                 colorbar=colorbar, labels=labels, **plotopts)
             ax = pyplot.gcf().add_subplot(122)
-            return binoculars.plot.plot(space, pyplot.gcf(), ax, log=log, clipping=clipping, fit=fit, norm=norm, colorbar=colorbar, labels=labels, **plotopts)
+            return binoculars.plot.plot(space, pyplot.gcf(), ax, log=log,
+                                        clipping=clipping, fit=fit, norm=norm,
+                                        colorbar=colorbar, labels=labels,
+                                        **plotopts)
         else:
-            return binoculars.plot.plot(space, pyplot.gcf(), pyplot.gca(), log=log, clipping=clipping, fit=fit, norm=norm, colorbar=colorbar, labels=labels, **plotopts)
+            return binoculars.plot.plot(space, pyplot.gcf(), pyplot.gca(),
+                                        log=log, clipping=clipping, fit=fit,
+                                        norm=norm, colorbar=colorbar,
+                                        labels=labels, **plotopts)
     else:
         raise TypeError("'{0!r}' is not a binoculars space".format(space))
 
 
 def transform(space, labels, resolutions, exprs):
-    '''
-        transformation of the coordinates.
+    '''transformation of the coordinates.
 
         Parameters
         space: binoculars space
@@ -158,11 +171,12 @@ def transform(space, labels, resolutions, exprs):
         resolutions: list
             a list of length N with the resolution per label
         exprs: list
-            a list of length N with strings containing the expressions that will be evaluated.
-            all numpy funtions can be called without adding 'numpy.' to the functions.
-
+            a list of length N with strings containing the expressions
+            that will be evaluated.  all numpy funtions can be called
+            without adding 'numpy.' to the functions.
         Returns
-        A binoculars space of dimension N with labels and resolutions specified in the input
+        A binoculars space of dimension N with labels and resolutions
+        specified in the input
 
         Examples:
         >>> space = binoculars.load('test.hdf5')
@@ -172,17 +186,20 @@ def transform(space, labels, resolutions, exprs):
             Axis qy (min=-0.04, max=-0.01, res=0.01, count=4)
             Axis qz (min=0.48, max=4.03, res=0.01, count=356)
         }
-        >>> newspace = binoculars.transform(space, ['twotheta'], [0.003], ['2 * arcsin(0.51 * (sqrt(qx**2 + qy**2 + qz**2) / (4 * pi)) / (pi * 180))'])
+        >>> newspace = binoculars.transform(space, ['twotheta'], [0.003], ['2 * arcsin(0.51 * (sqrt(qx**2 + qy**2 + qz**2) / (4 * pi)) / (pi * 180))'])  # noqa
         >>> newspace
         Axes (1 dimensions, 152 points, 1.0 kB) {
             Axis twotheta (min=0.066, max=0.519, res=0.003, count=152)
         }
+
     '''
     import binoculars.util
     import binoculars.space
     if isinstance(space, binoculars.space.Space):
-        transformation = binoculars.util.transformation_from_expressions(space, exprs)
-        newspace = space.transform_coordinates(resolutions, labels, transformation)
+        transformation = binoculars.util.transformation_from_expressions(
+            space, exprs)
+        newspace = space.transform_coordinates(resolutions, labels,
+                                               transformation)
     else:
         raise TypeError("'{0!r}' is not a binoculars space".format(space))
     return newspace
@@ -222,7 +239,6 @@ def fitspace(space, function, guess=None):
         return fitclass(space, guess)
     else:
         raise TypeError("'{0!r}' is not a binoculars space".format(space))
-    return newspace
 
 
 def info(filename):
@@ -270,12 +286,12 @@ def info(filename):
             try:
                 axes = binoculars.space.Axes.fromfile(filename)
             except Exception as e:
-                raise IOError('{0}: unable to load Space: {1!r}'.format(filename, e))
+                raise IOError('{0}: unable to load Space: {1!r}'.format(filename, e))  # noqa
             ret += '{!r}\n'.format(axes)
             try:
                 config = binoculars.util.ConfigFile.fromfile(filename)
             except Exception as e:
-                raise IOError('{0}: unable to load util.ConfigFile: {1!r}'.format(filename, e))
+                raise IOError('{0}: unable to load util.ConfigFile: {1!r}'.format(filename, e))  # noqa
             ret += '{!r}'.format(config)
         else:
             raise IOError("File '{0}' does not exist".format(filename))

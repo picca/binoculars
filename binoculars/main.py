@@ -7,7 +7,9 @@ from . import space, backend, util, errors
 
 def parse_args(args):
     parser = argparse.ArgumentParser(prog='binoculars process')
-    parser.add_argument('-c', metavar='SECTION:OPTION=VALUE', action='append', type=parse_commandline_config_option, default=[], help='additional configuration option in the form section:option=value')
+    parser.add_argument('-c', metavar='SECTION:OPTION=VALUE', action='append',
+                        type=parse_commandline_config_option, default=[],
+                        help='additional configuration option in the form section:option=value')  # noqa
     parser.add_argument('configfile', help='configuration file')
     parser.add_argument('command', nargs='*', default=[])
     return parser.parse_args(args)
@@ -18,11 +20,12 @@ def parse_commandline_config_option(s):
         key, value = s.split('=', 1)
         section, option = key.split(':')
     except ValueError:
-        raise argparse.ArgumentTypeError("configuration specification '{0}' not in the form section:option=value".format(s))
+        raise argparse.ArgumentTypeError("configuration specification '{0}' not in the form section:option=value".format(s))  # noqa
     return section, option, value
 
 
-def multiprocessing_main(xxx_todo_changeme):  # note the double parenthesis for map() convenience
+def multiprocessing_main(xxx_todo_changeme):
+    """note the double parenthesis for map() convenience"""
     (config, command) = xxx_todo_changeme
     Main.from_object(config, command)
     return config.dispatcher.destination.retrieve()
@@ -37,17 +40,20 @@ class Main(object):
         else:
             raise ValueError('Configfile is the wrong type')
 
-        # distribute the configfile to space and to the metadata instance
+        # distribute the configfile to space and to the metadata
+        # instance
         spaceconf = self.config.copy()
 
-        #input from either the configfile or the configsectiongroup is valid
-        self.dispatcher = backend.get_dispatcher(config.dispatcher, self, default='local')
+        # input from either the configfile or the configsectiongroup
+        # is valid
+        self.dispatcher = backend.get_dispatcher(config.dispatcher, self,
+                                                 default='local')
         self.projection = backend.get_projection(config.projection)
         self.input = backend.get_input(config.input)
 
-        self.dispatcher.config.destination.set_final_options(self.input.get_destination_options(command))
+        self.dispatcher.config.destination.set_final_options(self.input.get_destination_options(command))  # noqa
         if 'limits' in self.config.projection:
-            self.dispatcher.config.destination.set_limits(self.config.projection['limits'])
+            self.dispatcher.config.destination.set_limits(self.config.projection['limits'])  # noqa
         if command:
             self.dispatcher.config.destination.set_config(spaceconf)
         self.run(command)
@@ -56,9 +62,11 @@ class Main(object):
     def from_args(cls, args):
         args = parse_args(args)
         if not os.path.exists(args.configfile):
-            # wait up to 10 seconds if it is a zpi, it might take a while for the file to appear accross the network
-            if not args.configfile.endswith('.zpi') or not util.wait_for_file(args.configfile, 10):
-                raise errors.FileError("configuration file '{0}' does not exist".format(args.configfile))
+            # wait up to 10 seconds if it is a zpi, it might take a
+            # while for the file to appear accross the network
+            if not args.configfile.endswith('.zpi') or not util.wait_for_file(args.configfile, 10):  # noqa
+                raise errors.FileError("configuration file '{0}' does not exist"  # noqa
+                                       .format(args.configfile))
         configobj = False
         with open(args.configfile, 'rb') as fp:
             if fp.read(2) == '\x1f\x8b':  # gzip marker
@@ -66,7 +74,9 @@ class Main(object):
                 configobj = util.zpi_load(fp)
         if not configobj:
             # reopen args.configfile as text
-            configobj = util.ConfigFile.fromtxtfile(args.configfile, command=args.command, overrides=args.c)
+            configobj = util.ConfigFile.fromtxtfile(args.configfile,
+                                                    command=args.command,
+                                                    overrides=args.c)
         return cls(configobj, args.command)
 
     @classmethod
@@ -94,10 +104,10 @@ class Main(object):
             labels = self.projection.get_axis_labels()
             for intensity, weights, params in self.input.process_job(job):
                 coords = self.projection.project(*params)
-                if self.projection.config.limits == None:
-                    yield space.Multiverse((space.Space.from_image(res, labels, coords, intensity, weights=weights), ))
+                if self.projection.config.limits is None:
+                    yield space.Multiverse((space.Space.from_image(res, labels, coords, intensity, weights=weights), ))  # noqa
                 else:
-                    yield space.Multiverse(space.Space.from_image(res, labels, coords, intensity, weights=weights, limits=limits) for limits in self.projection.config.limits)
+                    yield space.Multiverse(space.Space.from_image(res, labels, coords, intensity, weights=weights, limits=limits) for limits in self.projection.config.limits)  # noqa
         jobverse = space.chunked_sum(generator(), chunksize=25)
         for sp in jobverse.spaces:
             if isinstance(sp, space.Space):
@@ -116,7 +126,8 @@ class Main(object):
         return multiprocessing_main
 
 
-class Split(Main):  # completely ignores the dispatcher, just yields a space per image
+class Split(Main):
+    # completely ignores the dispatcher, just yields a space per image
     def __init__(self, config, command):
         self.command = command
         if isinstance(config, util.ConfigSectionGroup):
@@ -126,7 +137,7 @@ class Split(Main):  # completely ignores the dispatcher, just yields a space per
         else:
             raise ValueError('Configfile is the wrong type')
 
-        #input from either the configfile or the configsectiongroup is valid
+        # input from either the configfile or the configsectiongroup is valid
         self.projection = backend.get_projection(config.projection)
         self.input = backend.get_input(config.input)
 
@@ -135,10 +146,10 @@ class Split(Main):  # completely ignores the dispatcher, just yields a space per
         labels = self.projection.get_axis_labels()
         for intensity, weights, params in self.input.process_job(job):
             coords = self.projection.project(*params)
-            if self.projection.config.limits == None:
-                yield space.Space.from_image(res, labels, coords, intensity, weights=weights)
+            if self.projection.config.limits is None:
+                yield space.Space.from_image(res, labels, coords, intensity, weights=weights)  # noqa
             else:
-                yield space.Multiverse(space.Space.from_image(res, labels, coords, intensity, weights=weights, limits=limits) for limits in self.projection.config.limits)
+                yield space.Multiverse(space.Space.from_image(res, labels, coords, intensity, weights=weights, limits=limits) for limits in self.projection.config.limits)  # noqa
 
     def run(self):
         for job in self.input.generate_jobs(self.command):

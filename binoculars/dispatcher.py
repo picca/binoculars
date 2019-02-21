@@ -7,8 +7,9 @@ import multiprocessing
 
 from . import util, errors, space
 
-#python3 support
+# python3 support
 PY3 = sys.version_info > (3,)
+
 
 class Destination(object):
     type = filename = overwrite = value = config = limits = None
@@ -55,7 +56,7 @@ class Destination(object):
 
     def final_filenames(self):
         fns = []
-        if not self.limits == None:
+        if self.limits is not None:
             base, ext = os.path.splitext(self.filename)
             for limlabel in util.limit_to_filelabel(self.limits):
                 fn = (base + '_' + limlabel + ext).format(**self.opts)
@@ -78,24 +79,38 @@ class DispatcherBase(util.ConfigurableObject):
     def parse_config(self, config):
         super(DispatcherBase, self).parse_config(config)
         self.config.destination = Destination()
-        destination = config.pop('destination', 'output.hdf5')  # optional 'output.hdf5' by default
-        overwrite = util.parse_bool(config.pop('overwrite', 'false'))  #by default: numbered files in the form output_  # .hdf5:
-        self.config.destination.set_final_filename(destination, overwrite)  # explicitly parsing the options first helps with the debugging
-        self.config.host = config.pop('host', None)  # ip adress of the running gui awaiting the spaces
-        self.config.port = config.pop('port', None)  # port of the running gui awaiting the spaces
-        self.config.send_to_gui = util.parse_bool(config.pop('send_to_gui', 'false'))  # previewing the data, if true, also specify host and port
+        # optional 'output.hdf5' by default
+        destination = config.pop('destination', 'output.hdf5')
+        # by default: numbered files in the form output_  # .hdf5:
+        overwrite = util.parse_bool(config.pop('overwrite', 'false'))
+        # explicitly parsing the options first helps with the debugging
+        self.config.destination.set_final_filename(destination, overwrite)
+        # ip adress of the running gui awaiting the spaces
+        self.config.host = config.pop('host', None)
+        # port of the running gui awaiting the spaces
+        self.config.port = config.pop('port', None)
+        # previewing the data, if true, also specify host and port
+        self.config.send_to_gui = util.parse_bool(config.pop('send_to_gui',
+                                                             'false'))
 
-    def send(self, verses):  # provides the possiblity to send the results to the gui over the network
-        if self.config.send_to_gui or (self.config.host is not None and self.config.host is not None):  # only continue of ip is specified and send_to_server is flagged
+    # provides the possiblity to send the results to the gui over the network
+    def send(self, verses):
+        if self.config.send_to_gui or (self.config.host is not None
+                                       and self.config.host is not None):
+            # only continue of ip is specified and send_to_server is flagged
             for M in verses:
                 if self.config.destination.limits is None:
                     sp = M.spaces[0]
                     if isinstance(sp, space.Space):
-                        util.socket_send(self.config.host, int(self.config.port), util.serialize(sp, ','.join(self.main.config.command)))
+                        util.socket_send(self.config.host,
+                                         int(self.config.port),
+                                         util.serialize(sp, ','.join(self.main.config.command)))  # noqa
                 else:
-                    for sp, label in zip(M.spaces, util.limit_to_filelabel(self.config.destination.limits)):
+                    for sp, label in zip(M.spaces, util.limit_to_filelabel(self.config.destination.limits)):  # noqa
                         if isinstance(sp, space.Space):
-                            util.socket_send(self.config.host, int(self.config.port), util.serialize(sp, '{0}_{1}'.format(','.join(self.main.config.command), label)))
+                            util.socket_send(self.config.host,
+                                             int(self.config.port),
+                                             util.serialize(sp, '{0}_{1}'.format(','.join(self.main.config.command), label)))  # noqa
                 yield M
         else:
             for M in verses:
@@ -130,7 +145,7 @@ class ReentrantBase(DispatcherBase):
         super(ReentrantBase, self).parse_config(config)
         self.config.action = config.pop('action', 'user').lower()
         if self.config.action not in self.actions:
-            raise errors.ConfigError('action {0} not recognized for {1}'.format(self.config.action, self.__class__.__name__))
+            raise errors.ConfigError('action {0} not recognized for {1}'.format(self.config.action, self.__class__.__name__))  # noqa
 
     def has_specific_task(self):
         if self.config.action == 'user':
@@ -142,19 +157,22 @@ class ReentrantBase(DispatcherBase):
         raise NotImplementedError
 
 
-# Dispatch multiple worker processes locally, while doing the summation in the main process
+# Dispatch multiple worker processes locally, while doing the
+# summation in the main process
 class Local(ReentrantBase):
-    ### OFFICIAL API
+    # OFFICIAL API
     actions = 'user', 'job'
 
     def parse_config(self, config):
         super(Local, self).parse_config(config)
-        self.config.ncores = int(config.pop('ncores', 0))  # optionally, specify number of cores (autodetect by default)
+        # optionally, specify number of cores (autodetect by default)
+        self.config.ncores = int(config.pop('ncores', 0))
         if self.config.ncores <= 0:
             self.config.ncores = multiprocessing.cpu_count()
 
     def process_jobs(self, jobs):
-        if self.config.ncores == 1 and not PY3:  # note: SingleCore will be marginally faster
+        # note: SingleCore will be marginally faster
+        if self.config.ncores == 1 and not PY3:
             map = itertools.imap
         else:
             pool = multiprocessing.Pool(self.config.ncores)
@@ -169,12 +187,12 @@ class Local(ReentrantBase):
 
     def run_specific_task(self, command):
         if command:
-            raise errors.SubprocessError("invalid command, too many parameters: '{0}'".format(command))
+            raise errors.SubprocessError("invalid command, too many parameters: '{0}'".format(command))  # noqa
         if self.config.action == 'job':
             result = self.main.process_job(self.config.job)
             self.config.destination.store(result)
 
-    ### UTILITY
+    # UTILITY
     def prepare_config(self, job):
         config = self.main.clone_config()
         config.dispatcher.destination.set_memory()
@@ -186,26 +204,34 @@ class Local(ReentrantBase):
 
 
 class Oar(ReentrantBase):
-    ### OFFICIAL API
+    # OFFICIAL API
     actions = 'user', 'process'
 
     def parse_config(self, config):
         super(Oar, self).parse_config(config)
-        self.config.tmpdir = config.pop('tmpdir', os.getcwd())  # Optional, current directory by default
-        self.config.oarsub_options = config.pop('oarsub_options', 'walltime=0:15')  # optionally, tweak oarsub parameters
-        self.config.executable = config.pop('executable', ' '.join(util.get_python_executable()))  # optionally, override default location of python and/or BINoculars installation
+        # Optional, current directory by default
+        self.config.tmpdir = config.pop('tmpdir', os.getcwd())
+        # optionally, tweak oarsub parameters
+        self.config.oarsub_options = config.pop('oarsub_options',
+                                                'walltime=0:15')
+        # optionally, override default location of python and/or
+        # BINoculars installation
+        self.config.executable = config.pop('executable', ' '.join(util.get_python_executable()))  # noqa
 
     def process_jobs(self, jobs):
         self.configfiles = []
         self.intermediates = []
-        clusters = util.cluster_jobs2(jobs, self.main.input.config.target_weight)
+        clusters = util.cluster_jobs2(jobs,
+                                      self.main.input.config.target_weight)
         for jobscluster in clusters:
             uniq = util.uniqid()
-            jobconfig = os.path.join(self.config.tmpdir, 'binoculars-{0}-jobcfg.zpi'.format(uniq))
+            jobconfig = os.path.join(self.config.tmpdir,
+                                     'binoculars-{0}-jobcfg.zpi'.format(uniq))
             self.configfiles.append(jobconfig)
 
             config = self.main.clone_config()
-            interm = os.path.join(self.config.tmpdir, 'binoculars-{0}-jobout.hdf5'.format(uniq))
+            interm = os.path.join(self.config.tmpdir,
+                                  'binoculars-{0}-jobout.hdf5'.format(uniq))
             self.intermediates.append(interm)
             config.dispatcher.destination.set_tmp_filename(interm)
             config.dispatcher.sum = ()
@@ -215,9 +241,11 @@ class Oar(ReentrantBase):
             util.zpi_save(config, jobconfig)
             yield self.oarsub(jobconfig)
 
-        #if all jobs are sent to the cluster send the process that sums all other jobs
+        # if all jobs are sent to the cluster send the process that
+        # sums all other jobs
         uniq = util.uniqid()
-        jobconfig = os.path.join(self.config.tmpdir, 'binoculars-{0}-jobcfg.zpi'.format(uniq))
+        jobconfig = os.path.join(self.config.tmpdir,
+                                 'binoculars-{0}-jobcfg.zpi'.format(uniq))
         self.configfiles.append(jobconfig)
         config = self.main.clone_config()
         config.dispatcher.sum = self.intermediates
@@ -234,33 +262,39 @@ class Oar(ReentrantBase):
         return True
 
     def run_specific_task(self, command):
-        if self.config.action != 'process' or (not self.config.jobs and not self.config.sum) or command:
-            raise errors.SubprocessError("invalid command, too many parameters or no jobs/sum given")
+        if self.config.action != 'process' \
+           or (not self.config.jobs and not self.config.sum) \
+           or command:
+            raise errors.SubprocessError("invalid command, too many parameters or no jobs/sum given")  # noqa
 
         jobs = sum = space.EmptyVerse()
         if self.config.jobs:
-            jobs = space.verse_sum(self.send(self.main.process_job(job) for job in self.config.jobs))
+            jobs = space.verse_sum(self.send(self.main.process_job(job)
+                                             for job in self.config.jobs))
         if self.config.sum:
-            sum = space.chunked_sum(space.Multiverse.fromfile(src) for src in util.yield_when_exists(self.config.sum))
+            sum = space.chunked_sum(space.Multiverse.fromfile(src)
+                                    for src in util.yield_when_exists(self.config.sum))  # noqa
         self.config.destination.store(jobs + sum)
 
-    ### calling OAR
+    # calling OAR
     @staticmethod
     def subprocess_run(*command):
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(command,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT)
         output, unused_err = process.communicate()
         retcode = process.poll()
         return retcode, output
 
     def oarsub(self, *args):
-        command = '{0} process {1}'.format(self.config.executable, ' '.join(args))
-        ret, output = self.subprocess_run('oarsub', '-l {0}'.format(self.config.oarsub_options), command)
+        command = '{0} process {1}'.format(self.config.executable, ' '.join(args))  # noqa
+        ret, output = self.subprocess_run('oarsub', '-l {0}'.format(self.config.oarsub_options), command)  # noqa
         if ret == 0:
             lines = output.split('\n')
             for line in lines:
                 if line.startswith('OAR_JOB_ID='):
                     void, jobid = line.split('=')
-                    util.status('{0}: Launched job {1}'.format(time.ctime(), jobid))
+                    util.status('{0}: Launched job {1}'.format(time.ctime(), jobid))  # noqa
                     return jobid.strip()
         return False
 
@@ -279,9 +313,8 @@ class Oar(ReentrantBase):
             return 'Unknown'
 
     def oarwait(self, jobs, remaining=0):
-        linelen = 0
         if len(jobs) > remaining:
-            util.status('{0}: getting status of {1} jobs...'.format(time.ctime(), len(jobs)))
+            util.status('{0}: getting status of {1} jobs...'.format(time.ctime(), len(jobs)))  # noqa
         else:
             return
 
@@ -301,11 +334,12 @@ class Oar(ReentrantBase):
                     W += 1
                 elif state == 'Unknown':
                     U += 1
-                else:  # assume state == 'Finishing' or 'Terminated' but don't wait on something unknown
+                else:  # assume state == 'Finishing' or 'Terminated'
+                       # but don't wait on something unknown  # noqa
                     del jobs[i]
                     i -= 1  # otherwise it skips a job
                 i += 1
-            util.status('{0}: {1} jobs to go. {2} waiting, {3} running, {4} unknown.'.format(time.ctime(), len(jobs), W, R, U))
+            util.status('{0}: {1} jobs to go. {2} waiting, {3} running, {4} unknown.'.format(time.ctime(), len(jobs), W, R, U))  # noqa
         util.statuseol()
 
     def oar_cleanup(self, jobs):
@@ -326,7 +360,7 @@ class Oar(ReentrantBase):
                     errormsg = fp.read()
                 if len(errormsg) > 0:
                     errorfn.append(errorfilename)
-                    print('Critical error: OAR Job {0} failed with the following error: \n{1}'.format(jobid, errormsg))
+                    print('Critical error: OAR Job {0} failed with the following error: \n{1}'.format(jobid, errormsg))  # noqa
 
         if len(errorfn) > 0:
-            print('Warning! {0} job(s) failed. See above for the details or the error log files: {1}'.format(len(errorfn), ', '.join(errorfn)))
+            print('Warning! {0} job(s) failed. See above for the details or the error log files: {1}'.format(len(errorfn), ', '.join(errorfn)))  # noqa
