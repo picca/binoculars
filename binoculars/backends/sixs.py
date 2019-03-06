@@ -40,6 +40,7 @@ from gi.repository import Hkl
 
 from .. import backend, errors, util
 from ..util import as_string
+from tables.exceptions import NoSuchNodeError
 
 # TODO
 # - Angles delta gamma. nom de 2 ou 3 moteurs. omega puis delta
@@ -237,8 +238,9 @@ def get_diffractometer(hfile):
     node = get_nxclass(hfile, 'NXdiffractometer')
 
     name = node_as_string(node.type)
-    # remove the last "\n" char
-    name = name[:-1]
+    if name.endswith('\n'):
+        # remove the last "\n" char
+        name = name[:-1]
 
     ub = node.UB[:]
 
@@ -296,7 +298,16 @@ Source = namedtuple("Source", ["wavelength"])
 
 
 def get_source(hfile):
-    wavelength = get_nxclass(hfile, 'NXmonochromator').wavelength[0]
+    wavelength = None
+    node = get_nxclass(hfile, 'NXmonochromator')
+    for attr in ["wavelength", "lambda"]:
+        try:
+            wavelength = node[attr][0]
+        except NoSuchNodeError:
+            pass
+        except IndexError:
+            pass
+
     return Source(wavelength)
 
 
