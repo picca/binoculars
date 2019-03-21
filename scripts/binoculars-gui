@@ -800,8 +800,12 @@ class ProjectWidget(QWidget):
             data = space.get_masked().compressed()
             if log or loglog:
                 data = data[data > 0]
-            self.datamin.append(data.min())
-            self.datamax.append(data.max())
+            if len(data) > 0:
+                self.datamin.append(data.min())
+                self.datamax.append(data.max())
+            else:  # min, max when there is no data to plot
+                self.datamin.append(numpy.pi)
+                self.datamax.append(numpy.pi)
 
         norm = self.get_normlist()
 
