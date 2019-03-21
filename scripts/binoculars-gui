@@ -780,7 +780,10 @@ class ProjectWidget(QWidget):
             if rkey == None:
                 space = self.table.getspace(filename)
             else:
-                space = self.table.getspace(filename, rkey)
+                try:
+                    space = self.table.getspace(filename, rkey)
+                except KeyError:
+                    return
             projection = [ax for ax in self.projection if ax in space.axes]
             if projection:
                 space = space.project(*projection)
