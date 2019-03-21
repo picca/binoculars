@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 from __future__ import unicode_literals
 
 import sys
@@ -687,18 +687,18 @@ class ProjectWidget(QWidget):
 
     def update_sliders(self, plotaxes):
         if not plotaxes == None:
-            space = plotaxes.space
             if hasattr(plotaxes, 'space'):
+                space = plotaxes.space
                 if space.dimension == 2:
                     labels = numpy.array([plotaxes.get_xlabel(), plotaxes.get_ylabel()])
                     limits = list(lim for lim in [plotaxes.get_xlim(), plotaxes.get_ylim()])
                 elif space.dimension == 1:
                     labels = [plotaxes.get_xlabel()]
                     limits = [plotaxes.get_xlim()]
-            keydict = dict()
-            for key, value in zip(labels, limits):
-                keydict[key] = value
-            self.limitwidget.update_from_zoom(keydict)
+                keydict = dict()
+                for key, value in zip(labels, limits):
+                    keydict[key] = value
+                self.limitwidget.update_from_zoom(keydict)
 
     def selectionerror(self, message):
         self.limitwidget.setDisabled(True)
