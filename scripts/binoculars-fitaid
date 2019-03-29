@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+from typing import Any, List, Tuple
+
 import sys
 import os.path
 import itertools
@@ -103,7 +105,7 @@ class Window(QMainWindow):
                 'Unable to save project to {}: {}'.format(fname, e)
             )
 
-    def loadproject(self, filename=None):
+    def loadproject(self, filename: str=None) -> None:
         if not filename:
             dialog = QFileDialog(self, "Load project")
             dialog.setNameFilters(['binoculars fit file (*.fit)'])
@@ -129,7 +131,7 @@ class Window(QMainWindow):
             self.tab_widget.addTab(widget, 'fname')
             self.tab_widget.setCurrentWidget(widget)
 
-    def add_to_project(self, filename=None):
+    def add_to_project(self, filename: str=None) -> None:
         if self.tab_widget.count() == 0:
             QMessageBox.warning(
                 self, 'Warning', 'First select a file to store data')
@@ -243,14 +245,14 @@ class TopWidget(QWidget):
         hbox.addWidget(splitter)
         self.setLayout(hbox)
 
-    def tab_change(self, index):
+    def tab_change(self, index: int):
         if index == 2:
             self.refresh_plot()
 
-    def addspace(self, filename=None):
+    def addspace(self, filename: str=None) -> None:
         self.table.addspace(filename or str(QFileDialog.getOpenFileName(self, 'Open Project', '.', '*.hdf5')))  # noqa
 
-    def active_change(self):
+    def active_change(self) -> None:
         rodkey, axis, resolution = self.table.currentkey()
         newdatabase = RodData(self.database.filename, rodkey, axis, resolution)
         self.integratewidget.database = newdatabase
@@ -265,14 +267,14 @@ class TopWidget(QWidget):
         self.nav.set_index(index)
         self.index_change(index)
 
-    def index_change(self, index):
+    def index_change(self, index: int) -> None:
         if index is None:
             index = 0
         self.fitwidget.database.save('index', self.nav.index())
         self.fitwidget.plot(index)
         self.integratewidget.plot(index)
 
-    def refresh_plot(self):
+    def refresh_plot(self) -> None:
         self.plotwidget.refresh(
             [RodData(self.database.filename, rodkey, axis, resolution)
              for rodkey, axis, resolution in self.table.checked()]
@@ -282,23 +284,23 @@ class TopWidget(QWidget):
     def fitclass(self):
         return self.functions[self.function_box.currentIndex()]
 
-    def fit_slice(self):
+    def fit_slice(self) -> None:
         index = self.nav.index()
         space = self.fitwidget.database.space_from_index(index)
         self.fitwidget.fit(index, space, self.fitclass)
         self.fit_loc(self.fitwidget.database)
         self.fitwidget.plot(index)
 
-    def fit_rod(self):
-        def function(index, space):
+    def fit_rod(self) -> None:
+        def function(index: int, space):
             self.fitwidget.fit(index, space, self.fitclass)
         self.progressbox(self.fitwidget.database.rodkey, function, enumerate(
             self.fitwidget.database), self.fitwidget.database.rodlength())
         self.fit_loc(self.fitwidget.database)
         self.fitwidget.plot()
 
-    def fit_all(self):
-        def function(index, space):
+    def fit_all(self) -> None:
+        def function(index: int, space):
             self.fitwidget.fit(index, space, self.fitclass)
 
         for rodkey, axis, resolution in self.table.checked():
@@ -314,13 +316,13 @@ class TopWidget(QWidget):
 
         self.fitwidget.plot()
 
-    def int_slice(self):
+    def int_slice(self) -> None:
         index = self.nav.index()
         space = self.fitwidget.database.space_from_index(index)
         self.integratewidget.integrate(index, space)
         self.integratewidget.plot(index)
 
-    def int_rod(self):
+    def int_rod(self) -> None:
         self.progressbox(
             self.integratewidget.database.rodkey,
             self.integratewidget.integrate,
@@ -329,7 +331,7 @@ class TopWidget(QWidget):
         )
         self.integratewidget.plot()
 
-    def int_all(self):
+    def int_all(self) -> None:
         for rodkey, axis, resolution in self.table.checked():
             self.integratewidget.database = RodData(
                 self.database.filename, rodkey, axis, resolution)
@@ -410,7 +412,7 @@ class TableWidget(QWidget):
         hbox.addWidget(self.table)
         self.setLayout(hbox)
 
-    def addspace(self, filename, rodkey=None):
+    def addspace(self, filename: str, rodkey=None) -> None:
         def remove_callback(rodkey):
             return lambda: self.remove(rodkey)
 
@@ -468,16 +470,16 @@ class TableWidget(QWidget):
         buttonwidget.clicked.connect(remove_callback(rodkey))
         self.table.setCellWidget(index, 4, buttonwidget)
 
-    def remove(self, rodkey):
-        table_rodkeys = list(self.table.cellWidget(
-            index, 0).rodkey for index in range(self.table.rowCount()))
+    def remove(self, rodkey) -> None:
+        table_rodkeys = [self.table.cellWidget(index, 0).rodkey
+                         for index in range(self.table.rowCount())]
         for index, label in enumerate(table_rodkeys):
             if rodkey == label:
                 self.table.removeRow(index)
         self.database.delete_rod(rodkey)
         print('removed: {0}'.format(rodkey))
 
-    def setlength(self, y, x=1):
+    def setlength(self, y: int, x: int=1) -> None:
         if x == 1:
             self.activeindex = y
             rodkey, axis, resolution = self.currentkey()
@@ -485,13 +487,13 @@ class TableWidget(QWidget):
             self.database.save(rodkey, 'resolution', resolution)
             self.trigger.emit()
 
-    def currentkey(self):
+    def currentkey(self) -> Tuple[Any, str, float]:
         rodkey = self.table.cellWidget(self.activeindex, 0).rodkey
         axis = str(self.table.cellWidget(self.activeindex, 2).currentText())
         resolution = float(self.table.cellWidget(self.activeindex, 3).text())
         return rodkey, axis, resolution
 
-    def checked(self):
+    def checked(self) -> List[Tuple[Any, str, float]]:
         selection = []
         for index in range(self.table.rowCount()):
             checkbox = self.table.cellWidget(index, 0)
