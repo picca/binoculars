@@ -198,6 +198,49 @@ class QIndex(Stereo):
     def get_axis_labels(self):
         return "Q", "Index"
 
+
+class AnglesProjection(backend.ProjectionBase):
+    # scalars: mu, theta, [chi, phi, "omitted"] delta, gamR, gamT, ty,
+    # wavelength 3x3 matrix: UB
+    def project(self, index, pdataframe):
+        # put the detector at the right position
+
+        pixels, k, UB, R, P = pdataframe
+
+        # on calcule le vecteur de l'axes de rotation de l'angle qui
+        # nous interesse. (ici delta et gamma). example delta (0, 1,
+        # 0) (dans le repere du detecteur). Il faut donc calculer la
+        # matrice de transformation pour un axe donnée. C'est la liste
+        # de transformations qui sont entre cet axe et le detecteur.
+        axis_delta = None
+        axis_gamma = None
+
+        # il nous faut ensuite calculer la normale du plan dans lequel
+        # nous allons projeter les pixels. (C'est le produit vectoriel
+        # de k0, axis_xxx).
+        n_delta = None
+        n_gamma = None
+
+        # On calcule la projection sur la normale des plans en
+        # question.
+        p_delta = None
+        p_gamma = None
+
+        # On calcule la norme de chaque pixel. (qui pourra etre
+        # calcule une seule fois pour toutes les images).
+        l2 = numpy.linalg.norm(pixels, order=2, axis=-1)
+
+        # xxx0 is the angles of the diffractometer for the given
+        # image.
+        delta = numpy.arcsin(p_delta / l2) + delta0
+        gamma = numpy.arcsin(p_gamma / l2) + gamma0
+        omega = numpy.ones_like(delta) * omega0
+
+        return (omega, delta, gamma)
+
+    def get_axis_labels(self):
+        return 'omega', 'delta', 'gamma'
+
 ###################
 # Common methodes #
 ###################
