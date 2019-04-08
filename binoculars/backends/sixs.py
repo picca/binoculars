@@ -15,7 +15,7 @@
   along with the hkl library.  If not, see
   <http://www.gnu.org/licenses/>.
 
-  Copyright (C) 2015-2017 Synchrotron SOLEIL
+  Copyright (C) 2015-2019 Synchrotron SOLEIL
                           L'Orme des Merisiers Saint-Aubin
                           BP 48 91192 GIF-sur-YVETTE CEDEX
 
@@ -26,6 +26,8 @@
            Picca Frédéric-Emmanuel <picca@synchrotron-soleil.fr>
 
 '''
+from typing import Dict, NamedTuple
+
 import numpy
 import math
 import os
@@ -34,12 +36,14 @@ import sys
 
 from collections import namedtuple
 from math import cos, sin
+from numpy import ndarray
 from numpy.linalg import inv
 from pyFAI.detectors import ALL_DETECTORS
 from gi.repository import Hkl
 
 from .. import backend, errors, util
 from ..util import as_string
+from tables import Node
 from tables.exceptions import NoSuchNodeError
 
 # TODO
@@ -55,7 +59,11 @@ from tables.exceptions import NoSuchNodeError
 # Projections #
 ###############
 
-PDataFrame = namedtuple("PDataFrame", ["pixels", "k", "ub", "R", "P"])
+PDataFrame = NamedTuple("PDataFrame", [("pixels", ndarray),
+                                       ("k", float),
+                                       ("ub", ndarray),
+                                       ("R", ndarray),
+                                       ("P", ndarray)])
 
 
 class realspace(backend.ProjectionBase):
@@ -102,6 +110,7 @@ class HKLProjection(backend.ProjectionBase):
 
     def get_axis_labels(self):
         return 'H', 'K', 'L'
+
 
 class HKProjection(HKLProjection):
     def project(self, index, pdataframe):
@@ -168,6 +177,7 @@ class QxQyQzProjection(backend.ProjectionBase):
         else:
             self.config.mu_offset = None
 
+
 class QparQperProjection(QxQyQzProjection):
     def project(self, index, pdataframe):
         qx, qy, qz = super(QparQperProjection, self).project(index, pdataframe)
@@ -200,8 +210,6 @@ class QIndex(Stereo):
 
 
 class AnglesProjection(backend.ProjectionBase):
-    # scalars: mu, theta, [chi, phi, "omitted"] delta, gamR, gamT, ty,
-    # wavelength 3x3 matrix: UB
     def project(self, index, pdataframe):
         # put the detector at the right position
 
@@ -263,6 +271,7 @@ def get_nxclass(hfile, nxclass, path="/"):
             pass
     return None
 
+
 def node_as_string(node):
     if node.shape == ():
         content = node.read().tostring()
@@ -270,10 +279,11 @@ def node_as_string(node):
         content = node[0]
     return as_string(content)
 
-Diffractometer = namedtuple('Diffractometer',
-                            ['name',  # name of the hkl diffractometer
-                             'ub',  # the UB matrix
-                             'geometry'])  # the HklGeometry
+
+Diffractometer = NamedTuple('Diffractometer',
+                            [('name', str),  # name of the hkl diffractometer
+                             ('ub', ndarray),  # the UB matrix
+                             ('geometry', Hkl.Geometry)])  # the HklGeometry
 
 
 def get_diffractometer(hfile):
@@ -296,9 +306,16 @@ def get_diffractometer(hfile):
     return Diffractometer(name, ub, geometry)
 
 
-Sample = namedtuple("Sample", ["a", "b", "c",
-                               "alpha", "beta", "gamma",
-                               "ux", "uy", "uz", "sample"])
+Sample = NamedTuple("Sample", [("a", float),
+                               ("b", float),
+                               ("c", float),
+                               ("alpha", float),
+                               ("beta", float),
+                               ("gamma", float),
+                               ("ux", float),
+                               ("uy", float),
+                               ("uz", float),
+                               ("sample", Hkl.Sample)])
 
 
 def get_sample(hfile):
@@ -329,7 +346,8 @@ def get_sample(hfile):
     return Sample(1.54, 1.54, 1.54, 90, 90, 90, 0, 0, 0, sample)
 
 
-Detector = namedtuple("Detector", ["name", "detector"])
+Detector = NamedTuple("Detector", [("name", str),
+                                   ("detector", Hkl.Detector)])
 
 
 def get_detector(hfile):
@@ -337,7 +355,8 @@ def get_detector(hfile):
 
     return Detector("imxpads140", detector)
 
-Source = namedtuple("Source", ["wavelength"])
+
+Source = NamedTuple("Source", [("wavelength", float)])
 
 
 def get_source(hfile):
@@ -354,9 +373,11 @@ def get_source(hfile):
     return Source(wavelength)
 
 
-DataFrame = namedtuple("DataFrame", ["diffractometer",
-                                     "sample", "detector", "source",
-                                     "h5_nodes"])
+DataFrame = NamedTuple("DataFrame", [("diffractometer", Diffractometer),
+                                     ("sample", Sample),
+                                     ("detector", Detector),
+                                     ("source", Source),
+                                     ("h5_nodes", Dict[str, Node])])
 
 
 def dataframes(hfile, data_path=None):
