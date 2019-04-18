@@ -70,11 +70,16 @@ class realspace(backend.ProjectionBase):
     # scalars: mu, theta, [chi, phi, "omitted"] delta, gamR, gamT, ty,
     # wavelength 3x3 matrix: UB
     def project(self, index, pdataframe):
-        return (pdataframe.pixels[1],
-                pdataframe.pixels[2])
+        pixels = numpy.tensordot(pdataframe.P,
+                                 pdataframe.pixels, axes=1)
+        x = pixels[1]
+        y = pixels[2]
+        z = numpy.ones_like(x) * index
+
+        return (x, y, z)
 
     def get_axis_labels(self):
-        return 'x', 'y'
+        return ('x', 'y', 'z')
 
 
 class Pixels(backend.ProjectionBase):
@@ -178,6 +183,33 @@ class QxQyQzProjection(backend.ProjectionBase):
             self.config.mu_offset = None
 
 
+class QxQyIndexProjection(QxQyQzProjection):
+    def project(self, index, pdataframe):
+        qx, qy, qz = super(QxQyIndexProjection, self).project(index, pdataframe)
+        return qx, qy, numpy.ones_like(qx) * index
+
+    def get_axis_labels(self):
+        return 'Qx', 'Qy', 't'
+
+
+class QxQzIndexProjection(QxQyQzProjection):
+    def project(self, index, pdataframe):
+        qx, qy, qz = super(QxQzIndexProjection, self).project(index, pdataframe)
+        return qx, qz, numpy.ones_like(qx) * index
+
+    def get_axis_labels(self):
+        return 'Qx', 'Qz', 't'
+
+
+class QyQzIndexProjection(QxQyQzProjection):
+    def project(self, index, pdataframe):
+        qx, qy, qz = super(QyQzIndexProjection, self).project(index, pdataframe)
+        return qy, qz, numpy.ones_like(qy) * index
+
+    def get_axis_labels(self):
+        return 'Qy', 'Qz', 't'
+
+
 class QparQperProjection(QxQyQzProjection):
     def project(self, index, pdataframe):
         qx, qy, qz = super(QparQperProjection, self).project(index, pdataframe)
@@ -185,6 +217,16 @@ class QparQperProjection(QxQyQzProjection):
 
     def get_axis_labels(self):
         return 'Qpar', 'Qper'
+
+
+class QparQperIndexProjection(QparQperProjection):
+    def project(self, index, pdataframe):
+        qpar, qper = super(QparQperIndexProjection, self).project(index, pdataframe)
+        return qpar, qper, numpy.ones_like(qpar) * index
+
+    def get_axis_labels(self):
+        return 'Qpar', 'Qper', 't'
+
 
 
 class Stereo(QxQyQzProjection):
@@ -350,10 +392,15 @@ Detector = NamedTuple("Detector", [("name", str),
                                    ("detector", Hkl.Detector)])
 
 
-def get_detector(hfile):
+def get_detector(hfile, h5_nodes):
     detector = Hkl.Detector.factory_new(Hkl.DetectorType(0))
-
-    return Detector("imxpads140", detector)
+    images = h5_nodes["image"]
+    s = images.shape[-2:]
+    if s == (960, 560) or s == (560, 960):
+        det = Detector("xpad_flat", detector)
+    else:
+        det = Detector("imxpads140", detector)
+    return det
 
 
 Source = NamedTuple("Source", [("wavelength", float)])
@@ -381,11 +428,6 @@ DataFrame = NamedTuple("DataFrame", [("diffractometer", Diffractometer),
 
 
 def dataframes(hfile, data_path=None):
-    diffractometer = get_diffractometer(hfile)
-    sample = get_sample(hfile)
-    detector = get_detector(hfile)
-    source = get_source(hfile)
-
     for group in hfile.get_node('/'):
         scan_data = group._f_get_child("scan_data")
         # now instantiate the pytables objects
@@ -400,7 +442,12 @@ def dataframes(hfile, data_path=None):
                     raise
             h5_nodes[key] = child
 
-        yield DataFrame(diffractometer, sample, detector, source, h5_nodes)
+    diffractometer = get_diffractometer(hfile)
+    sample = get_sample(hfile)
+    detector = get_detector(hfile, h5_nodes)
+    source = get_source(hfile)
+
+    yield DataFrame(diffractometer, sample, detector, source, h5_nodes)
 
 
 def get_ki(wavelength):
@@ -608,11 +655,14 @@ class FlyScanUHV(SIXS):
         attenuation = None
         if self.config.attenuation_coefficient is not None:
             try:
-                node = h5_nodes['attenuation']
-                if node is not None:
-                    attenuation = node[index + offset]
-                else:
-                    raise Exception("you asked for attenuation but the file does not contain attenuation informations.")  # noqa
+                try:
+                    node = h5_nodes['attenuation']
+                    if node is not None:
+                        attenuation = node[index + offset]
+                    else:
+                        raise Exception("you asked for attenuation but the file does not contain attenuation informations.")  # noqa
+                except KeyError:
+                    attenuation = 1.0
             except IndexError:
                 attenuation = WRONG_ATTENUATION
         return attenuation
@@ -745,6 +795,77 @@ class SBSMedH(FlyScanUHV):
         attenuation = self.get_attenuation(index, h5_nodes, 2)
 
         return (image, attenuation, (pitch, mu, gamma, delta))
+
+
+class SBSFixedDetector(FlyScanUHV):
+    HPATH = {
+        "image": HItem("data_11", False),
+    }
+
+    def get_pointcount(self, scanno):
+        # just open the file in order to extract the number of step
+        with tables.open_file(self.get_filename(scanno), 'r') as scan:
+            return get_nxclass(scan, "NXdata").data_11.shape[0]
+
+    def get_values(self, index, h5_nodes):
+        image = h5_nodes['image'][index]
+        attenuation = self.get_attenuation(index, h5_nodes, 2)
+
+        return (image, attenuation, None)
+
+    def process_image(self, index, dataframe, pixels, mask):
+        util.status(str(index))
+
+        # extract the data from the h5 nodes
+
+        h5_nodes = dataframe.h5_nodes
+        intensity, attenuation, values = self.get_values(index, h5_nodes)
+
+        # BEWARE in order to avoid precision problem we convert the
+        # uint16 -> float32. (the size of the mantis is on 23 bits)
+        # enought to contain the uint16. If one day we use uint32, it
+        # should be necessary to convert into float64.
+        intensity = intensity.astype('float32')
+
+        weights = None
+        if self.config.attenuation_coefficient is not None:
+            if attenuation != WRONG_ATTENUATION:
+                intensity *= self.config.attenuation_coefficient ** attenuation
+                weights = numpy.ones_like(intensity)
+                weights *= ~mask
+            else:
+                weights = numpy.zeros_like(intensity)
+        else:
+            weights = numpy.ones_like(intensity)
+            weights *= ~mask
+
+        k = 2 * math.pi / dataframe.source.wavelength
+
+        I = numpy.array([[1,  0, 0],
+                         [0,  0, 1],
+                         [0, -1, 0]])
+
+
+        # hkl_geometry = dataframe.diffractometer.geometry
+        # hkl_geometry.axis_values_set(values, Hkl.UnitEnum.USER)
+
+        # # sample
+        # hkl_sample = dataframe.sample.sample
+        # q_sample = hkl_geometry.sample_rotation_get(hkl_sample)
+        # R = hkl_matrix_to_numpy(q_sample.to_matrix())
+
+        # # detector
+        # hkl_detector = dataframe.detector.detector
+        # q_detector = hkl_geometry.detector_rotation_get(hkl_detector)
+        # P = hkl_matrix_to_numpy(q_detector.to_matrix())
+
+        if self.config.detrot is not None:
+            P = M(math.radians(self.config.detrot), [1, 0, 0])
+
+        pdataframe = PDataFrame(pixels, k, I, I, P)
+
+        return intensity, weights, (index, pdataframe)
+
 
 
 class FlyMedV(FlyScanUHV):
