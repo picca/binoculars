@@ -634,6 +634,7 @@ class FlyScanUHV(SIXS):
         "delta": HItem("UHV_DELTA", False),
         "gamma": HItem("UHV_GAMMA", False),
         "attenuation": HItem("attenuation", True),
+        "timestamp": HItem("epoch", True),
     }
 
     def get_pointcount(self, scanno):
@@ -658,12 +659,12 @@ class FlyScanUHV(SIXS):
         return attenuation
 
     def get_timestamp(self, index, h5_nodes):
-        timestamps = None
+        timestamp = None
         try:
-            timestamps = h5_nodes['timestamps'][index]
+            timestamp = h5_nodes['timestamp'][index]
         except KeyError:
-            timestamps = index
-        return timestamps
+            timestamp = index
+        return timestamp
 
     def get_values(self, index, h5_nodes):
         image = h5_nodes['image'][index]
@@ -746,6 +747,7 @@ class FlyScanUHV2(FlyScanUHV):
         "delta": HItem("delta", False),
         "gamma": HItem("gamma", False),
         "attenuation": HItem("attenuation", True),
+        "timestamp": HItem("epoch", True),
     }
 
 
@@ -757,6 +759,7 @@ class FlyMedH(FlyScanUHV):
         "gamma": HItem("gamma", False),
         "delta": HItem("delta", False),
         "attenuation": HItem("attenuation", True),
+        "timestamp": HItem("epoch", True),
     }
 
     def get_values(self, index, h5_nodes):
@@ -779,6 +782,7 @@ class SBSMedH(FlyScanUHV):
         "gamma": HItem("data_20", False),
         "delta": HItem("data_19", False),
         "attenuation": HItem("data_xx", True),
+        "timestamp": HItem("epoch", True),
     }
 
     def get_pointcount(self, scanno):
@@ -801,7 +805,7 @@ class SBSMedH(FlyScanUHV):
 class SBSFixedDetector(FlyScanUHV):
     HPATH = {
         "image": HItem("data_11", False),
-        "timestamps": HItem("sensors_timestamps", True),
+        "timestamp": HItem("sensors_timestamps", True),
     }
 
     def get_pointcount(self, scanno):
@@ -882,6 +886,7 @@ class FlyMedV(FlyScanUHV):
         "delta": HItem("delta", False),
         "etaa": HItem("etaa", True),
         "attenuation": HItem("attenuation", True),
+        "timestamp": HItem("epoch", True),
     }
 
     def get_values(self, index, h5_nodes):
