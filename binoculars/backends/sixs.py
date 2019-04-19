@@ -1,4 +1,3 @@
-# -*- encoding: utf-8 -*-
 '''This file is part of the binoculars project.
 
   The BINoculars library is free software: you can redistribute it
@@ -67,8 +66,6 @@ PDataFrame = NamedTuple("PDataFrame", [("pixels", ndarray),
 
 
 class realspace(backend.ProjectionBase):
-    # scalars: mu, theta, [chi, phi, "omitted"] delta, gamR, gamT, ty,
-    # wavelength 3x3 matrix: UB
     def project(self, index, pdataframe):
         pixels = numpy.tensordot(pdataframe.P,
                                  pdataframe.pixels, axes=1)
@@ -83,8 +80,6 @@ class realspace(backend.ProjectionBase):
 
 
 class Pixels(backend.ProjectionBase):
-    # scalars: mu, theta, [chi, phi, "omitted"] delta, gamR, gamT, ty,
-    # wavelength 3x3 matrix: UB
     def project(self, index, pdataframe):
         return numpy.meshgrid(numpy.arange(pdataframe.pixels[0].shape[1]),
                               numpy.arange(pdataframe.pixels[0].shape[0]))
@@ -94,11 +89,7 @@ class Pixels(backend.ProjectionBase):
 
 
 class HKLProjection(backend.ProjectionBase):
-    # scalars: mu, theta, [chi, phi, "omitted"] delta, gamR, gamT, ty,
-    # wavelength 3x3 matrix: UB
     def project(self, index, pdataframe):
-        # put the detector at the right position
-
         pixels, k, UB, R, P = pdataframe
 
         ki = [1, 0, 0]
@@ -146,9 +137,6 @@ class QxQyQzProjection(backend.ProjectionBase):
             UB = numpy.dot(UB,
                            M(self.config.omega_offset, [0, 0, -1]))
 
-        # UB = numpy.array([[1, 0, 0],
-        #                   [0, 1, 0],
-        #                   [0, 0, 1]])
         # the ki vector should be in the NexusFile or easily extracted
         # from the hkl library.
         ki = [1, 0, 0]
