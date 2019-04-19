@@ -73,10 +73,10 @@ class realspace(backend.ProjectionBase):
         y = pixels[2]
         z = numpy.ones_like(x) * index
 
-        return (x, y, z)
+        return x, y, z
 
     def get_axis_labels(self):
-        return ('x', 'y', 'z')
+        return 'x', 'y', 'z'
 
 
 class Pixels(backend.ProjectionBase):
@@ -102,10 +102,10 @@ class HKLProjection(backend.ProjectionBase):
 
         h, k, l = hkl * k
 
-        return (h, k, l)
+        return h, k, l
 
     def get_axis_labels(self):
-        return 'H', 'K', 'L'
+        return 'h', 'k', 'l'
 
 
 class HKProjection(HKLProjection):
@@ -114,7 +114,7 @@ class HKProjection(HKLProjection):
         return h, k
 
     def get_axis_labels(self):
-        return 'H', 'K'
+        return 'h', 'k'
 
 
 class QxQyQzProjection(backend.ProjectionBase):
@@ -151,7 +151,7 @@ class QxQyQzProjection(backend.ProjectionBase):
         return qx, qy, qz
 
     def get_axis_labels(self):
-        return "Qx", "Qy", "Qz"
+        return "qx", "qy", "qz"
 
     def parse_config(self, config):
         super(QxQyQzProjection, self).parse_config(config)
@@ -186,7 +186,7 @@ class QxQzIndexProjection(QxQyQzProjection):
         return qx, qz, numpy.ones_like(qx) * index
 
     def get_axis_labels(self):
-        return 'Qx', 'Qz', 't'
+        return 'qx', 'qz', 't'
 
 
 class QyQzIndexProjection(QxQyQzProjection):
@@ -195,7 +195,7 @@ class QyQzIndexProjection(QxQyQzProjection):
         return qy, qz, numpy.ones_like(qy) * index
 
     def get_axis_labels(self):
-        return 'Qy', 'Qz', 't'
+        return 'qy', 'qz', 't'
 
 
 class QparQperProjection(QxQyQzProjection):
@@ -204,7 +204,7 @@ class QparQperProjection(QxQyQzProjection):
         return numpy.sqrt(qx*qx + qy*qy), qz
 
     def get_axis_labels(self):
-        return 'Qpar', 'Qper'
+        return 'qpar', 'qper'
 
 
 class QparQperIndexProjection(QparQperProjection):
@@ -213,7 +213,7 @@ class QparQperIndexProjection(QparQperProjection):
         return qpar, qper, numpy.ones_like(qpar) * index
 
     def get_axis_labels(self):
-        return 'Qpar', 'Qper', 't'
+        return 'qpar', 'qper', 't'
 
 
 
@@ -227,7 +227,7 @@ class Stereo(QxQyQzProjection):
         return q, qx, qy
 
     def get_axis_labels(self):
-        return "Q", "Qx", "Qy"
+        return "q", "qx", "qy"
 
 
 class QIndex(Stereo):
@@ -236,7 +236,7 @@ class QIndex(Stereo):
         return q, numpy.ones_like(q) * index
 
     def get_axis_labels(self):
-        return "Q", "Index"
+        return "q", "index"
 
 
 class AnglesProjection(backend.ProjectionBase):
@@ -274,7 +274,7 @@ class AnglesProjection(backend.ProjectionBase):
         gamma = numpy.arcsin(p_gamma / l2) + gamma0
         omega = numpy.ones_like(delta) * omega0
 
-        return (omega, delta, gamma)
+        return omega, delta, gamma
 
     def get_axis_labels(self):
         return 'omega', 'delta', 'gamma'
