@@ -65,7 +65,7 @@ PDataFrame = NamedTuple("PDataFrame", [("pixels", ndarray),
                                        ("P", ndarray)])
 
 
-class realspace(backend.ProjectionBase):
+class RealSpace(backend.ProjectionBase):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         pixels = numpy.tensordot(pdataframe.P,
                                  pdataframe.pixels, axes=1)
