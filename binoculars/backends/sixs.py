@@ -25,7 +25,7 @@
            Picca Frédéric-Emmanuel <picca@synchrotron-soleil.fr>
 
 '''
-from typing import Dict, NamedTuple
+from typing import Dict, NamedTuple, Tuple
 
 import numpy
 import math
@@ -66,7 +66,7 @@ PDataFrame = NamedTuple("PDataFrame", [("pixels", ndarray),
 
 
 class realspace(backend.ProjectionBase):
-    def project(self, index, pdataframe):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         pixels = numpy.tensordot(pdataframe.P,
                                  pdataframe.pixels, axes=1)
         x = pixels[1]
@@ -80,16 +80,16 @@ class realspace(backend.ProjectionBase):
 
 
 class Pixels(backend.ProjectionBase):
-    def project(self, index, pdataframe):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         return numpy.meshgrid(numpy.arange(pdataframe.pixels[0].shape[1]),
                               numpy.arange(pdataframe.pixels[0].shape[0]))
 
-    def get_axis_labels(self):
+    def get_axis_labels(self) -> Tuple[str]:
         return 'x', 'y'
 
 
 class HKLProjection(backend.ProjectionBase):
-    def project(self, index, pdataframe):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         pixels, k, UB, R, P = pdataframe
 
         ki = [1, 0, 0]
@@ -104,21 +104,21 @@ class HKLProjection(backend.ProjectionBase):
 
         return h, k, l
 
-    def get_axis_labels(self):
+    def get_axis_labels(self) -> Tuple[str]:
         return 'h', 'k', 'l'
 
 
 class HKProjection(HKLProjection):
-    def project(self, index, pdataframe):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         h, k, l = super(HKProjection, self).project(index, pdataframe)
         return h, k
 
-    def get_axis_labels(self):
+    def get_axis_labels(self) -> Tuple[str]:
         return 'h', 'k'
 
 
 class QxQyQzProjection(backend.ProjectionBase):
-    def project(self, index, pdataframe):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         # put the detector at the right position
 
         pixels, k, _, R, P = pdataframe
@@ -150,10 +150,10 @@ class QxQyQzProjection(backend.ProjectionBase):
         qx, qy, qz = hkl * k
         return qx, qy, qz
 
-    def get_axis_labels(self):
+    def get_axis_labels(self) -> Tuple[str]:
         return "qx", "qy", "qz"
 
-    def parse_config(self, config):
+    def parse_config(self, config) -> None:
         super(QxQyQzProjection, self).parse_config(config)
 
         # omega offset for the sample in degree then convert into radian
@@ -172,53 +172,53 @@ class QxQyQzProjection(backend.ProjectionBase):
 
 
 class QxQyIndexProjection(QxQyQzProjection):
-    def project(self, index, pdataframe):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         qx, qy, qz = super(QxQyIndexProjection, self).project(index, pdataframe)
         return qx, qy, numpy.ones_like(qx) * index
 
-    def get_axis_labels(self):
+    def get_axis_labels(self) -> Tuple[str]:
         return 'Qx', 'Qy', 't'
 
 
 class QxQzIndexProjection(QxQyQzProjection):
-    def project(self, index, pdataframe):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         qx, qy, qz = super(QxQzIndexProjection, self).project(index, pdataframe)
         return qx, qz, numpy.ones_like(qx) * index
 
-    def get_axis_labels(self):
+    def get_axis_labels(self) -> Tuple[str]:
         return 'qx', 'qz', 't'
 
 
 class QyQzIndexProjection(QxQyQzProjection):
-    def project(self, index, pdataframe):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         qx, qy, qz = super(QyQzIndexProjection, self).project(index, pdataframe)
         return qy, qz, numpy.ones_like(qy) * index
 
-    def get_axis_labels(self):
+    def get_axis_labels(self) -> Tuple[str]:
         return 'qy', 'qz', 't'
 
 
 class QparQperProjection(QxQyQzProjection):
-    def project(self, index, pdataframe):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         qx, qy, qz = super(QparQperProjection, self).project(index, pdataframe)
         return numpy.sqrt(qx*qx + qy*qy), qz
 
-    def get_axis_labels(self):
+    def get_axis_labels(self) -> Tuple[str]:
         return 'qpar', 'qper'
 
 
 class QparQperIndexProjection(QparQperProjection):
-    def project(self, index, pdataframe):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         qpar, qper = super(QparQperIndexProjection, self).project(index, pdataframe)
         return qpar, qper, numpy.ones_like(qpar) * index
 
-    def get_axis_labels(self):
+    def get_axis_labels(self) -> Tuple[str]:
         return 'qpar', 'qper', 't'
 
 
 
 class Stereo(QxQyQzProjection):
-    def project(self, index, pdataframe):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         qx, qy, qz = super(Stereo, self).project(index, pdataframe)
         q = numpy.sqrt(qx*qx+qy*qy+qz*qz)
         # ratio = qz + q
@@ -226,21 +226,21 @@ class Stereo(QxQyQzProjection):
         # y = qy / ratio
         return q, qx, qy
 
-    def get_axis_labels(self):
+    def get_axis_labels(self) -> Tuple[str]:
         return "q", "qx", "qy"
 
 
 class QIndex(Stereo):
-    def project(self, index, pdataframe):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         q, qx, qy = super(QIndex, self).project(index, pdataframe)
         return q, numpy.ones_like(q) * index
 
-    def get_axis_labels(self):
+    def get_axis_labels(self) -> Tuple[str]:
         return "q", "index"
 
 
 class AnglesProjection(backend.ProjectionBase):
-    def project(self, index, pdataframe):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         # put the detector at the right position
 
         pixels, k, UB, R, P = pdataframe
@@ -276,7 +276,7 @@ class AnglesProjection(backend.ProjectionBase):
 
         return omega, delta, gamma
 
-    def get_axis_labels(self):
+    def get_axis_labels(self) -> Tuple[str]:
         return 'omega', 'delta', 'gamma'
 
 ###################
