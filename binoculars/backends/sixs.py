@@ -62,7 +62,9 @@ PDataFrame = NamedTuple("PDataFrame", [("pixels", ndarray),
                                        ("k", float),
                                        ("ub", ndarray),
                                        ("R", ndarray),
-                                       ("P", ndarray)])
+                                       ("P", ndarray),
+                                       ("index", int),
+                                       ("timestamp", int)])
 
 
 class RealSpace(backend.ProjectionBase):
@@ -71,7 +73,7 @@ class RealSpace(backend.ProjectionBase):
                                  pdataframe.pixels, axes=1)
         x = pixels[1]
         y = pixels[2]
-        z = numpy.ones_like(x) * index
+        z = numpy.ones_like(x) * pdataframe.timestamp
 
         return x, y, z
 
@@ -90,7 +92,7 @@ class Pixels(backend.ProjectionBase):
 
 class HKLProjection(backend.ProjectionBase):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
-        pixels, k, UB, R, P = pdataframe
+        pixels, k, UB, R, P, idx, timestamp = pdataframe
 
         ki = [1, 0, 0]
         RUB_1 = inv(numpy.dot(R, UB))
@@ -121,7 +123,7 @@ class QxQyQzProjection(backend.ProjectionBase):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         # put the detector at the right position
 
-        pixels, k, _, R, P = pdataframe
+        pixels, k, _, R, P, idx, timestamp = pdataframe
 
         # TODO factorize with HklProjection. Here a trick in order to
         # compute Qx Qy Qz in the omega basis.
@@ -174,7 +176,7 @@ class QxQyQzProjection(backend.ProjectionBase):
 class QxQyIndexProjection(QxQyQzProjection):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         qx, qy, qz = super(QxQyIndexProjection, self).project(index, pdataframe)
-        return qx, qy, numpy.ones_like(qx) * index
+        return qx, qy, numpy.ones_like(qx) * pdataframe.timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
         return 'Qx', 'Qy', 't'
@@ -183,7 +185,7 @@ class QxQyIndexProjection(QxQyQzProjection):
 class QxQzIndexProjection(QxQyQzProjection):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         qx, qy, qz = super(QxQzIndexProjection, self).project(index, pdataframe)
-        return qx, qz, numpy.ones_like(qx) * index
+        return qx, qz, numpy.ones_like(qx) * pdataframe.timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
         return 'qx', 'qz', 't'
@@ -192,7 +194,7 @@ class QxQzIndexProjection(QxQyQzProjection):
 class QyQzIndexProjection(QxQyQzProjection):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         qx, qy, qz = super(QyQzIndexProjection, self).project(index, pdataframe)
-        return qy, qz, numpy.ones_like(qy) * index
+        return qy, qz, numpy.ones_like(qy) * pdataframe.timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
         return 'qy', 'qz', 't'
@@ -210,7 +212,7 @@ class QparQperProjection(QxQyQzProjection):
 class QparQperIndexProjection(QparQperProjection):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         qpar, qper = super(QparQperIndexProjection, self).project(index, pdataframe)
-        return qpar, qper, numpy.ones_like(qpar) * index
+        return qpar, qper, numpy.ones_like(qpar) * pdataframe.timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
         return 'qpar', 'qper', 't'
@@ -233,7 +235,7 @@ class Stereo(QxQyQzProjection):
 class QIndex(Stereo):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         q, qx, qy = super(QIndex, self).project(index, pdataframe)
-        return q, numpy.ones_like(q) * index
+        return q, numpy.ones_like(q) * pdataframe.timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
         return "q", "index"
@@ -243,7 +245,7 @@ class AnglesProjection(backend.ProjectionBase):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         # put the detector at the right position
 
-        pixels, k, UB, R, P = pdataframe
+        pixels, k, UB, R, P, idx, timestamp = pdataframe
 
         # on calcule le vecteur de l'axes de rotation de l'angle qui
         # nous interesse. (ici delta et gamma). example delta (0, 1,
@@ -655,6 +657,14 @@ class FlyScanUHV(SIXS):
                 attenuation = WRONG_ATTENUATION
         return attenuation
 
+    def get_timestamp(self, index, h5_nodes):
+        timestamps = None
+        try:
+            timestamps = h5_nodes['timestamps'][index]
+        except KeyError:
+            timestamps = index
+        return timestamps
+
     def get_values(self, index, h5_nodes):
         image = h5_nodes['image'][index]
         mu = h5_nodes['mu'][index]
@@ -662,8 +672,9 @@ class FlyScanUHV(SIXS):
         delta = h5_nodes['delta'][index]
         gamma = h5_nodes['gamma'][index]
         attenuation = self.get_attenuation(index, h5_nodes, 2)
+        timestamp = self.get_timestamp(index, h5_nodes)
 
-        return (image, attenuation, (mu, omega, delta, gamma))
+        return (image, attenuation, timestamp, (mu, omega, delta, gamma))
 
     def process_image(self, index, dataframe, pixels, mask):
         util.status(str(index))
@@ -671,7 +682,7 @@ class FlyScanUHV(SIXS):
         # extract the data from the h5 nodes
 
         h5_nodes = dataframe.h5_nodes
-        intensity, attenuation, values = self.get_values(index, h5_nodes)
+        intensity, attenuation, timestamp, values = self.get_values(index, h5_nodes)
 
         # BEWARE in order to avoid precision problem we convert the
         # uint16 -> float32. (the size of the mantis is on 23 bits)
@@ -709,7 +720,7 @@ class FlyScanUHV(SIXS):
         if self.config.detrot is not None:
             P = numpy.dot(P, M(math.radians(self.config.detrot), [1, 0, 0]))
 
-        pdataframe = PDataFrame(pixels, k, dataframe.diffractometer.ub, R, P)
+        pdataframe = PDataFrame(pixels, k, dataframe.diffractometer.ub, R, P, index, timestamp)
 
         return intensity, weights, (index, pdataframe)
 
@@ -755,8 +766,9 @@ class FlyMedH(FlyScanUHV):
         gamma = h5_nodes['gamma'][index]
         delta = h5_nodes['delta'][index]
         attenuation = self.get_attenuation(index, h5_nodes, 2)
+        timestamp = self.get_timestamp(index, h5_nodes)
 
-        return (image, attenuation, (pitch, mu, gamma, delta))
+        return (image, attenuation, timestamp, (pitch, mu, gamma, delta))
 
 
 class SBSMedH(FlyScanUHV):
@@ -781,13 +793,15 @@ class SBSMedH(FlyScanUHV):
         gamma = h5_nodes['gamma'][index]
         delta = h5_nodes['delta'][index]
         attenuation = self.get_attenuation(index, h5_nodes, 2)
+        timestamp = self.get_timestamp(index, h5_nodes)
 
-        return (image, attenuation, (pitch, mu, gamma, delta))
+        return (image, attenuation, timestamp, (pitch, mu, gamma, delta))
 
 
 class SBSFixedDetector(FlyScanUHV):
     HPATH = {
         "image": HItem("data_11", False),
+        "timestamps": HItem("sensors_timestamps", True),
     }
 
     def get_pointcount(self, scanno):
@@ -798,8 +812,10 @@ class SBSFixedDetector(FlyScanUHV):
     def get_values(self, index, h5_nodes):
         image = h5_nodes['image'][index]
         attenuation = self.get_attenuation(index, h5_nodes, 2)
+        timestamp = self.get_timestamp(index, h5_nodes)
+        print(timestamp, type(timestamp))
 
-        return (image, attenuation, None)
+        return (image, attenuation, timestamp, None)
 
     def process_image(self, index, dataframe, pixels, mask):
         util.status(str(index))
@@ -807,7 +823,7 @@ class SBSFixedDetector(FlyScanUHV):
         # extract the data from the h5 nodes
 
         h5_nodes = dataframe.h5_nodes
-        intensity, attenuation, values = self.get_values(index, h5_nodes)
+        intensity, attenuation, timestamp, values = self.get_values(index, h5_nodes)
 
         # BEWARE in order to avoid precision problem we convert the
         # uint16 -> float32. (the size of the mantis is on 23 bits)
@@ -850,7 +866,7 @@ class SBSFixedDetector(FlyScanUHV):
         if self.config.detrot is not None:
             P = M(math.radians(self.config.detrot), [1, 0, 0])
 
-        pdataframe = PDataFrame(pixels, k, I, I, P)
+        pdataframe = PDataFrame(pixels, k, I, I, P, index, timestamp)
 
         return intensity, weights, (index, pdataframe)
 
@@ -877,8 +893,9 @@ class FlyMedV(FlyScanUHV):
         delta = h5_nodes['delta'][index]
         etaa = h5_nodes['etaa'][index] if h5_nodes['etaa'] else 0.0
         attenuation = self.get_attenuation(index, h5_nodes, 2)
+        timestamp = self.get_timestamp(index, h5_nodes)
 
-        return (image, attenuation, (beta, mu, omega, gamma, delta, etaa))
+        return (image, attenuation, timestamp, (beta, mu, omega, gamma, delta, etaa))
 
 
 def load_matrix(filename):
