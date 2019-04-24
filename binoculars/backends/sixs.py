@@ -75,10 +75,10 @@ class RealSpace(backend.ProjectionBase):
         y = pixels[2]
         z = numpy.ones_like(x) * pdataframe.timestamp
 
-        return x, y, z
+        return (x, y, z)
 
     def get_axis_labels(self):
-        return 'x', 'y', 'z'
+        return ('x', 'y', 'z')
 
 
 class Pixels(backend.ProjectionBase):
@@ -107,7 +107,7 @@ class HKLProjection(backend.ProjectionBase):
         return h, k, l
 
     def get_axis_labels(self) -> Tuple[str]:
-        return 'h', 'k', 'l'
+        return 'H', 'K', 'L'
 
 
 class HKProjection(HKLProjection):
@@ -116,7 +116,7 @@ class HKProjection(HKLProjection):
         return h, k
 
     def get_axis_labels(self) -> Tuple[str]:
-        return 'h', 'k'
+        return 'H', 'K'
 
 
 class QxQyQzProjection(backend.ProjectionBase):
@@ -153,7 +153,7 @@ class QxQyQzProjection(backend.ProjectionBase):
         return qx, qy, qz
 
     def get_axis_labels(self) -> Tuple[str]:
-        return "qx", "qy", "qz"
+        return "Qx", "Qy", "Qz"
 
     def parse_config(self, config) -> None:
         super(QxQyQzProjection, self).parse_config(config)
@@ -188,7 +188,7 @@ class QxQzIndexProjection(QxQyQzProjection):
         return qx, qz, numpy.ones_like(qx) * pdataframe.timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
-        return 'qx', 'qz', 't'
+        return 'Qx', 'Qz', 't'
 
 
 class QyQzIndexProjection(QxQyQzProjection):
@@ -197,7 +197,7 @@ class QyQzIndexProjection(QxQyQzProjection):
         return qy, qz, numpy.ones_like(qy) * pdataframe.timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
-        return 'qy', 'qz', 't'
+        return 'Qy', 'Qz', 't'
 
 
 class QparQperProjection(QxQyQzProjection):
@@ -206,7 +206,7 @@ class QparQperProjection(QxQyQzProjection):
         return numpy.sqrt(qx*qx + qy*qy), qz
 
     def get_axis_labels(self) -> Tuple[str]:
-        return 'qpar', 'qper'
+        return 'Qpar', 'Qper'
 
 
 class QparQperIndexProjection(QparQperProjection):
@@ -215,8 +215,7 @@ class QparQperIndexProjection(QparQperProjection):
         return qpar, qper, numpy.ones_like(qpar) * pdataframe.timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
-        return 'qpar', 'qper', 't'
-
+        return 'Qpar', 'Qper', 't'
 
 
 class Stereo(QxQyQzProjection):
@@ -229,7 +228,7 @@ class Stereo(QxQyQzProjection):
         return q, qx, qy
 
     def get_axis_labels(self) -> Tuple[str]:
-        return "q", "qx", "qy"
+        return "Q", "Qx", "Qy"
 
 
 class QIndex(Stereo):
@@ -238,7 +237,7 @@ class QIndex(Stereo):
         return q, numpy.ones_like(q) * pdataframe.timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
-        return "q", "index"
+        return "Q", "Index"
 
 
 class AnglesProjection(backend.ProjectionBase):
@@ -276,7 +275,7 @@ class AnglesProjection(backend.ProjectionBase):
         gamma = numpy.arcsin(p_gamma / l2) + gamma0
         omega = numpy.ones_like(delta) * omega0
 
-        return omega, delta, gamma
+        return (omega, delta, gamma)
 
     def get_axis_labels(self) -> Tuple[str]:
         return 'omega', 'delta', 'gamma'
