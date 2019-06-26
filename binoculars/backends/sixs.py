@@ -25,7 +25,7 @@
            Picca Frédéric-Emmanuel <picca@synchrotron-soleil.fr>
 
 '''
-from typing import Dict, NamedTuple, Tuple
+from typing import Dict, NamedTuple, Optional, Tuple
 
 import numpy
 import math
@@ -34,6 +34,7 @@ import tables
 import sys
 
 from collections import namedtuple
+from enum import Enum
 from math import cos, sin
 from numpy import ndarray
 from numpy.linalg import inv
@@ -58,13 +59,16 @@ from tables.exceptions import NoSuchNodeError
 # Projections #
 ###############
 
+SurfaceOrientation = Enum("SurfaceOrientation", "VERTICAL HORIZONTAL")
+
 PDataFrame = NamedTuple("PDataFrame", [("pixels", ndarray),
                                        ("k", float),
-                                       ("ub", ndarray),
+                                       ("ub", Optional[ndarray]),
                                        ("R", ndarray),
                                        ("P", ndarray),
                                        ("index", int),
-                                       ("timestamp", int)])
+                                       ("timestamp", int),
+                                       ("surface_orientation", SurfaceOrientation)])
 
 
 class RealSpace(backend.ProjectionBase):
@@ -92,7 +96,10 @@ class Pixels(backend.ProjectionBase):
 
 class HKLProjection(backend.ProjectionBase):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
-        pixels, k, UB, R, P, idx, timestamp = pdataframe
+        pixels, k, UB, R, P, idx, timestamp, _surface_orientation = pdataframe
+
+        if UB is None:
+            raise Exception("In order to compute the HKL projection, you need a valid ub matrix")
 
         ki = [1, 0, 0]
         RUB_1 = inv(numpy.dot(R, UB))
@@ -123,22 +130,28 @@ class QxQyQzProjection(backend.ProjectionBase):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         # put the detector at the right position
 
-        pixels, k, _, R, P, idx, timestamp = pdataframe
+        pixels, k, _UB, R, P, idx, timestamp, surface_orientation = pdataframe
 
         # TODO factorize with HklProjection. Here a trick in order to
         # compute Qx Qy Qz in the omega basis.
-        UB = numpy.array([[1,  0, 0],
-                          [0,  0, 1],
-                          [0, -1, 0]])
+        if surface_orientation is SurfaceOrientation.VERTICAL:
+            UB = numpy.array([[1,  0, 0],
+                              [0,  0, 1],
+                              [0, -1, 0]])
 
-        if self.config.mu_offset is not None:
-            UB = numpy.dot(UB,
-                           M(self.config.mu_offset, [0, 1, 0]))
+            if self.config.omega_offset is not None:
+                UB = numpy.dot(UB,
+                               M(self.config.omega_offset, [0, 0, -1]))
+        else:
+            UB = numpy.array([[1, 0, 0],
+                              [0, 1, 0],
+                              [0, 0, 1]])
 
-        if self.config.omega_offset is not None:
-            UB = numpy.dot(UB,
-                           M(self.config.omega_offset, [0, 0, -1]))
+            if self.config.mu_offset is not None:
+                UB = numpy.dot(UB,
+                               M(self.config.mu_offset, [0, 1, 0]))
 
+            
         # the ki vector should be in the NexusFile or easily extracted
         # from the hkl library.
         ki = [1, 0, 0]
@@ -171,7 +184,6 @@ class QxQyQzProjection(backend.ProjectionBase):
             self.config.mu_offset = math.radians(float(mu_offset))
         else:
             self.config.mu_offset = None
-
 
 class QxQyIndexProjection(QxQyQzProjection):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
@@ -244,7 +256,7 @@ class AnglesProjection(backend.ProjectionBase):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         # put the detector at the right position
 
-        pixels, k, UB, R, P, idx, timestamp = pdataframe
+        pixels, k, UB, R, P, idx, timestamp, _surface_orientation = pdataframe
 
         # on calcule le vecteur de l'axes de rotation de l'angle qui
         # nous interesse. (ici delta et gamma). example delta (0, 1,
@@ -326,7 +338,10 @@ def get_diffractometer(hfile):
         # remove the last "\n" char
         name = name[:-1]
 
-    ub = node.UB[:]
+    try:
+        ub = node.UB[:]
+    except NoSuchNodeError:
+        ub = None
 
     factory = Hkl.factories()[name]
     geometry = factory.create_new_geometry()
@@ -592,6 +607,14 @@ class SIXS(backend.InputBase):
         else:
             self.config.attenuation_coefficient = None
 
+        # surface_orientation
+        surface_orientation = config.pop('surface_orientation', None)
+        surface_orientation_opt = SurfaceOrientation.VERTICAL
+        if surface_orientation is not None:
+            if surface_orientation.lower() == "horizontal":
+                surface_orientation_opt = SurfaceOrientation.HORIZONTAL
+        self.config.surface_orientation = surface_orientation_opt
+
     def get_destination_options(self, command):
         if not command:
             return False
@@ -720,7 +743,9 @@ class FlyScanUHV(SIXS):
         if self.config.detrot is not None:
             P = numpy.dot(P, M(math.radians(self.config.detrot), [1, 0, 0]))
 
-        pdataframe = PDataFrame(pixels, k, dataframe.diffractometer.ub, R, P, index, timestamp)
+        surface_orientation = self.config.surface_orientation
+
+        pdataframe = PDataFrame(pixels, k, dataframe.diffractometer.ub, R, P, index, timestamp, surface_orientation)
 
         return intensity, weights, (index, pdataframe)
 
