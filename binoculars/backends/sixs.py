@@ -149,7 +149,7 @@ class QxQyQzProjection(backend.ProjectionBase):
 
             if self.config.mu_offset is not None:
                 UB = numpy.dot(UB,
-                               M(self.config.mu_offset, [0, 1, 0]))
+                               M(self.config.mu_offset, [0, 0, -1]))
 
             
         # the ki vector should be in the NexusFile or easily extracted
