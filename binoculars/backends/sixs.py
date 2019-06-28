@@ -242,6 +242,15 @@ class Stereo(QxQyQzProjection):
     def get_axis_labels(self) -> Tuple[str]:
         return "Q", "Qx", "Qy"
 
+class QPolarProjection(QxQyQzProjection):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
+        qx, qy, qz = super(QPolarProjection, self).project(index, pdataframe)
+        phi = numpy.rad2deg(numpy.arctan2(qx, qy))
+        q = numpy.sqrt(qx*qx+qy*qy+qz*qz)
+        return phi, q, qz
+
+    def get_axis_labels(self) -> Tuple[str]:
+        return "Phi", "Q", "Qz"
 
 class QIndex(Stereo):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
