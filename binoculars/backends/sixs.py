@@ -809,12 +809,12 @@ class FlyMedH(FlyScanUHV):
 
 class SBSMedH(FlyScanUHV):
     HPATH = {
-        "image": HItem("data_03", False),
-        "pitch": HItem("data_22", False),
-        "mu": HItem("data_18", False),
-        "gamma": HItem("data_20", False),
-        "delta": HItem("data_19", False),
-        "attenuation": HItem("data_xx", True),
+        "image": HItem("data_02", False),
+        "pitch": HItem("data_20", False),
+        "mu": HItem("data_16", False),
+        "gamma": HItem("data_18", False),
+        "delta": HItem("data_17", False),
+        "attenuation": HItem("data_13", True),
         "timestamp": HItem("epoch", True),
     }
 
