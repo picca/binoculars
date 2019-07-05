@@ -61,7 +61,10 @@ from tables.exceptions import NoSuchNodeError
 # Projections #
 ###############
 
-SurfaceOrientation = Enum("SurfaceOrientation", "VERTICAL HORIZONTAL")
+
+class SurfaceOrientation(Enum):
+    VERTICAL = 1
+    HORIZONTAL = 2
 
 
 class PDataFrame(NamedTuple):
