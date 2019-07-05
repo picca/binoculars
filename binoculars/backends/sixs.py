@@ -63,14 +63,15 @@ from tables.exceptions import NoSuchNodeError
 
 SurfaceOrientation = Enum("SurfaceOrientation", "VERTICAL HORIZONTAL")
 
-PDataFrame = NamedTuple("PDataFrame", [("pixels", ndarray),
-                                       ("k", float),
-                                       ("ub", Optional[ndarray]),
-                                       ("R", ndarray),
-                                       ("P", ndarray),
-                                       ("index", int),
-                                       ("timestamp", int),
-                                       ("surface_orientation", SurfaceOrientation)])
+PDataFrame = NamedTuple("PDataFrame",
+                        [("pixels", ndarray),
+                         ("k", float),
+                         ("ub", Optional[ndarray]),
+                         ("R", ndarray),
+                         ("P", ndarray),
+                         ("index", int),
+                         ("timestamp", int),
+                         ("surface_orientation", SurfaceOrientation)])
 
 
 class RealSpace(backend.ProjectionBase):
