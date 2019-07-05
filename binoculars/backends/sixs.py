@@ -30,23 +30,22 @@ from typing import Dict, NamedTuple, Optional, Tuple
 import numpy
 import math
 import os
-import tables
 import sys
 
 from enum import Enum
 from math import cos, sin
+
+from gi.repository import Hkl
+from h5py import Dataset, File
 from numpy import ndarray
 from numpy.linalg import inv
 from pyFAI.detectors import ALL_DETECTORS
-from gi.repository import Hkl
 
 from .soleil import (HItem,
                      get_dataset,
                      get_nxclass,
                      node_as_string)
 from .. import backend, errors, util
-from tables import Node
-from tables.exceptions import NoSuchNodeError
 
 # TODO
 # - Angles delta gamma. nom de 2 ou 3 moteurs. omega puis delta
@@ -321,18 +320,18 @@ class Diffractometer(NamedTuple):
     geometry: Hkl.Geometry  # the HklGeometry
 
 
-def get_diffractometer(hfile):
+def get_diffractometer(hfile: File):
     """ Construct a Diffractometer from a NeXus file """
     node = get_nxclass(hfile, 'NXdiffractometer')
 
-    name = node_as_string(node.type)
+    name = node_as_string(node['type'][()])
     if name.endswith('\n'):
         # remove the last "\n" char
         name = name[:-1]
 
     try:
-        ub = node.UB[:]
-    except NoSuchNodeError:
+        ub = node['UB'][:]
+    except AttributeError:
         ub = None
 
     factory = Hkl.factories()[name]
@@ -411,7 +410,7 @@ def get_source(hfile):
     for attr in ["wavelength", "lambda"]:
         try:
             wavelength = node[attr][0]
-        except NoSuchNodeError:
+        except KeyError:
             pass
         except IndexError:
             pass
@@ -424,7 +423,7 @@ class DataFrame(NamedTuple):
     sample: Sample
     detector: Detector
     source: Source
-    h5_nodes: Dict[str, Node]
+    h5_nodes: Dict[str, Dataset]
 
 
 def dataframes(hfile, data_path=None):
@@ -519,7 +518,7 @@ class SIXS(backend.InputBase):
 
     def process_job(self, job):
         super(SIXS, self).process_job(job)
-        with tables.open_file(self.get_filename(job.scan), 'r') as scan:
+        with File(self.get_filename(job.scan), 'r') as scan:
             self.metadict = dict()
             try:
                 for dataframe in dataframes(scan, self.HPATH):
@@ -641,8 +640,10 @@ class FlyScanUHV(SIXS):
 
     def get_pointcount(self, scanno):
         # just open the file in order to extract the number of step
-        with tables.open_file(self.get_filename(scanno), 'r') as scan:
-            return get_nxclass(scan, "NXdata").xpad_image.shape[0]
+        with File(self.get_filename(scanno), 'r') as scan:
+            n = get_nxclass(scan, "NXdata")['xpad_image'].shape[0]
+            print("{} toto".format(n))
+            return get_nxclass(scan, "NXdata")['xpad_image'].shape[0]
 
     def get_attenuation(self, index, h5_nodes, offset):
         attenuation = None
@@ -656,7 +657,7 @@ class FlyScanUHV(SIXS):
                         raise Exception("you asked for attenuation but the file does not contain attenuation informations.")  # noqa
                 except KeyError:
                     attenuation = 1.0
-            except IndexError:
+            except ValueError:
                 attenuation = WRONG_ATTENUATION
         return attenuation
 
@@ -791,8 +792,8 @@ class SBSMedH(FlyScanUHV):
 
     def get_pointcount(self, scanno):
         # just open the file in order to extract the number of step
-        with tables.open_file(self.get_filename(scanno), 'r') as scan:
-            return get_nxclass(scan, "NXdata").data_03.shape[0]
+        with File(self.get_filename(scanno), 'r') as scan:
+            return get_nxclass(scan, "NXdata")['data_03'].shape[0]
 
     def get_values(self, index, h5_nodes):
         image = h5_nodes['image'][index]
@@ -814,8 +815,8 @@ class SBSFixedDetector(FlyScanUHV):
 
     def get_pointcount(self, scanno):
         # just open the file in order to extract the number of step
-        with tables.open_file(self.get_filename(scanno), 'r') as scan:
-            return get_nxclass(scan, "NXdata").data_11.shape[0]
+        with File(self.get_filename(scanno), 'r') as scan:
+            return get_nxclass(scan, "NXdata")['data_11'].shape[0]
 
     def get_values(self, index, h5_nodes):
         image = h5_nodes['image'][index]

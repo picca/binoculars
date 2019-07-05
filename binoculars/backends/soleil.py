@@ -1,8 +1,8 @@
 from typing import NamedTuple, Optional, Text, Union
+from os.path import join
 
 from functools import partial
-from h5py import Dataset, File
-from tables.exceptions import NoSuchNodeError
+from h5py import Dataset, File, Group
 
 from ..util import as_string
 
@@ -34,7 +34,6 @@ def _v_attrs(attribute: Text, value: Text, _name: Text, obj) -> Dataset:
         if attribute in obj.attrs and obj.attrs[attribute] == value:
             return obj
 
-
 def _v_item(key: Text, name: Text, obj: Dataset) -> Dataset:
     """visite each node and check that the path contain the key"""
     if key in name:
@@ -49,39 +48,58 @@ def get_dataset(h5file: File, path: DatasetPath) -> Optional[Dataset]:
         res = h5file.visititems(partial(_v_attrs,
                                         path.attribute, path.value))
     elif isinstance(path, HItem):
-        # BEWARE in that case h5file is a tables File object and not a
-        # h5py File.
-        for group in h5file.get_node('/'):
-            scan_data = group._f_get_child("scan_data")
-            try:
-                res = scan_data._f_get_child(path.name)
-            except NoSuchNodeError:
-                if not path.optional:
-                    raise
+        res = h5file.visititems(partial(_v_item,
+                                        join("scan_data", path.name)))
+        if not path.optional and res is None:
+            raise
     return res
 
 
 # tables here...
 
-def get_nxclass(hfile, nxclass, path="/"):
-    """
-    :param hfile: the hdf5 file.
-    :type hfile: tables.file.
-    :param nxclass: the nxclass to extract
-    :type nxclass: str
-    """
-    for node in hfile.walk_nodes(path):
-        try:
-            if nxclass == as_string(node._v_attrs['NX_class']):
-                return node
-        except KeyError:
-            pass
+class GroupPathWithAttribute(NamedTuple):
+    attribute: Text
+    value: bytes
+
+
+class GroupPathNxClass(NamedTuple):
+    value: bytes
+
+
+GroupPath = Union[GroupPathWithAttribute,
+                  GroupPathNxClass,
+                  str]
+
+
+def _g_attrs(attribute: Text,
+             value: Text,
+             _name: Text, obj) -> Optional[Group]:
+    """visite each node and check the attribute value"""
+    if isinstance(obj, Group):
+        if attribute in obj.attrs and obj.attrs[attribute] == value:
+            return obj
     return None
+
+
+def get_nxclass(h5file: File,
+                gpath: GroupPath) -> Optional[Group]:
+    res = None
+    if isinstance(gpath, GroupPathWithAttribute):
+        res = h5file.visititems(partial(_g_attrs,
+                                        gpath.attribute, gpath.value))
+    elif isinstance(gpath, GroupPathNxClass):
+        res = h5file.visititems(partial(_g_attrs,
+                                        'NX_class', gpath.value))
+    elif isinstance(gpath, str):
+        res = h5file.visititems(partial(_g_attrs,
+                                        'NX_class', gpath.encode()))
+
+    return res
 
 
 def node_as_string(node):
     if node.shape == ():
-        content = node.read().tostring()
+        content = node
     else:
         content = node[0]
     return as_string(content)

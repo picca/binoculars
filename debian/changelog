@@ -1,6 +1,8 @@
 binoculars (0.0.4-2) UNRELEASED; urgency=medium
 
   * fix  for SOLEIL files
+  * d/control: Removed python3-tables from Build-Depends
+  * d/control: Added python3-h5py from Build-Depends
 
  -- System User <com-sixs@sixs3.exp.synchrotron-soleil.fr>  Thu, 14 Mar 2019 10:12:40 +0100
 
