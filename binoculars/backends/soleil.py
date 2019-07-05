@@ -1,9 +1,10 @@
 from typing import NamedTuple, Optional, Text, Union
 
-from os.path import join
 from functools import partial
 from h5py import Dataset, File
 from tables.exceptions import NoSuchNodeError
+
+from ..util import as_string
 
 # Generic hdf5 access types.
 
@@ -48,6 +49,8 @@ def get_dataset(h5file: File, path: DatasetPath) -> Optional[Dataset]:
         res = h5file.visititems(partial(_v_attrs,
                                         path.attribute, path.value))
     elif isinstance(path, HItem):
+        # BEWARE in that case h5file is a tables File object and not a
+        # h5py File.
         for group in h5file.get_node('/'):
             scan_data = group._f_get_child("scan_data")
             try:
@@ -56,3 +59,29 @@ def get_dataset(h5file: File, path: DatasetPath) -> Optional[Dataset]:
                 if not path.optional:
                     raise
     return res
+
+
+# tables here...
+
+def get_nxclass(hfile, nxclass, path="/"):
+    """
+    :param hfile: the hdf5 file.
+    :type hfile: tables.file.
+    :param nxclass: the nxclass to extract
+    :type nxclass: str
+    """
+    for node in hfile.walk_nodes(path):
+        try:
+            if nxclass == as_string(node._v_attrs['NX_class']):
+                return node
+        except KeyError:
+            pass
+    return None
+
+
+def node_as_string(node):
+    if node.shape == ():
+        content = node.read().tostring()
+    else:
+        content = node[0]
+    return as_string(content)

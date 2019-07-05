@@ -40,12 +40,11 @@ from numpy.linalg import inv
 from pyFAI.detectors import ALL_DETECTORS
 from gi.repository import Hkl
 
-from .soleil import DatasetPathContains,\
-                    DatasetPathWithAttribute,\
-                    HItem,\
-                    get_dataset
+from .soleil import (HItem,
+                     get_dataset,
+                     get_nxclass,
+                     node_as_string)
 from .. import backend, errors, util
-from ..util import as_string
 from tables import Node
 from tables.exceptions import NoSuchNodeError
 
@@ -309,30 +308,6 @@ class AnglesProjection(backend.ProjectionBase):
 ###################
 
 WRONG_ATTENUATION = -100
-
-
-def get_nxclass(hfile, nxclass, path="/"):
-    """
-    :param hfile: the hdf5 file.
-    :type hfile: tables.file.
-    :param nxclass: the nxclass to extract
-    :type nxclass: str
-    """
-    for node in hfile.walk_nodes(path):
-        try:
-            if nxclass == as_string(node._v_attrs['NX_class']):
-                return node
-        except KeyError:
-            pass
-    return None
-
-
-def node_as_string(node):
-    if node.shape == ():
-        content = node.read().tostring()
-    else:
-        content = node[0]
-    return as_string(content)
 
 
 Diffractometer = NamedTuple('Diffractometer',
