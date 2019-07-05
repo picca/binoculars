@@ -787,7 +787,7 @@ class SBSMedH(FlyScanUHV):
         "gamma": HItem("data_18", False),
         "delta": HItem("data_17", False),
         "attenuation": HItem("data_13", True),
-        "timestamp": HItem("epoch", True),
+        "timestamp": HItem("sensors_timestamps", True),
     }
 
     def get_pointcount(self, scanno):
