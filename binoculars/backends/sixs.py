@@ -63,15 +63,16 @@ from tables.exceptions import NoSuchNodeError
 
 SurfaceOrientation = Enum("SurfaceOrientation", "VERTICAL HORIZONTAL")
 
-PDataFrame = NamedTuple("PDataFrame",
-                        [("pixels", ndarray),
-                         ("k", float),
-                         ("ub", Optional[ndarray]),
-                         ("R", ndarray),
-                         ("P", ndarray),
-                         ("index", int),
-                         ("timestamp", int),
-                         ("surface_orientation", SurfaceOrientation)])
+
+class PDataFrame(NamedTuple):
+    pixels: ndarray
+    k: float
+    ub: Optional[ndarray]
+    R: ndarray
+    P: ndarray
+    index: int
+    timestamp: int
+    surface_orientation: SurfaceOrientation
 
 
 class RealSpace(backend.ProjectionBase):
@@ -311,10 +312,10 @@ class AnglesProjection(backend.ProjectionBase):
 WRONG_ATTENUATION = -100
 
 
-Diffractometer = NamedTuple('Diffractometer',
-                            [('name', str),  # name of the hkl diffractometer
-                             ('ub', ndarray),  # the UB matrix
-                             ('geometry', Hkl.Geometry)])  # the HklGeometry
+class Diffractometer(NamedTuple):
+    name: str  # name of the hkl diffractometer
+    ub: ndarray  # the UB matrix
+    geometry: Hkl.Geometry  # the HklGeometry
 
 
 def get_diffractometer(hfile):
@@ -340,16 +341,17 @@ def get_diffractometer(hfile):
     return Diffractometer(name, ub, geometry)
 
 
-Sample = NamedTuple("Sample", [("a", float),
-                               ("b", float),
-                               ("c", float),
-                               ("alpha", float),
-                               ("beta", float),
-                               ("gamma", float),
-                               ("ux", float),
-                               ("uy", float),
-                               ("uz", float),
-                               ("sample", Hkl.Sample)])
+class Sample(NamedTuple):
+    a: float
+    b: float
+    c: float
+    alpha: float
+    beta: float
+    gamma: float
+    ux: float
+    uy: float
+    uz: float
+    sample: Hkl.Sample
 
 
 def get_sample(hfile):
@@ -380,8 +382,9 @@ def get_sample(hfile):
     return Sample(1.54, 1.54, 1.54, 90, 90, 90, 0, 0, 0, sample)
 
 
-Detector = NamedTuple("Detector", [("name", str),
-                                   ("detector", Hkl.Detector)])
+class Detector(NamedTuple):
+    name: str
+    detector: Hkl.Detector
 
 
 def get_detector(hfile, h5_nodes):
@@ -395,7 +398,8 @@ def get_detector(hfile, h5_nodes):
     return det
 
 
-Source = NamedTuple("Source", [("wavelength", float)])
+class Source(NamedTuple):
+    wavelength: float
 
 
 def get_source(hfile):
@@ -412,11 +416,12 @@ def get_source(hfile):
     return Source(wavelength)
 
 
-DataFrame = NamedTuple("DataFrame", [("diffractometer", Diffractometer),
-                                     ("sample", Sample),
-                                     ("detector", Detector),
-                                     ("source", Source),
-                                     ("h5_nodes", Dict[str, Node])])
+class DataFrame(NamedTuple):
+    diffractometer: Diffractometer
+    sample: Sample
+    detector: Detector
+    source: Source
+    h5_nodes: Dict[str, Node]
 
 
 def dataframes(hfile, data_path=None):
