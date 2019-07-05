@@ -33,7 +33,6 @@ import os
 import tables
 import sys
 
-from collections import namedtuple
 from enum import Enum
 from math import cos, sin
 from numpy import ndarray
@@ -41,6 +40,10 @@ from numpy.linalg import inv
 from pyFAI.detectors import ALL_DETECTORS
 from gi.repository import Hkl
 
+from .soleil import DatasetPathContains,\
+                    DatasetPathWithAttribute,\
+                    HItem,\
+                    get_dataset
 from .. import backend, errors, util
 from ..util import as_string
 from tables import Node
@@ -441,20 +444,7 @@ DataFrame = NamedTuple("DataFrame", [("diffractometer", Diffractometer),
 
 
 def dataframes(hfile, data_path=None):
-    for group in hfile.get_node('/'):
-        scan_data = group._f_get_child("scan_data")
-        # now instantiate the pytables objects
-        h5_nodes = {}
-        for key, hitem in data_path.items():
-            try:
-                child = scan_data._f_get_child(hitem.name)
-            except tables.exceptions.NoSuchNodeError:
-                if hitem.optional:
-                    child = None
-                else:
-                    raise
-            h5_nodes[key] = child
-
+    h5_nodes = {k: get_dataset(hfile, v) for k, v in data_path.items()}
     diffractometer = get_diffractometer(hfile)
     sample = get_sample(hfile)
     detector = get_detector(hfile, h5_nodes)
@@ -652,9 +642,6 @@ class SIXS(backend.InputBase):
     def apply_mask(data, xmask, ymask):
         roi = data[ymask, :]
         return roi[:, xmask]
-
-
-HItem = namedtuple("HItem", ["name", "optional"])
 
 
 class FlyScanUHV(SIXS):
