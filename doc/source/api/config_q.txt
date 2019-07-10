@@ -1,0 +1,39 @@
+### the DISPATCHER is responsible for job management
+[dispatcher]
+type = local # run local
+ncores = 16 # optionally, specify number of cores (autodetect by default)
+
+# specificy destination file using scan numbers
+destination = Al13Fe4_cut2_res001_omOff-70_{first}-{last}.hdf5
+overwrite = false
+
+### choose an appropriate INPUT class and specify custom options
+[input]##
+type = sixs:flyscanuhv2  # refers to class Sixs in BINoculars/backends/sixs.py
+
+nexusdir = /nfs/ruche-sixs/sixs-soleil/com-sixs/2019/Run3/20181682_Corentin/Al13Fe4_cut2/
+
+## approximate number of images per job, only useful when running on the oar cluster
+target_weight = 100
+
+# technical data for this particular input class
+centralpixel = 308, 112   # x,y
+sdd = 1.16208              # sample to detector distance (m)
+detrot = 90.0
+attenuation_coefficient = 1.825
+maskmatrix = mask_nxs00043_20190709_19h58.npy
+### choose PROJECTION plus resolution
+## projections: realspace, pixels, hklprojection, hkprojection, qxqyqzprojection, qparqperprojection
+[projection]
+
+#type = sixs:qparqperprojection # refers to HKProjection in BINoculars/backends/sixs.py
+#type = sixs:hklprojection # refers to HKProjection in BINoculars/backends/sixs.py
+type = sixs:qxqyqzprojection # refers to HKProjection in BINoculars/backends/sixs.py
+#type = sixs:qparqperprojection # refers to HKProjection in BINoculars/backends/sixs.py
+
+resolution = 0.01
+#resolution = 0.008, 0.008, 0.01  # or just give 1 number for all dimensions
+#limits = [-3.53:-1.68,-0.59:0.68,0.98:1.06]
+
+omega_offset = -70.31
+#source /usr/local/applications/diffractions/binoculars/v0.0.1/env.sh
