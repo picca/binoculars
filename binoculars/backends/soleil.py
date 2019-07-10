@@ -52,7 +52,7 @@ def get_dataset(h5file: File, path: DatasetPath) -> Optional[Dataset]:
         res = h5file.visititems(partial(_v_item,
                                         join("scan_data", path.name)))
         if not path.optional and res is None:
-            raise
+            raise Exception("Can not find : {}".format(path))
     return res
 
 

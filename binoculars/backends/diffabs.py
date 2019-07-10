@@ -25,7 +25,7 @@
            Picca Frédéric-Emmanuel <picca@synchrotron-soleil.fr>
 
 '''
-from typing import Dict, Namedtuple, Optional, Tuple
+from typing import Dict, NamedTuple, Optional, Tuple
 
 import numpy
 import math
@@ -36,11 +36,13 @@ from h5py import Dataset, File
 from numpy import ndarray
 from pyFAI.detectors import ALL_DETECTORS
 
-from .soleil import (HItem,
-                     get_nxclass)
+from .soleil import (DatasetPathContains,
+                     DatasetPathWithAttribute,
+                     HItem,
+                     get_dataset)
 
 # put hkl_matrix_to_numpy into soleil
-from .sixs import Dataframe, M, PDataFrame, SIXS, WRONG_ATTENUATION,\
+from .sixs import DataFrame, M, PDataFrame, SIXS, WRONG_ATTENUATION,\
     hkl_matrix_to_numpy
 from ..util import status
 
@@ -49,7 +51,7 @@ from ..util import status
 ##################
 
 
-class Values(Namedtuple):
+class Values(NamedTuple):
     image: ndarray
     attenuation: Optional[float]
     timestamp: float
@@ -58,20 +60,22 @@ class Values(Namedtuple):
 
 class Diffabs(SIXS):
     HPATH = {
-        "image": HItem("data_02", False),
-        "mu": HItem("data_16", False),
-        "komega": HItem("data_16", False),
-        "kappa": HItem("data_16", False),
-        "kphi": HItem("data_16", False),
-        "gamma": HItem("data_18", False),
-        "delta": HItem("data_17", False),
-        "timestamp": HItem("sensors_timestamps", True),
+        "image": DatasetPathWithAttribute("interpretation", b"image"),
+        "mu": DatasetPathWithAttribute("long_name", b"d13-1-cx1/ex/dif.1-mu/position"),
+        "komega": DatasetPathWithAttribute("long_name", b"d13-1-cx1/ex/dif.1-komega/position"),
+        "kappa": DatasetPathWithAttribute("long_name", b"d13-1-cx1/ex/dif.1-kappa/position"),
+        "kphi": DatasetPathWithAttribute("long_name", b"d13-1-cx1/ex/dif.1-kphi/position"),
+        "gamma": DatasetPathWithAttribute("long_name", b"d13-1-cx1/ex/dif.1-gamma/position"),
+        "delta": DatasetPathWithAttribute("long_name", b"d13-1-cx1/ex/dif.1-delta/position"),
+        "attenuation": HItem("attenuation", True),
+        "timestamp": DatasetPathContains("sensors_timestamps"),
     }
 
     def get_pointcount(self, scanno: int) -> int:
         # just open the file in order to extract the number of step
         with File(self.get_filename(scanno), 'r') as scan:
-            return get_nxclass(scan, "NXdata")['data_03'].shape[0]
+            path = self.HPATH["image"]
+            return get_dataset(scan, path).shape[0]
 
     def get_attenuation(self,
                         index: int,
@@ -107,13 +111,14 @@ class Diffabs(SIXS):
         kappa = h5_nodes['kappa'][index]
         kphi = h5_nodes['kphi'][index]
         gamma = h5_nodes['gamma'][index]
-        delta = h5_nodes['delta'][index]
+        delta = h5_nodes['delta'][index] + 16.004
+        attenuation = self.get_attenuation(index, h5_nodes, index)
         timestamp = self.get_timestamp(index, h5_nodes)
 
-        return Values(image, None, timestamp,
+        return Values(image, attenuation, timestamp,
                       (mu, komega, kappa, kphi, gamma, delta))
 
-    def process_image(self, index: int, dataframe: Dataframe,
+    def process_image(self, index: int, dataframe: DataFrame,
                       pixels: ndarray,
                       mask: ndarray) -> Tuple[ndarray, ndarray,
                                               Tuple[int, PDataFrame]]:
@@ -179,18 +184,20 @@ class Diffabs(SIXS):
         return numpy.array([-z, -(x - x0), (y - y0)])
 
 
-def load_matrix(filename: str) -> Optional[ndarray]:
-    if filename is None:
-        return None
-    if os.path.exists(filename):
-        ext = os.path.splitext(filename)[-1]
-        if ext == '.txt':
-            return numpy.array(numpy.loadtxt(filename), dtype=numpy.bool)
-        elif ext == '.npy':
-            mask = numpy.array(numpy.load(filename), dtype=numpy.bool)
-            print("loaded mask sum: ", numpy.sum(mask))
-            return mask
+    def get_filename(self, scanno):
+        filename = None
+        if self.config.nexusdir:
+            dirname = self.config.nexusdir
+            files = [f for f in os.listdir(dirname)
+                     if ((str(scanno).zfill(5) in f)
+                         and (os.path.splitext(f)[1] in ['.hdf5', '.nxs']))
+                     ]
+            print(files)
+            if files is not []:
+                filename = os.path.join(dirname, files[0])
         else:
-            raise ValueError('unknown extension {0}, unable to load matrix!\n'.format(ext))  # noqa
-    else:
-        raise IOError('filename: {0} does not exist. Can not load matrix'.format(filename))  # noqa
+            print(self.config.nexusfile)
+            filename = self.config.nexusfile.format(scanno)  # noqa
+        if not os.path.exists(filename):
+            raise errors.ConfigError('nexus filename does not exist: {0}'.format(filename))  # noqa
+        return filename
