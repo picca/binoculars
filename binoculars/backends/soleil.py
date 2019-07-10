@@ -34,6 +34,7 @@ def _v_attrs(attribute: Text, value: Text, _name: Text, obj) -> Dataset:
         if attribute in obj.attrs and obj.attrs[attribute] == value:
             return obj
 
+
 def _v_item(key: Text, name: Text, obj: Dataset) -> Dataset:
     """visite each node and check that the path contain the key"""
     if key in name:
