@@ -192,12 +192,11 @@ class Diffabs(SIXS):
                      if ((str(scanno).zfill(5) in f)
                          and (os.path.splitext(f)[1] in ['.hdf5', '.nxs']))
                      ]
-            print(files)
             if files is not []:
                 filename = os.path.join(dirname, files[0])
         else:
             print(self.config.nexusfile)
             filename = self.config.nexusfile.format(scanno)  # noqa
         if not os.path.exists(filename):
-            raise errors.ConfigError('nexus filename does not exist: {0}'.format(filename))  # noqa
+            raise Exception('nexus filename does not exist: {0}'.format(filename))  # noqa
         return filename
