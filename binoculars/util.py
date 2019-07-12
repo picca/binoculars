@@ -1,40 +1,29 @@
-from __future__ import print_function, division
-
-import os
-import sys
-import gzip
-import itertools
-import random
-import inspect
-import time
-import copy
-import numpy
-import contextlib
 import argparse
-import h5py
-import glob
-from . import errors
-import struct
-import json
-import socket
 import binascii
+import configparser
+import contextlib
+import copy
+import glob
+import gzip
+import inspect
+import io
+import itertools
+import json
+import os
+import pickle
+import random
 import re
+import struct
+import socket
+import sys
+import time
+
+import h5py
+import numpy
+
+from . import errors
 
 ### ARGUMENT HANDLING
-
-
-#python3 support
-PY3 = sys.version_info > (3,)
-if PY3:
-    import pickle
-    import io
-    import configparser
-else:
-    import StringIO as io 
-    import Queue as queue
-    import cPickle as pickle
-    import ConfigParser as configparser
-
 
 def as_string(text):
     if hasattr(text, "decode"):
@@ -466,7 +455,7 @@ class MetaData(object): # a collection of metadata objects
         with open_h5py(filename, 'r') as fp:
             try:
                 metadata = fp['metadata']
-            except KeyError as e:
+            except KeyError:
                 metadata = []  # when metadata is not present, proceed without Error
             for label in metadata:
                 meta = MetaBase()
@@ -536,7 +525,7 @@ class ConfigFile(MetaBase):
                         setattr(configobj, section, dict((key, config[section][key].value) for key in config[section]))
                     else:  # old
                         setattr(configobj, section, dict(config[section]))
-            except KeyError as e:
+            except KeyError:
                 pass  # when config is not present, proceed without Error
         return configobj
 
