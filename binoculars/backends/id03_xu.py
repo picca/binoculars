@@ -19,13 +19,6 @@ import numpy
 import xrayutilities as xu
 from PyMca import specfile
 
-#python3 support
-PY3 = sys.version_info > (3,)
-if PY3:
-    pass
-else:
-    from itertools import izip as zip
-
 try:
     from PyMca import specfilewrapper, EdfFile
 except ImportError:

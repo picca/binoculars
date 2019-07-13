@@ -7,9 +7,6 @@ import multiprocessing
 
 from . import util, errors, space
 
-# python3 support
-PY3 = sys.version_info > (3,)
-
 
 class Destination(object):
     type = filename = overwrite = value = config = limits = None
@@ -174,11 +171,8 @@ class Local(ReentrantBase):
 
     def process_jobs(self, jobs):
         # note: SingleCore will be marginally faster
-        if self.config.ncores == 1 and not PY3:
-            map = itertools.imap
-        else:
-            pool = multiprocessing.Pool(self.config.ncores)
-            map = pool.imap_unordered
+        pool = multiprocessing.Pool(self.config.ncores)
+        map = pool.imap_unordered
 
         configs = (self.prepare_config(job) for job in jobs)
         for result in map(self.main.get_reentrant(), configs):

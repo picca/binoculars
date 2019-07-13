@@ -4,13 +4,6 @@ import glob
 import numpy
 import time
 
-#python3 support
-PY3 = sys.version_info > (3,)
-if PY3:
-    pass
-else:
-    from itertools import izip as zip
-
 try:
     from PyMca import specfilewrapper, EdfFile, SixCircle, specfile
 except ImportError:

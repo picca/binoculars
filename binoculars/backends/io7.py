@@ -1,4 +1,3 @@
-# -*- encoding: utf-8 -*-
 '''
  This file is part of the binoculars project.
 
@@ -29,19 +28,15 @@ import numpy
 import time
 import math
 import json
+
+from functools import reduce
+
 from scipy.misc import imread
 import scisoftpy as dnp
 
 from scisoftpy import sin,cos
 
 from .. import backend, errors, util
-
-PY3 = sys.version_info > (3,)
-if PY3:
-    from functools import reduce
-else:
-    from itertools import izip as zip
-
 
 class HKLProjection(backend.ProjectionBase):
     # scalars: mu, theta, [chi, phi, "omitted"] delta, gamR, gamT, ty, wavelength
