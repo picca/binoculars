@@ -21,6 +21,8 @@ import time
 import h5py
 import numpy
 
+from PyMca5.PyMca import EdfFile
+
 from . import errors
 
 ### ARGUMENT HANDLING
@@ -686,8 +688,6 @@ def wait_for_file(file, timeout=None):
 
 
 def space_to_edf(space, filename):
-    from PyMca import EdfFile
-
     header = {}
     for a in space.axes:
         header[str(a.label)] = '{0} {1} {2}'.format(a.min, a.max, a.res)

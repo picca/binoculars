@@ -17,12 +17,8 @@ import glob
 import numpy
 
 import xrayutilities as xu
-from PyMca import specfile
 
-try:
-    from PyMca import specfilewrapper, EdfFile
-except ImportError:
-    from PyMca.PyMcaIO import specfilewrapper, EdfFile
+from PyMca5.PyMca import EdfFile, specfile, specfilewrapper
 
 from .. import backend, errors, util
 

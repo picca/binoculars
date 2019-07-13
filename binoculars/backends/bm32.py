@@ -4,11 +4,7 @@ import glob
 import numpy
 import time
 
-try:
-    from PyMca import specfilewrapper, EdfFile, SixCircle, specfile
-except ImportError:
-    from PyMca5.PyMca import specfilewrapper, EdfFile, SixCircle, specfile
-
+from PyMca5.PyMca import specfilewrapper, EdfFile, SixCircle, specfile
 
 from .. import backend, errors, util
 
