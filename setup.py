@@ -1,5 +1,3 @@
-# -*- encoding: utf-8 -*-
-
 import os
 
 from setuptools import setup, find_packages
@@ -32,9 +30,10 @@ install_requires = ['h5py',
                     'matplotlib',
                     'pyFAI',
                     'PyMca5',
-                    'PyQt5']
+                    'PyQt5',
+                    'vtk7']
 
-setup(name='binoculars', version='0.0.1',
+setup(name='binoculars', version='0.0.5-dev',
       description=description,
       long_description=long_description,
       packages=find_packages(exclude=["*.test", "*.test.*", "test.*", "test"]),
@@ -49,5 +48,5 @@ setup(name='binoculars', version='0.0.1',
           'Development Status :: 3 - Alpha',
           'Operating System :: POSIX',
           'Operating System :: Unix',
-          'Programming Language :: Python :: 2.7 3.5 3.6 3.7']
+          'Programming Language :: Python :: 3.7']
       )
