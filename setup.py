@@ -30,8 +30,9 @@ install_requires = ['h5py',
                     'matplotlib',
                     'pyFAI',
                     'PyMca5',
-                    'PyQt5',
-                    'vtk7']
+                    'PyQt5']
+# for now there is not egg info for vtk
+#                    'vtk'
 
 setup(name='binoculars', version='0.0.5-dev',
       description=description,
