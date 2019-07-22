@@ -530,7 +530,13 @@ class SIXS(backend.InputBase):
                         mask = numpy.bitwise_or(mask, maskmatrix)
 
                     for index in range(job.firstpoint, job.lastpoint + 1):
-                        yield self.process_image(index, dataframe, pixels, mask)  # noqa
+                        res = self.process_image(index, dataframe, pixels, mask)
+                        # some frame could be skipped
+                        if res is None:
+                            util.status(f"skipped {index}")
+                            continue
+                        else:
+                            yield res
                 util.statuseol()
             except Exception as exc:
                 exc.args = errors.addmessage(exc.args, ', An error occured for scan {0} at point {1}. See above for more information'.format(self.dbg_scanno, self.dbg_pointno))  # noqa
@@ -642,7 +648,6 @@ class FlyScanUHV(SIXS):
         # just open the file in order to extract the number of step
         with File(self.get_filename(scanno), 'r') as scan:
             n = get_nxclass(scan, "NXdata")['xpad_image'].shape[0]
-            print("{} toto".format(n))
             return get_nxclass(scan, "NXdata")['xpad_image'].shape[0]
 
     def get_attenuation(self, index, h5_nodes, offset):
@@ -680,13 +685,22 @@ class FlyScanUHV(SIXS):
 
         return (image, attenuation, timestamp, (mu, omega, delta, gamma))
 
-    def process_image(self, index, dataframe, pixels, mask):
+    def process_image(self, index, dataframe, pixels, mask) -> Optional[Tuple[ndarray, ndarray, Tuple[int, PDataFrame]]]:
         util.status(str(index))
 
         # extract the data from the h5 nodes
 
         h5_nodes = dataframe.h5_nodes
         intensity, attenuation, timestamp, values = self.get_values(index, h5_nodes)
+
+        # the next version of the Hkl library will raise an exception
+        # if at least one of the values is Nan/-Inf or +Inf. Emulate
+        # this until we backported the right hkl library.
+        if not all([math.isfinite(v) for v in values]):
+            return None
+
+        if not math.isfinite(attenuation):
+            return None
 
         # BEWARE in order to avoid precision problem we convert the
         # uint16 -> float32. (the size of the mantis is on 23 bits)
@@ -822,17 +836,19 @@ class SBSFixedDetector(FlyScanUHV):
         image = h5_nodes['image'][index]
         attenuation = self.get_attenuation(index, h5_nodes, 2)
         timestamp = self.get_timestamp(index, h5_nodes)
-        print(timestamp, type(timestamp))
 
         return (image, attenuation, timestamp, None)
 
-    def process_image(self, index, dataframe, pixels, mask):
+    def process_image(self, index, dataframe, pixels, mask) -> Optional[Tuple[ndarray, ndarray, Tuple[int, PDataFrame]]]:
         util.status(str(index))
 
         # extract the data from the h5 nodes
 
         h5_nodes = dataframe.h5_nodes
-        intensity, attenuation, timestamp, values = self.get_values(index, h5_nodes)
+        intensity, attenuation, timestamp, _values = self.get_values(index, h5_nodes)
+
+        if not math.isfinite(attenuation):
+            return None
 
         # BEWARE in order to avoid precision problem we convert the
         # uint16 -> float32. (the size of the mantis is on 23 bits)
@@ -857,20 +873,6 @@ class SBSFixedDetector(FlyScanUHV):
         I = numpy.array([[1,  0, 0],
                          [0,  0, 1],
                          [0, -1, 0]])
-
-
-        # hkl_geometry = dataframe.diffractometer.geometry
-        # hkl_geometry.axis_values_set(values, Hkl.UnitEnum.USER)
-
-        # # sample
-        # hkl_sample = dataframe.sample.sample
-        # q_sample = hkl_geometry.sample_rotation_get(hkl_sample)
-        # R = hkl_matrix_to_numpy(q_sample.to_matrix())
-
-        # # detector
-        # hkl_detector = dataframe.detector.detector
-        # q_detector = hkl_geometry.detector_rotation_get(hkl_detector)
-        # P = hkl_matrix_to_numpy(q_detector.to_matrix())
 
         if self.config.detrot is not None:
             P = M(math.radians(self.config.detrot), [1, 0, 0])

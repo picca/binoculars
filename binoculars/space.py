@@ -1,3 +1,5 @@
+from typing import Iterable, List
+
 import numbers
 import sys
 
@@ -769,6 +771,11 @@ class Multiverse(object):
 
 class EmptyVerse(object):
     """Convenience object for sum() and friends. Treated as zero for addition."""
+    spaces = [EmptySpace()]
+
+    @property
+    def dimension(self):
+        return len(self.spaces)
 
     def __add__(self, other):
         if not isinstance(other, Multiverse):
@@ -833,14 +840,14 @@ def sum(spaces):
     return newspace
 
 
-def verse_sum(verses):
+def verse_sum(verses: List[Multiverse]) -> Multiverse:
     i = iter(M.spaces for M in verses)
     return Multiverse(sum(spaces) for spaces in zip(*i))
 
 # hybrid sum() / __iadd__()
 
 
-def chunked_sum(verses, chunksize=10):
+def chunked_sum(verses: Iterable[Multiverse], chunksize=10) -> Multiverse:
     """Calculate sum of iterable of Multiverse instances. Creates intermediate sums to avoid growing a large space at every summation.
 
     verses     iterable of Multiverse instances
