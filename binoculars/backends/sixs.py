@@ -41,7 +41,8 @@ from numpy import ndarray
 from numpy.linalg import inv
 from pyFAI.detectors import ALL_DETECTORS
 
-from .soleil import (HItem,
+from .soleil import (DatasetPathWithAttribute,
+                     HItem,
                      get_dataset,
                      get_nxclass,
                      node_as_string)
@@ -795,19 +796,20 @@ class FlyMedH(FlyScanUHV):
 
 class SBSMedH(FlyScanUHV):
     HPATH = {
-        "image": HItem("data_02", False),
-        "pitch": HItem("data_20", False),
-        "mu": HItem("data_16", False),
-        "gamma": HItem("data_18", False),
-        "delta": HItem("data_17", False),
-        "attenuation": HItem("data_13", True),
+        "image": DatasetPathWithAttribute("long_name", b"i14-c-c00/dt/xpad.1/image"),
+        "pitch": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/diff-med-tpp/pitch"),
+        "mu": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-h-dif-group.1/mu"),
+        "gamma": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-h-dif-group.1/gamma"),
+        "delta": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-h-dif-group.1/delta"),
+        "attenuation": DatasetPathWithAttribute("long_name", b"i14-c-c00/ex/roic/att"),
         "timestamp": HItem("sensors_timestamps", True),
     }
 
-    def get_pointcount(self, scanno):
+    def get_pointcount(self, scanno: int) -> int:
         # just open the file in order to extract the number of step
         with File(self.get_filename(scanno), 'r') as scan:
-            return get_nxclass(scan, "NXdata")['data_03'].shape[0]
+            path = self.HPATH["image"]
+            return get_dataset(scan, path).shape[0]
 
     def get_values(self, index, h5_nodes):
         image = h5_nodes['image'][index]
