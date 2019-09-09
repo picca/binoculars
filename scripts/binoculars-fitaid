@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+# TODO: export des fit en ascii should be versionned.
+
 from typing import Any, List, Tuple
 
 import sys
@@ -1417,7 +1419,7 @@ class OverviewWidget(QWidget):
 
 class PeakWidget(QWidget):
 
-    def __init__(self, database,  parent=None):
+    def __init__(self, database, parent=None):
         super(PeakWidget, self).__init__(parent)
         self.database = database
 
@@ -1549,7 +1551,7 @@ def interpolate(space):
         return values
 
 
-def find_unused_rodkey(rodkey, rods):
+def find_unused_rodkey(rodkey: str, rods:str) -> str:
     if rodkey not in rods:
         return rodkey
     for index in itertools.count(0):
