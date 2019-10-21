@@ -358,10 +358,27 @@ class Sample(NamedTuple):
 
 
 def get_sample(hfile):
-    # hkl sample
-    a = b = c = 1.54
-    alpha = beta = gamma = 90
-    ux = uy = uz = 0
+    """ Construct a Diffractometer from a NeXus file """
+    node = get_nxclass(hfile, 'NXdiffractometer')
+
+    def get_value(node, name, default):
+        v = default
+        try:
+            v = node[name][()]
+        except AttributeError:
+            pass
+        return v
+
+    # hkl default sample
+    a = get_value(node, 'A', 1.54)
+    b = get_value(node, 'B', 1.54)
+    c = get_value(node, 'C', 1.54)
+    alpha = get_value(node, 'alpha', 90)
+    beta = get_value(node, 'beta', 90)
+    gamma = get_value(node, 'gamma', 90)
+    ux = get_value(node, 'Ux', 0)
+    uy = get_value(node, 'Uy', 0)
+    uz = get_value(node, 'Uz', 0)
 
     sample = Hkl.Sample.new("test")
     lattice = Hkl.Lattice.new(a, b, c,
@@ -382,7 +399,7 @@ def get_sample(hfile):
     parameter.value_set(uz, Hkl.UnitEnum.USER)
     sample.uz_set(parameter)
 
-    return Sample(1.54, 1.54, 1.54, 90, 90, 90, 0, 0, 0, sample)
+    return Sample(a, b, c, alpha, beta, gamma, ux, uy, uz, sample)
 
 
 class Detector(NamedTuple):
