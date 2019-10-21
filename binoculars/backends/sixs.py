@@ -354,6 +354,7 @@ class Sample(NamedTuple):
     ux: float
     uy: float
     uz: float
+    ub: ndarray
     sample: Hkl.Sample
 
 
@@ -402,7 +403,9 @@ def get_sample(hfile, config):
     parameter.value_set(uz, Hkl.UnitEnum.USER)
     sample.uz_set(parameter)
 
-    return Sample(a, b, c, alpha, beta, gamma, ux, uy, uz, sample)
+    ub = hkl_matrix_to_numpy(sample.UB_get())
+
+    return Sample(a, b, c, alpha, beta, gamma, ux, uy, uz, ub, sample)
 
 
 class Detector(NamedTuple):
