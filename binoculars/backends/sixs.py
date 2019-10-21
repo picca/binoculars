@@ -357,28 +357,31 @@ class Sample(NamedTuple):
     sample: Hkl.Sample
 
 
-def get_sample(hfile):
+def get_sample(hfile, config):
     """ Construct a Diffractometer from a NeXus file """
     node = get_nxclass(hfile, 'NXdiffractometer')
 
-    def get_value(node, name, default):
-        v = default
-        try:
-            v = node[name][()]
-        except AttributeError:
-            pass
+    def get_value(node, name, default, overwrite):
+        if overwrite is not None:
+            v = overwrite
+        else:
+            v = default
+            try:
+                v = node[name][()][0]
+            except AttributeError:
+                pass
         return v
 
     # hkl default sample
-    a = get_value(node, 'A', 1.54)
-    b = get_value(node, 'B', 1.54)
-    c = get_value(node, 'C', 1.54)
-    alpha = get_value(node, 'alpha', 90)
-    beta = get_value(node, 'beta', 90)
-    gamma = get_value(node, 'gamma', 90)
-    ux = get_value(node, 'Ux', 0)
-    uy = get_value(node, 'Uy', 0)
-    uz = get_value(node, 'Uz', 0)
+    a = get_value(node, 'A', 1.54, config.a)
+    b = get_value(node, 'B', 1.54, config.b)
+    c = get_value(node, 'C', 1.54, config.c)
+    alpha = get_value(node, 'alpha', 90, config.alpha)
+    beta = get_value(node, 'beta', 90, config.beta)
+    gamma = get_value(node, 'gamma', 90, config.gamma)
+    ux = get_value(node, 'Ux', 0, config.ux)
+    uy = get_value(node, 'Uy', 0, config.uy)
+    uz = get_value(node, 'Uz', 0, config.uz)
 
     sample = Hkl.Sample.new("test")
     lattice = Hkl.Lattice.new(a, b, c,
@@ -444,10 +447,10 @@ class DataFrame(NamedTuple):
     h5_nodes: Dict[str, Dataset]
 
 
-def dataframes(hfile, data_path=None):
+def dataframes(hfile, data_path, config):
     h5_nodes = {k: get_dataset(hfile, v) for k, v in data_path.items()}
     diffractometer = get_diffractometer(hfile)
-    sample = get_sample(hfile)
+    sample = get_sample(hfile, config)
     detector = get_detector(hfile, h5_nodes)
     source = get_source(hfile)
 
@@ -539,7 +542,7 @@ class SIXS(backend.InputBase):
         with File(self.get_filename(job.scan), 'r') as scan:
             self.metadict = dict()
             try:
-                for dataframe in dataframes(scan, self.HPATH):
+                for dataframe in dataframes(scan, self.HPATH, self.config):
                     pixels = self.get_pixels(dataframe.detector)
                     detector = ALL_DETECTORS[dataframe.detector.name]()
                     mask = detector.mask.astype(numpy.bool)
