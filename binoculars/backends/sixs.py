@@ -80,11 +80,14 @@ class PDataFrame(NamedTuple):
 
 class RealSpace(backend.ProjectionBase):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
-        pixels = numpy.tensordot(pdataframe.P,
-                                 pdataframe.pixels, axes=1)
-        x = pixels[1]
-        y = pixels[2]
-        z = numpy.ones_like(x) * pdataframe.timestamp
+        pixels = pdataframe.pixels
+        P = pdataframe.P
+        timestamp = pdataframe.timestamp
+
+        pixels_ = numpy.tensordot(P, pixels, axes=1)
+        x = pixels_[1]
+        y = pixels_[2]
+        z = numpy.ones_like(x) * timestamp
 
         return (x, y, z)
 
@@ -94,8 +97,10 @@ class RealSpace(backend.ProjectionBase):
 
 class Pixels(backend.ProjectionBase):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
-        return numpy.meshgrid(numpy.arange(pdataframe.pixels[0].shape[1]),
-                              numpy.arange(pdataframe.pixels[0].shape[0]))
+        pixels = pdataframe.pixels
+
+        return numpy.meshgrid(numpy.arange(pixels[0].shape[1]),
+                              numpy.arange(pixels[0].shape[0]))
 
     def get_axis_labels(self) -> Tuple[str]:
         return 'x', 'y'
@@ -103,7 +108,13 @@ class Pixels(backend.ProjectionBase):
 
 class HKLProjection(backend.ProjectionBase):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
-        pixels, k, UB, R, P, idx, timestamp, _surface_orientation = pdataframe
+        pixels = pdataframe.pixels
+        k = pdataframe.k
+        UB = pdataframe.ub
+        R = pdataframe.R
+        P = pdataframe.P
+        idx = pdataframe.index
+        timestamp = pdataframe.timestamp
 
         if UB is None:
             raise Exception("In order to compute the HKL projection, you need a valid ub matrix")
@@ -135,9 +146,13 @@ class HKProjection(HKLProjection):
 
 class QxQyQzProjection(backend.ProjectionBase):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
-        # put the detector at the right position
-
-        pixels, k, _UB, R, P, idx, timestamp, surface_orientation = pdataframe
+        pixels = pdataframe.pixels
+        k = pdataframe.k
+        R = pdataframe.R
+        P = pdataframe.P
+        idx = pdataframe.index
+        timestamp = pdataframe.timestamp
+        surface_orientation = pdataframe.surface_orientation
 
         # TODO factorize with HklProjection. Here a trick in order to
         # compute Qx Qy Qz in the omega basis.
@@ -194,8 +209,10 @@ class QxQyQzProjection(backend.ProjectionBase):
 
 class QxQyIndexProjection(QxQyQzProjection):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
+        timestamp = pdataframe.timestamp
+
         qx, qy, qz = super(QxQyIndexProjection, self).project(index, pdataframe)
-        return qx, qy, numpy.ones_like(qx) * pdataframe.timestamp
+        return qx, qy, numpy.ones_like(qx) * timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
         return 'Qx', 'Qy', 't'
@@ -203,8 +220,10 @@ class QxQyIndexProjection(QxQyQzProjection):
 
 class QxQzIndexProjection(QxQyQzProjection):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
+        timestamp = pdataframe.timestamp
+
         qx, qy, qz = super(QxQzIndexProjection, self).project(index, pdataframe)
-        return qx, qz, numpy.ones_like(qx) * pdataframe.timestamp
+        return qx, qz, numpy.ones_like(qx) * timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
         return 'Qx', 'Qz', 't'
@@ -212,8 +231,10 @@ class QxQzIndexProjection(QxQyQzProjection):
 
 class QyQzIndexProjection(QxQyQzProjection):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
+        timestamp = pdataframe.timestamp
+
         qx, qy, qz = super(QyQzIndexProjection, self).project(index, pdataframe)
-        return qy, qz, numpy.ones_like(qy) * pdataframe.timestamp
+        return qy, qz, numpy.ones_like(qy) * timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
         return 'Qy', 'Qz', 't'
@@ -230,8 +251,10 @@ class QparQperProjection(QxQyQzProjection):
 
 class QparQperIndexProjection(QparQperProjection):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
+        timestamp = pdataframe.timestamp
+
         qpar, qper = super(QparQperIndexProjection, self).project(index, pdataframe)
-        return qpar, qper, numpy.ones_like(qpar) * pdataframe.timestamp
+        return qpar, qper, numpy.ones_like(qpar) * timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
         return 'Qpar', 'Qper', 't'
@@ -261,8 +284,10 @@ class QPolarProjection(QxQyQzProjection):
 
 class QIndex(Stereo):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
+        timestamp = pdataframe.timestamp
+
         q, qx, qy = super(QIndex, self).project(index, pdataframe)
-        return q, numpy.ones_like(q) * pdataframe.timestamp
+        return q, numpy.ones_like(q) * timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
         return "Q", "Index"
