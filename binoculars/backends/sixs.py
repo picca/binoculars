@@ -158,7 +158,7 @@ class QxQyQzProjection(backend.ProjectionBase):
                 UB = numpy.dot(UB,
                                M(self.config.mu_offset, [0, 0, -1]))
 
-            
+
         # the ki vector should be in the NexusFile or easily extracted
         # from the hkl library.
         ki = [1, 0, 0]
