@@ -295,6 +295,16 @@ def parse_configcode(line):
 
 ### CONFIGURATION MANAGEMENT
 
+def parse_float(config, option, default=None):
+    value = default
+    value_as_string = config.pop(option, None)
+    if value_as_string is not None:
+        try:
+            value = float(value_as_string)  # noqa
+        except ValueError:
+                pass
+    return value
+
 def parse_range(r):
     if '-' in r:
         a, b = r.split('-')

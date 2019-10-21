@@ -604,6 +604,17 @@ class SIXS(backend.InputBase):
                 surface_orientation_opt = SurfaceOrientation.HORIZONTAL
         self.config.surface_orientation = surface_orientation_opt
 
+        # sample
+        self.config.a = util.parse_float(config, 'a', None)
+        self.config.b = util.parse_float(config, 'b', None)
+        self.config.c = util.parse_float(config, 'c', None)
+        self.config.alpha = util.parse_float(config, 'alpha', None)
+        self.config.beta = util.parse_float(config, 'beta', None)
+        self.config.gamma = util.parse_float(config, 'gamma', None)
+        self.config.ux = util.parse_float(config, 'ux', None)
+        self.config.uy = util.parse_float(config, 'uy', None)
+        self.config.uz = util.parse_float(config, 'uz', None)
+
     def get_destination_options(self, command):
         if not command:
             return False
