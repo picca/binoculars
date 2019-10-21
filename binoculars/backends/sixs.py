@@ -775,7 +775,7 @@ class FlyScanUHV(SIXS):
 
         surface_orientation = self.config.surface_orientation
 
-        pdataframe = PDataFrame(pixels, k, dataframe.diffractometer.ub, R, P, index, timestamp, surface_orientation)
+        pdataframe = PDataFrame(pixels, k, dataframe.sample.ub, R, P, index, timestamp, surface_orientation)
 
         return intensity, weights, (index, pdataframe)
 
