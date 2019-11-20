@@ -42,12 +42,12 @@ class Destination(object):
             self.value = verse
         elif self.type == 'tmp':
             verse.tofile(self.filename)
-            verse.tovti(self.filename + ".vti")
+            # verse.tovti(self.filename + ".vti")
         elif self.type == 'final':
             for sp, fn in zip(verse.spaces, self.final_filenames()):
                 sp.config = self.config
                 sp.tofile(fn)
-                sp.tovti(fn + ".vti")
+                # sp.tovti(fn + ".vti")
 
     def retrieve(self):
         if self.type == 'memory':
