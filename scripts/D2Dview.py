@@ -4,49 +4,40 @@ Created on Fri Dec 12 13:42:19 2014
 
 @author: Prevot
 """
-import sys, numpy as np
-import copy
-from math import fabs, sqrt, sin, cos, pi
-from PIL import Image
+import sys
+import os.path as osp
+import pickle
+
+import numpy as np
+import scipy.optimize as opt
+
+from os import getcwd,access,R_OK
+from math import sqrt, sin, cos, pi
+
 from guidata.qt.QtGui import QPen, QBrush, QPolygonF, QCheckBox, QTransform, QPainter, QComboBox, QColor, QPushButton, QDialog, QLabel, QLineEdit, QMessageBox
-from guidata.qt.QtCore import Qt, QRectF, QPointF, QPoint, QLineF, QSize, QRect, SIGNAL, QObject
+from guidata.qt.QtCore import Qt, QPointF, QSize, QRect, SIGNAL, QObject
 from matplotlib.path import Path as mplPath
 from guidata.utils import assert_interfaces_valid, update_dataset
 
 # Local imports
-from guiqwt.transitional import QwtPlotItem, QwtSymbol, QwtPlotMarker
+from guiqwt.transitional import QwtSymbol
 from guiqwt.config import CONF, _
 from guiqwt.interfaces import IBasePlotItem, IShapeItemType, ISerializableType,IColormapImageItemType
-from guiqwt.styles import (MarkerParam, ShapeParam, RangeShapeParam, ItemParameters,
-                           AxesShapeParam, MARKERSTYLES)
-from guiqwt.signals import (SIG_RANGE_CHANGED, SIG_MARKER_CHANGED,SIG_ITEM_REMOVED,
-                            SIG_AXES_CHANGED, SIG_ITEM_MOVED, SIG_ITEMS_CHANGED)
-from guiqwt.geometry import (vector_norm, vector_projection, vector_rotation,
-                             compute_center)
+from guiqwt.styles import (ShapeParam, AxesShapeParam)
+from guiqwt.signals import (SIG_ITEM_REMOVED,
+                            SIG_ITEMS_CHANGED)
 from guiqwt.baseplot import canvas_to_axes
 from guiqwt.shapes import AbstractShape,PolygonShape,RectangleShape,PointShape
-import os.path as osp
-import pickle
-from os import getcwd,access,R_OK
 
 from guiqwt.plot import ImageDialog
 from guiqwt.tools import (RectangularShapeTool)
-from guiqwt.tools import (RectangleTool, EllipseTool, HRangeTool, PlaceAxesTool,
-                          MultiLineTool, FreeFormTool, SegmentTool, CircleTool,
-                          AnnotatedRectangleTool, AnnotatedEllipseTool,
-                          AnnotatedSegmentTool, AnnotatedCircleTool, LabelTool,
-                          AnnotatedPointTool, CommandTool,RectangularActionTool,
-                          VCursorTool, HCursorTool, XCursorTool,
-                          ObliqueRectangleTool, AnnotatedObliqueRectangleTool,DefaultToolbarID)
+from guiqwt.tools import (CommandTool, DefaultToolbarID)
 from guiqwt.builder import make
-from guidata.dataset.datatypes import (DataSet, ObjectItem, BeginGroup,
-                                       EndGroup, Obj, DataSetGroup,
-                                       BeginTabGroup, EndTabGroup,
-                                       GetAttrProp, NotProp)
-from guidata.dataset.dataitems import (ChoiceItem, BoolItem, FloatItem, IntItem,
-                                       ImageChoiceItem, ColorItem, StringItem,
-                                       ButtonItem, FloatArrayItem, TextItem)
-import scipy.optimize as opt
+from guidata.dataset.datatypes import (DataSet)
+from guidata.dataset.dataitems import (BoolItem, FloatItem, IntItem,
+                                       ImageChoiceItem, StringItem)
+from PIL import Image
+
 _fromUtf8 = lambda s: s
 
 abspath=osp.abspath(__file__)
@@ -71,7 +62,7 @@ DEFAULTS = {
               "shape/gridshape/line/width" : 1,
               "shape/gridshape/fill/style" : "SolidPattern",
               "shape/gridshape/fill/color" : "white",
-              "shape/gridshape/fill/alpha" : 0.1,              
+              "shape/gridshape/fill/alpha" : 0.1,
               "shape/gridshape/symbol/marker" : 'Ellipse',
               "shape/gridshape/symbol/size" : 10,
               "shape/gridshape/symbol/edgecolor" : "#ff0000",
@@ -82,7 +73,7 @@ DEFAULTS = {
               "shape/gridshape/sel_line/width" : 1,
               "shape/gridshape/sel_fill/style" : "SolidPattern",
               "shape/gridshape/sel_fill/color" : "white",
-              "shape/gridshape/sel_fill/alpha" : 0.1,              
+              "shape/gridshape/sel_fill/alpha" : 0.1,
               "shape/gridshape/sel_symbol/marker" : 'Ellipse',
               "shape/gridshape/sel_symbol/size" : 10,
               "shape/gridshape/sel_symbol/edgecolor" : "#00aa00",
@@ -123,7 +114,7 @@ DEFAULTS = {
               "shape/reconstructionshape/line/width" : 2,
               "shape/reconstructionshape/fill/style" : "SolidPattern",
               "shape/reconstructionshape/fill/color" : "white",
-              "shape/reconstructionshape/fill/alpha" : 0.1,              
+              "shape/reconstructionshape/fill/alpha" : 0.1,
               "shape/reconstructionshape/symbol/marker" : 'Ellipse',
               "shape/reconstructionshape/symbol/size" : 8,
               "shape/reconstructionshape/symbol/edgecolor" : "#0000ff",
@@ -134,7 +125,7 @@ DEFAULTS = {
               "shape/reconstructionshape/sel_line/width" : 1,
               "shape/reconstructionshape/sel_fill/style" : "SolidPattern",
               "shape/reconstructionshape/sel_fill/color" : "white",
-              "shape/reconstructionshape/sel_fill/alpha" : 0.1,              
+              "shape/reconstructionshape/sel_fill/alpha" : 0.1,
               "shape/reconstructionshape/sel_symbol/marker" : 'Ellipse',
               "shape/reconstructionshape/sel_symbol/size" : 8,
               "shape/reconstructionshape/sel_symbol/edgecolor" : "#00aa00",
@@ -152,7 +143,7 @@ DEFAULTS = {
               "shape/reconstructionshape/yarrow_brush/alpha" : 0.2,
 
                             },
-              
+
             }
 
 CONF.update_defaults(DEFAULTS)
@@ -177,11 +168,11 @@ SPACEGROUP_CHOICES = [("p1", _("p1"), "none.png"),
                    ]
 def xy_to_angle(ux,uy):
   return np.sqrt(ux**2+uy**2),np.rad2deg(np.arctan2(uy,ux))
-  
+
 def angle_to_xy(r,t):
   tt= np.deg2rad(t)
   return r*np.cos(tt),r*np.sin(tt)
-  
+
 def corr_lin(p,x,y):
    #hi est soit h,soit k en pixel, retourne ki qui est soit kx, soit ky
     return p[0]+p[1]*x+p[2]*y
@@ -189,7 +180,7 @@ def corr_lin(p,x,y):
 def corr_quad(p,x,y):
     #h et k sont les pixels, retourne la valeur soit de kx, soit de ky
     return p[0]+p[1]*x+p[2]*y+p[3]*x*x+p[4]*x*y+p[5]*x*y
-    
+
 def corr_cub(p,x,y):
     #h et k sont les pixels, retourne la valeur soit de kx, soit de ky
     return p[0]+p[1]*x+p[2]*y+p[3]*x*x+p[4]*x*y+p[5]*x*y+p[6]*x*x*x+p[7]*x*x*y+p[8]*x*y*y+p[9]*y*y*y
@@ -197,35 +188,35 @@ def corr_cub(p,x,y):
 def erreur_lin(p,x,y,s):
     #x et y en pixel, s est la coordonnee corrigee soit x, soit y
     return corr_lin(p,x,y)-s
-    
+
 def erreur_quad(p,x,y,s):
     #x et y en pixel, s est la coordonnee corrigee soit x, soit y
     return corr_quad(p,x,y)-s
-    
+
 def erreur_cub(p,x,y,s):
     #x et y en pixel, s est la coordonnee corrigee soit x, soit y
     return corr_cub(p,x,y)-s
-          
+
 def Gaussian(x, amplitude, xo, sigma, offset):
     g=offset + amplitude*np.exp(-((x-xo)/sigma)**2)
     return g.ravel()
-    
-def twoD_Gaussian((x, y), amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
+
+def twoD_Gaussian(x, y, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
     xo = float(xo)
-    yo = float(yo)    
+    yo = float(yo)
     a = (np.cos(theta)**2)/(2*sigma_x**2) + (np.sin(theta)**2)/(2*sigma_y**2)
     b = -(np.sin(2*theta))/(4*sigma_x**2) + (np.sin(2*theta))/(4*sigma_y**2)
     c = (np.sin(theta)**2)/(2*sigma_x**2) + (np.cos(theta)**2)/(2*sigma_y**2)
-    g = offset + amplitude*np.exp( - (a*((x-xo)**2) + 2*b*(x-xo)*(y-yo) 
+    g = offset + amplitude*np.exp( - (a*((x-xo)**2) + 2*b*(x-xo)*(y-yo)
                             + c*((y-yo)**2)))
     return g.ravel()
-    
-def twoD_iso_Gaussian((x, y), amplitude, xo, yo, sigma, offset):
+
+def twoD_iso_Gaussian(x, y, amplitude, xo, yo, sigma, offset):
     xo = float(xo)
-    yo = float(yo)    
-    a = 1./(2*sigma**2) 
+    yo = float(yo)
+    a = 1./(2*sigma**2)
     g = offset + amplitude*np.exp(-a*(((x-xo)**2) +((y-yo)**2)))
-    return g.ravel()    
+    return g.ravel()
 
 class ReconstructionShapeParam(DataSet):
     A0 = FloatItem(_("Ax"), default=2.)
@@ -233,41 +224,41 @@ class ReconstructionShapeParam(DataSet):
     B0 = FloatItem(_("Bx"), default=0.)
     B1 = FloatItem(_("By"), default=2.)
     order = IntItem(_("order"), default=1)
-    
+
     def update_param(self, obj):
         self.A0 = obj.A[0]
         self.A1= obj.A[1]
         self.B0 = obj.B[0]
         self.B1= obj.B[1]
         self.order = obj.order
-        
+
     def update_shape(self, obj):
-        obj.A[0]=self.A0  
-        obj.A[1]=self.A1 
-        obj.B[0]=self.B0  
-        obj.B[1]=self.B1 
+        obj.A[0]=self.A0
+        obj.A[1]=self.A1
+        obj.B[0]=self.B0
+        obj.B[1]=self.B1
         obj.order = self.order
         self.update_param(obj)
-    
+
 class GridShapeParam(DataSet):
-    th=unichr(952)
+    th = chr(952)
     O0 = FloatItem(_("Ox"), default=200.)
     O1 = FloatItem(_("Oy"), default=200.).set_pos(col=1)
 
     RT = BoolItem(_("(R,"+th+")"), default=False)
     vm = BoolItem(_("v master"), default=False).set_pos(col=1)
-      
-    ux = FloatItem(_("ux"), default=100.)        
+
+    ux = FloatItem(_("ux"), default=100.)
     uR = FloatItem(_("uR"), default=100.).set_pos(col=1)
     uy = FloatItem(_("uy"), default=100.)
     uT = FloatItem(_("u"+th), default=100.).set_pos(col=1)
-    
-    vx = FloatItem(_("vx"), default=100.)
-    vR = FloatItem(_("vR"), default=100.).set_pos(col=1)  
 
-    vy = FloatItem(_("vy"), default=100.)  
+    vx = FloatItem(_("vx"), default=100.)
+    vR = FloatItem(_("vR"), default=100.).set_pos(col=1)
+
+    vy = FloatItem(_("vy"), default=100.)
     vT = FloatItem(_("v"+th), default=100.).set_pos(col=1)
-    
+
     order = IntItem(_("order"), default=1)
     sg = ImageChoiceItem(_("SpaceGroup"), SPACEGROUP_CHOICES,
                              default="p4mm")
@@ -284,11 +275,11 @@ class GridShapeParam(DataSet):
         self.vT = obj.vT
         self.order = obj.order
         self.sg = obj.sg
-        
+
     def update_shape(self, obj):
-      
-        obj.O[0]=self.O0  
-        obj.O[1]=self.O1 
+
+        obj.O[0]=self.O0
+        obj.O[1]=self.O1
         """
         if self.RT:
           self.ux,self.uy=angle_to_xy(self.uR,self.uT)
@@ -297,15 +288,15 @@ class GridShapeParam(DataSet):
           self.uR,self.uT=xy_to_angle(self.ux,self.uy)
           self.vR,self.vT=xy_to_angle(self.vx,self.vy)
         """
-        obj.u[0]=self.ux  
-        obj.u[1]=self.uy 
-        obj.v[0]=self.vx  
+        obj.u[0]=self.ux
+        obj.u[1]=self.uy
+        obj.v[0]=self.vx
         obj.v[1]=self.vy
-        obj.uR = self.uR 
-        obj.uT = self.uT 
-        obj.vR = self.vR 
-        obj.vT = self.vT 
-            
+        obj.uR = self.uR
+        obj.uT = self.uT
+        obj.vR = self.vR
+        obj.vT = self.vT
+
         obj.order = self.order
         obj.sg = self.sg
         if self.vm:
@@ -313,26 +304,26 @@ class GridShapeParam(DataSet):
         else:
           obj.set_space_group_constraints(master='u',RT=self.RT)
         self.update_param(obj)
-        
+
 
 
 class SpotShapeParam(DataSet):
     x0 = FloatItem(_("x0"), default=200.)
     y0 = FloatItem(_("y0"), default=200.)
-    h = FloatItem(_("h"), default=100.)    
+    h = FloatItem(_("h"), default=100.)
     k = FloatItem(_("k"), default=100.)
     gridname = StringItem(_("Grid"), default="Enter grid name")
-                                                          
+
     def update_param(self, obj):
         self.x0 = obj.x0
         self.y0= obj.y0
         self.h = obj.h
         self.k= obj.k
         self.gridname = obj.gridname
-        
+
     def update_shape(self, obj):
-        obj.x0=self.x0  
-        obj.y0=self.y0  
+        obj.x0=self.x0
+        obj.y0=self.y0
         obj.h = self.h
         obj.k= self.k
         obj.gridname = self.gridname
@@ -350,24 +341,24 @@ class SpotShape(PointShape):
         self.k=k
         self.x0=x0
         self.y0=y0
-                    
+
         if spotshapeparam is None:
             self.spotshapeparam = SpotShapeParam(_("SpotShape"), icon="point.png")
         else:
             self.spotshapeparam = spotshapeparam
-            self.spotshapeparam.update_shape(self)        
-    
+            self.spotshapeparam.update_shape(self)
+
     def move_point_to(self, handle, pos, ctrl=None):
         pass
         #nx, ny = pos
         #self.points[0] = (nx, ny)
-        
+
     def set_pos(self, x0, y0):
         """Set the point coordinates to (x, y)"""
         self.set_points([(x0, y0)])
         self.x0=x0
         self.y0=y0
-        
+
     def __reduce__(self):
         self.shapeparam.update_param(self)
         state = (self.shapeparam, self.points, self.h, self.k, self.gridname, self.z())
@@ -387,59 +378,59 @@ class SpotShape(PointShape):
         self.shapeparam = param
         self.gridname=gridname
         self.shapeparam.update_shape(self)
-        
+
     def get_item_parameters(self, itemparams):
-        
+
         self.shapeparam.update_param(self)
-        itemparams.add("ShapeParam", self, self.shapeparam) 
+        itemparams.add("ShapeParam", self, self.shapeparam)
 
         self.spotshapeparam = SpotShapeParam(_("SpotShape"), icon="point.png")
 
         self.spotshapeparam.update_param(self)
         itemparams.add("SpotShapeParam", self, self.spotshapeparam)
-    
+
     def set_grid_from_gridname(self, gridname):
         #permet de recuperer le reseau a partir de son nom s'il existe
-        items=list([item for item in self.plot().get_items() if (isinstance(item, GridShape) or isinstance(item, ReconstructionShape))])         
+        items=list([item for item in self.plot().get_items() if (isinstance(item, GridShape) or isinstance(item, ReconstructionShape))])
         itemnames=list([item.title().text() for item in items])
         if gridname in itemnames:
             self.grid=items[itemnames.index(self.gridname)]
 
-    
+
     def set_item_parameters(self, itemparams):
         update_dataset(self.shapeparam, itemparams.get("ShapeParam"),
                        visible_only=True)
-        gridname=self.gridname               
+        gridname=self.gridname
         self.shapeparam.update_shape(self)
         #on verifie que self.grid existe bien
-        items=list([item for item in self.plot().get_items() if (isinstance(item, GridShape) or isinstance(item, ReconstructionShape))])         
+        items=list([item for item in self.plot().get_items() if (isinstance(item, GridShape) or isinstance(item, ReconstructionShape))])
         itemnames=list([item.title().text() for item in items])
         #modification des parametres specifiques de la gridshape
         self.spotshapeparam.update_shape(self)
-        
+
         if self.gridname not in itemnames:
             params=PeakIdentificationParameters(self.plot())
             params.guess(self.x0,self.y0)
             Ok=PeakIdentificationWindow(params).exec_()
-    
+
             if Ok:
                 self.gridname=params.itemname
                 self.grid=params.item
                 self.h=params.h
-                self.k=params.k            
+                self.k=params.k
             else:
                 self.gridname=gridname
-            
+
         else:
             i=itemnames.index(self.gridname)
             self.grid=items[i]
         self.setTitle(self.gridname+'(%d,%d)'%(self.h,self.k))
 
 
-                
-        
+
+
 assert_interfaces_valid(SpotShape)
-        
+
 class PointCloudShape(AbstractShape):
     __implements__ = (IBasePlotItem, ISerializableType)
     ADDITIONNAL_POINTS = 0 # Number of points which are not part of the shape
@@ -449,13 +440,13 @@ class PointCloudShape(AbstractShape):
         super(PointCloudShape, self).__init__(None)
         self.closed = self.CLOSED if closed is None else closed
         self.selected = False
-        
+
         if shapeparam is None:
-            self.shapeparam = ShapeParam(_("Shape"), icon="rectangle.png")            
+            self.shapeparam = ShapeParam(_("Shape"), icon="rectangle.png")
         else:
             self.shapeparam = shapeparam
             self.shapeparam.update_shape(self)
-        
+
         self.pen = QPen()
         self.brush = QBrush()
         self.symbol = QwtSymbol.NoSymbol
@@ -467,7 +458,7 @@ class PointCloudShape(AbstractShape):
             self.set_points(points)
         if connects is not None:
             self.set_connects(connects)
-                
+
     def types(self):
         return (IShapeItemType, ISerializableType)
 
@@ -486,7 +477,7 @@ class PointCloudShape(AbstractShape):
         self.setZ(z)
         self.shapeparam = param
         self.shapeparam.update_shape(self)
-    
+
     def serialize(self, writer):
         """Serialize object to HDF5 writer"""
         self.shapeparam.update_param(self)
@@ -494,7 +485,7 @@ class PointCloudShape(AbstractShape):
         writer.write(self.points, group_name='points')
         writer.write(self.closed, group_name='closed')
         writer.write(self.z(), group_name='z')
-    
+
     def deserialize(self, reader):
         """Deserialize object from HDF5 reader"""
         self.closed = reader.read('closed')
@@ -503,13 +494,13 @@ class PointCloudShape(AbstractShape):
         self.shapeparam.update_shape(self)
         self.points = reader.read(group_name='points', func=reader.read_array)
         self.setZ(reader.read('z'))
-    
+
     #----Public API-------------------------------------------------------------
 
     def set_style(self, section, option):
         self.shapeparam.read_config(CONF, section, option)
         self.shapeparam.update_shape(self)
-        
+
     def set_color(self,color):
         #a convenient way to change all color attributes simultaneously with the same color
         self.pen.setColor(color)
@@ -526,30 +517,30 @@ class PointCloudShape(AbstractShape):
     def set_points(self, points):
         self.points = np.array(points, float)
         assert self.points.shape[1] == 2
-        
+
     def set_connects(self, connects):
         self.connects = np.array(connects, float)
-        assert self.points.shape[1] == 2 
-        
+        assert self.points.shape[1] == 2
+
     def get_points(self):
         """Return polygon points"""
         return self.points
-        
+
     def get_bounding_rect_coords(self):
         """Return bounding rectangle coordinates (in plot coordinates)"""
         poly = QPolygonF()
         shape_points = self.points[:-self.ADDITIONNAL_POINTS]
-        for i in xrange(shape_points.shape[0]):
+        for i in range(shape_points.shape[0]):
             poly.append(QPointF(shape_points[i, 0], shape_points[i, 1]))
         return poly.boundingRect().getCoords()
-        
+
     def transform_points(self, xMap, yMap):
         points = QPolygonF()
-        for i in xrange(self.points.shape[0]):
+        for i in range(self.points.shape[0]):
             points.append(QPointF(xMap.transform(self.points[i, 0]),
                                   yMap.transform(self.points[i, 1])))
         return points
-        
+
     def transform_connects(self, points):
         lines = list()
         for i in range(len(self.connects)):
@@ -558,7 +549,7 @@ class PointCloudShape(AbstractShape):
             lines.append(points[i1])
             lines.append(points[i2])
         return lines
-    
+
     def get_reference_point(self):
         if self.points.size:
             return self.points.mean(axis=0)
@@ -578,7 +569,7 @@ class PointCloudShape(AbstractShape):
             yy0 = yMap.transform(y0)
             try:
                 # Optimized version in PyQt >= v4.5
-                t0 = QTransform.fromTranslate(xx0, yy0) 
+                t0 = QTransform.fromTranslate(xx0, yy0)
             except AttributeError:
                 # Fallback for PyQt <= v4.4
                 t0 = QTransform().translate(xx0, yy0)
@@ -594,11 +585,11 @@ class PointCloudShape(AbstractShape):
         painter.setPen(pen)
         painter.setBrush(brush)
         points = self.transform_points(xMap, yMap)
-        
+
         #connection des segments
         shape_lines = self.transform_connects(points)
         painter.drawLines(shape_lines)
-        
+
         """
         if self.ADDITIONNAL_POINTS:
             shape_points = points[:-self.ADDITIONNAL_POINTS]
@@ -612,7 +603,7 @@ class PointCloudShape(AbstractShape):
             painter.drawPolyline(shape_points)
         """
         if symbol != QwtSymbol.NoSymbol:
-            for i in xrange(points.size()):
+            for i in range(points.size()):
                 symbol.draw(painter, points[i].toPoint())
         """
         if self.LINK_ADDITIONNAL_POINTS and other_points:
@@ -621,7 +612,7 @@ class PointCloudShape(AbstractShape):
             painter.setPen(pen2)
             painter.drawPolyline(other_points)
         """
-    
+
     def poly_hit_test(self, plot, ax, ay, pos):
         pos = QPointF(pos)
         dist = sys.maxint
@@ -629,7 +620,7 @@ class PointCloudShape(AbstractShape):
         Cx, Cy = pos.x(), pos.y()
         poly = QPolygonF()
         pts = self.points
-        for i in xrange(pts.shape[0]):
+        for i in range(pts.shape[0]):
             # On calcule la distance dans le repère du canvas
             px = plot.transform(ax, pts[i, 0])
             py = plot.transform(ay, pts[i, 1])
@@ -647,11 +638,11 @@ class PointCloudShape(AbstractShape):
         if not self.plot():
             return sys.maxint, 0, False, None
         return self.poly_hit_test(self.plot(), self.xAxis(), self.yAxis(), pos)
-    
+
     def add_local_point(self, pos):
         pt = canvas_to_axes(self, pos)
         return self.add_point(pt)
-        
+
     def add_point(self, pt):
         N,_ = self.points.shape
         self.points = np.resize(self.points, (N+1, 2))
@@ -664,14 +655,14 @@ class PointCloudShape(AbstractShape):
             return handle
         else:
             return self.points.shape[0]-1
-    
+
     def move_point_to(self, handle, pos, ctrl=None):
         #self.points[handle, :] = pos
         #ici il faut ecrire le comportement de la shape
         if handle==0:
             pos0=self.points[handle, :]
             dx=pos[0]-pos0[0]
-            dy=pos[1]-pos0[1]           
+            dy=pos[1]-pos0[1]
             for i in range(len(self.points)):
                 self.points[i,0]=self.points[i,0]+dx
                 self.points[i,1]=self.points[i,1]+dy
@@ -681,18 +672,18 @@ class PointCloudShape(AbstractShape):
             y0=self.points[0,1]
             xi=self.points[handle,0]
             yi=self.points[handle,1]
-            
+
             r0=np.sqrt((xi-x0)*(xi-x0)+(yi-y0)*(yi-y0))
             xf=pos[0]
             yf=pos[1]
-            
+
             rf=np.sqrt((xf-x0)*(xf-x0)+(yf-y0)*(yf-y0))
             fact=rf/r0
 
             for i in range(1,len(self.points)):
                 self.points[i,0]=(self.points[i,0]-x0)*fact+x0
                 self.points[i,1]=(self.points[i,1]-y0)*fact+y0
-        
+
     def move_shape(self, old_pos, new_pos):
         dx = new_pos[0]-old_pos[0]
         dy = new_pos[1]-old_pos[1]
@@ -702,12 +693,12 @@ class PointCloudShape(AbstractShape):
         self.shapeparam.update_param(self)
         itemparams.add("ShapeParam", self, self.shapeparam)
 
-    
+
     def set_item_parameters(self, itemparams):
         update_dataset(self.shapeparam, itemparams.get("ShapeParam"),
                        visible_only=True)
         self.shapeparam.update_shape(self)
-        
+
 assert_interfaces_valid(PointCloudShape)
 
 class GridShape(PointCloudShape,PolygonShape):
@@ -721,13 +712,13 @@ class GridShape(PointCloudShape,PolygonShape):
         self.y_pen = self.pen
         self.y_brush = self.brush
         self.set_movable(False)
-        
+
         if axesparam is None:
             self.axesparam = AxesShapeParam(_("Axes"), icon="gtaxes.png")
         else:
             self.axesparam = axesparam
             self.axesparam.update_param(self)
-        
+
         if shapeparam is None:
             self.shapeparam = ShapeParam(_("Shape"), icon="rectangle.png")
         else:
@@ -744,19 +735,19 @@ class GridShape(PointCloudShape,PolygonShape):
         self.O=np.array(O,float)   #centre du reseau
         self.u=np.array(u,float)   #vecteur 1
         self.v=np.array(v,float)   #vecteur 2
-        
+
         self.uR,self.uT=xy_to_angle(self.u[0],self.u[1])
         self.vR,self.vT=xy_to_angle(self.v[0],self.v[1])
-        
+
         self.order=order   #nombre de mailles
         self.sg=sg   #space group
         self.slaves=list()
-        
+
         self.set_nodes()
         self.set_points()
         self.set_connects()
         self.define_points()
-        
+
     def __reduce__(self):
         self.shapeparam.update_param(self)
         state = (self.shapeparam, self.O, self.u, self.v, self.order, self.sg, self.slaves, self.z())
@@ -779,18 +770,18 @@ class GridShape(PointCloudShape,PolygonShape):
         self.setZ(z)
         self.shapeparam = param
         self.shapeparam.update_shape(self)
-        
+
         self.set_nodes()
         self.set_points()
         self.set_connects()
         self.define_points()
-        
+
     def add_slave(self,slave):
         self.slaves.append(slave)
-        
+
     def remove_slave(self,slave):
         self.slaves.remove(slave)
-            
+
     def set_nodes(self):
         self.nodes=list()
         #les trois premiers noeuds servent a definir le reseau
@@ -803,35 +794,35 @@ class GridShape(PointCloudShape,PolygonShape):
                 if node not in self.nodes:
                     self.nodes.append(node)
         self.npts=len(self.nodes)
-        
-    def set_points(self):    
+
+    def set_points(self):
         self.points=np.array(list([self.O[0]+self.u[0]*node[0]+self.v[0]*node[1],self.O[1]+self.u[1]*node[0]+self.v[1]*node[1]] for node in self.nodes),float)
         for slave in self.slaves:
             slave.set_points()
-            
-    def set_connects(self):    
+
+    def set_connects(self):
         self.connects=np.array(list([i,j] for i in range(self.npts) for j in range(self.npts) if self.dist(i,j)==1))
-        
-         
+
+
     def define_points(self):
         #redefini les positions des points de la grille en fonction des vecteurs ux et uy
         for i in range(self.npts):
             node=self.nodes[i]
             self.points[i,0]=self.O[0]+self.u[0]*node[0]+self.v[0]*node[1]
             self.points[i,1]=self.O[1]+self.u[1]*node[0]+self.v[1]*node[1]
-        
+
     def dist(self,i,j):
         ni=self.nodes[i]
         nj=self.nodes[j]
         return (ni[0]-nj[0])**2+(ni[1]-nj[1])**2
-    
-    def set_space_group_constraints(self,master='u',RT=False):
-        
+
+    def set_space_group_constraints(self, master='u',RT=False):
+
         if RT:
           self.u[0],self.u[1]=angle_to_xy(self.uR,self.uT)
           self.v[0],self.v[1]=angle_to_xy(self.vR,self.vT)
 
-        if master is 'u':
+        if master == 'u':
             if self.sg in ["pm","p2mm","pg","p2mg","p2gg"]:
                 #les axes doivent etre perpendiculaires
                 u2=self.u[0]*self.u[0]+self.u[1]*self.u[1]
@@ -839,7 +830,7 @@ class GridShape(PointCloudShape,PolygonShape):
                 ratio=np.sqrt(v2/u2)
                 self.v[0]=-self.u[1]*ratio
                 self.v[1]=self.u[0]*ratio
-            
+
             elif self.sg in ["cm","c2mm"]:
                 #les axes doivent etre orthonormes
                 u2=self.u[0]*self.u[0]+self.u[1]*self.u[1]
@@ -852,11 +843,11 @@ class GridShape(PointCloudShape,PolygonShape):
                 #les axes doivent etre orthonormes
                 self.v[0]=-self.u[1]
                 self.v[1]=self.u[0]
-                
+
             elif self.sg in ["p3","p3m1","p31m","p6","p6mm"]:
                 #les axes doivent etre orthonormes
                 self.v[0]=self.u[0]*cos_60-self.u[1]*sin_60
-                self.v[1]=self.u[0]*sin_60+self.u[1]*cos_60                            
+                self.v[1]=self.u[0]*sin_60+self.u[1]*cos_60
         else:
             if self.sg in ["pm","p2mm","pg","p2mg","p2gg"]:
                 #les axes doivent etre perpendiculaires
@@ -865,7 +856,7 @@ class GridShape(PointCloudShape,PolygonShape):
                 ratio=np.sqrt(u2/v2)
                 self.u[0]=self.v[1]*ratio
                 self.u[1]=-self.v[0]*ratio
-                
+
             if self.sg in ["cm","c2mm"]:
                 #les axes doivent etre orthonormes
                 u2=self.u[0]*self.u[0]+self.u[1]*self.u[1]
@@ -878,15 +869,15 @@ class GridShape(PointCloudShape,PolygonShape):
                 #les axes doivent etre orthonormes
                 self.u[0]=self.v[1]
                 self.u[1]=-self.v[0]
-                
+
             if self.sg in ["p3","p3m1","p31m","p6","p6mm"]:
                 #les axes doivent etre orthonormes
                 self.u[0]=self.v[0]*cos_60+self.v[1]*sin_60
                 self.u[1]=-self.v[0]*sin_60+self.v[1]*cos_60
-    
+
         self.uR,self.uT=xy_to_angle(self.u[0],self.u[1])
         self.vR,self.vT=xy_to_angle(self.v[0],self.v[1])
-          
+
     def move_point_to(self, handle, pos, ctrl=None):
         #self.points[handle, :] = pos
         #ici il faut ecrire le comportement de la shape
@@ -902,11 +893,11 @@ class GridShape(PointCloudShape,PolygonShape):
             y1=pos[1]
             self.u[0]=x1-x0
             self.u[1]=y1-y0
-            
-            #ici on ecrit le comportement pour assurer que le groupe d'espace est le bon            
+
+            #ici on ecrit le comportement pour assurer que le groupe d'espace est le bon
             self.set_space_group_constraints('u')
             self.define_points()
-            
+
         elif handle==2:
             #il s'agit de l'axe des x
             x0=self.points[0,0]
@@ -917,28 +908,28 @@ class GridShape(PointCloudShape,PolygonShape):
             self.v[1]=y2-y0
             self.set_space_group_constraints('v')
             self.define_points()
-            
+
         for slave in self.slaves:
             slave.set_points()
-            
-                
-            
-    """       
+
+
+
+    """
     def set_style(self, section, option):
         self.shapeparam.read_config(CONF, section, option)
         self.shapeparam.update_shape(self)
         self.axesparam.read_config(CONF, section, option)
-        self.axesparam.update_axes(self) 
-    """      
+        self.axesparam.update_axes(self)
+    """
     def draw(self, painter, xMap, yMap, canvasRect):
         PointCloudShape.draw(self, painter, xMap, yMap, canvasRect)
-                
+
         painter.setBrush(painter.pen().color())
         self.draw_arrow(painter, xMap, yMap, self.points[0], self.points[1])
         self.draw_arrow(painter, xMap, yMap, self.points[0], self.points[2])
-        
+
     def draw_arrow(self, painter, xMap, yMap, p0, p1):
-        
+
         sz = self.arrow_size
         angle = pi*self.arrow_angle/180.
         ca, sa = cos(angle), sin(angle)
@@ -958,7 +949,7 @@ class GridShape(PointCloudShape,PolygonShape):
         a0y = a1y - ca*d1y + sa*n1y
         a2x = a1x - ca*d1x - sa*n1x
         a2y = a1y - ca*d1y - sa*n1y
-                
+
         poly = QPolygonF()
         poly.append(QPointF(a0x, a0y))
         poly.append(QPointF(a1x, a1y))
@@ -973,7 +964,7 @@ class GridShape(PointCloudShape,PolygonShape):
         itemparams.add("ShapeParam", self, self.shapeparam)
         self.gridshapeparam.update_param(self)
         itemparams.add("GridShapeParam", self, self.gridshapeparam)
-    
+
     def set_item_parameters(self, itemparams):
         update_dataset(self.shapeparam, itemparams.get("ShapeParam"),
                        visible_only=True)
@@ -986,16 +977,16 @@ class GridShape(PointCloudShape,PolygonShape):
             self.set_nodes()
             self.set_points()
             self.set_connects()
-    """        
+    """
     def set_style(self, section, option):
         PolygonShape.set_style(self, section, option+"/border")
         self.gridshapeparam.read_config(CONF, section, option)
         self.gridshapeparam.update_axes(self) #problematique...
-    """        
+    """
 class ReconstructionShape(PointCloudShape,PolygonShape):
     #une classe particuliere de pointcloudshape
     _can_move = False
-    
+
     def __init__(self, A=[2.,0.],B=[0.,2.],master=None,order=2,axesparam=None, shapeparam=None, reconstructionshapeparam=None):
         super(ReconstructionShape, self).__init__(shapeparam=shapeparam)
 
@@ -1005,13 +996,13 @@ class ReconstructionShape(PointCloudShape,PolygonShape):
         self.x_brush = self.brush
         self.y_pen = self.pen
         self.y_brush = self.brush
-                
+
         if axesparam is None:
             self.axesparam = AxesShapeParam(_("Axes"), icon="gtaxes.png")
         else:
             self.axesparam = axesparam
             self.axesparam.update_param(self)
-        
+
         if shapeparam is None:
             self.shapeparam = ShapeParam(_("Shape"), icon="rectangle.png")
         else:
@@ -1033,7 +1024,7 @@ class ReconstructionShape(PointCloudShape,PolygonShape):
         #print "master=",master
         if master:
             self.set_master(master)
-            
+
     def __reduce__(self):
         self.shapeparam.update_param(self)
         state = (self.shapeparam, self.A, self.B, self.order, self.z())
@@ -1051,14 +1042,14 @@ class ReconstructionShape(PointCloudShape,PolygonShape):
         self.setZ(z)
         self.shapeparam = param
         self.shapeparam.update_shape(self)
-    
+
     def set_master(self,master):
         self.master=master
         self.O=self.master.O
         self.set_points()
         self.set_connects()
         self.define_points()
-            
+
     def set_nodes(self):
         self.nodes=list()
         #les trois premiers noeuds servent a definir le reseau
@@ -1071,7 +1062,7 @@ class ReconstructionShape(PointCloudShape,PolygonShape):
                 if node not in self.nodes:
                     self.nodes.append(node)
         self.npts=len(self.nodes)
-        
+
     def set_points(self):
         #print self.A,self.B
         self.delta=float(self.A[0]*self.B[1]-self.A[1]*self.B[0])
@@ -1086,25 +1077,25 @@ class ReconstructionShape(PointCloudShape,PolygonShape):
         self.O=self.master.O
         #print self.u,self.v,self.O
         self.points=np.array(list([self.O[0]+self.u[0]*node[0]+self.v[0]*node[1],self.O[1]+self.u[1]*node[0]+self.v[1]*node[1]] for node in self.nodes),float)
-        
-    def set_connects(self):    
+
+    def set_connects(self):
         self.connects=np.array(list([i,j] for i in range(self.npts) for j in range(self.npts) if self.dist(i,j)==1))
-        
-         
+
+
     def define_points(self):
         #redefini les positions des points de la grille en fonction des vecteurs ux et uy
         for i in range(self.npts):
             node=self.nodes[i]
             self.points[i,0]=self.O[0]+self.u[0]*node[0]+self.v[0]*node[1]
             self.points[i,1]=self.O[1]+self.u[1]*node[0]+self.v[1]*node[1]
-        
+
     def dist(self,i,j):
         ni=self.nodes[i]
         nj=self.nodes[j]
         return (ni[0]-nj[0])**2+(ni[1]-nj[1])**2
-    
+
     def set_space_group_constraints(self,master='u'):
-        if master is 'u':
+        if master == 'u':
             if self.sg in ["pm","p2mm","pg","p2mg","p2gg"]:
                 #les axes doivent etre perpendiculaires
                 u2=self.u[0]*self.u[0]+self.u[1]*self.u[1]
@@ -1112,7 +1103,7 @@ class ReconstructionShape(PointCloudShape,PolygonShape):
                 ratio=np.sqrt(v2/u2)
                 self.v[0]=-self.u[1]*ratio
                 self.v[1]=self.u[0]*ratio
-            
+
             elif self.sg in ["cm","c2mm"]:
                 #les axes doivent etre orthonormes
                 u2=self.u[0]*self.u[0]+self.u[1]*self.u[1]
@@ -1125,11 +1116,11 @@ class ReconstructionShape(PointCloudShape,PolygonShape):
                 #les axes doivent etre orthonormes
                 self.v[0]=-self.u[1]
                 self.v[1]=self.u[0]
-                
+
             elif self.sg in ["p3","p3m1","p31m","p6","p6mm"]:
                 #les axes doivent etre orthonormes
                 self.v[0]=self.u[0]*cos_60-self.u[1]*sin_60
-                self.v[1]=self.u[0]*sin_60+self.u[1]*cos_60                            
+                self.v[1]=self.u[0]*sin_60+self.u[1]*cos_60
         else:
             if self.sg in ["pm","p2mm","pg","p2mg","p2gg"]:
                 #les axes doivent etre perpendiculaires
@@ -1138,7 +1129,7 @@ class ReconstructionShape(PointCloudShape,PolygonShape):
                 ratio=np.sqrt(u2/v2)
                 self.u[0]=self.v[1]*ratio
                 self.u[1]=-self.v[0]*ratio
-                
+
             if self.sg in ["cm","c2mm"]:
                 #les axes doivent etre orthonormes
                 u2=self.u[0]*self.u[0]+self.u[1]*self.u[1]
@@ -1151,34 +1142,34 @@ class ReconstructionShape(PointCloudShape,PolygonShape):
                 #les axes doivent etre orthonormes
                 self.u[0]=self.v[1]
                 self.u[1]=-self.v[0]
-                
+
             if self.sg in ["p3","p3m1","p31m","p6","p6mm"]:
                 #les axes doivent etre orthonormes
                 self.u[0]=self.v[0]*cos_60+self.v[1]*sin_60
                 self.u[1]=-self.v[0]*sin_60+self.v[1]*cos_60
-    
+
     def move_point_to(self, handle, pos, ctrl=None):
         #self.points[handle, :] = pos
         #ici il faut ecrire le comportement de la shape
-        return  
-        
+        return
+
     def move_shape(self, old_pos, new_pos):
-        return            
-            
-    """       
+        return
+
+    """
     def set_style(self, section, option):
         self.shapeparam.read_config(CONF, section, option)
         self.shapeparam.update_shape(self)
         self.axesparam.read_config(CONF, section, option)
-        self.axesparam.update_axes(self) 
-    """      
+        self.axesparam.update_axes(self)
+    """
     def draw(self, painter, xMap, yMap, canvasRect):
         PointCloudShape.draw(self, painter, xMap, yMap, canvasRect)
-        
+
         painter.setBrush(painter.pen().color())
         self.draw_arrow(painter, xMap, yMap, self.points[0], self.points[1])
         self.draw_arrow(painter, xMap, yMap, self.points[0], self.points[2])
-        
+
     def draw_arrow(self, painter, xMap, yMap, p0, p1):
         sz = self.arrow_size
         angle = pi*self.arrow_angle/180.
@@ -1199,7 +1190,7 @@ class ReconstructionShape(PointCloudShape,PolygonShape):
         a0y = a1y - ca*d1y + sa*n1y
         a2x = a1x - ca*d1x - sa*n1x
         a2y = a1y - ca*d1y - sa*n1y
-                
+
         poly = QPolygonF()
         poly.append(QPointF(a0x, a0y))
         poly.append(QPointF(a1x, a1y))
@@ -1214,7 +1205,7 @@ class ReconstructionShape(PointCloudShape,PolygonShape):
         itemparams.add("ShapeParam", self, self.shapeparam)
         self.reconstructionshapeparam.update_param(self)
         itemparams.add("ReconstructionShapeParam", self, self.reconstructionshapeparam)
-    
+
     def set_item_parameters(self, itemparams):
         update_dataset(self.shapeparam, itemparams.get("ShapeParam"),
                        visible_only=True)
@@ -1227,14 +1218,14 @@ class ReconstructionShape(PointCloudShape,PolygonShape):
             self.set_nodes()
             self.set_points()
             self.set_connects()
-                    
+
 
 class GridShapeTool(RectangularShapeTool):
     #redefinition de EllipseTool de guiqwt
     TITLE = _("Grid")
     ICON = gridpath
     SHAPE_STYLE_KEY = "shape/gridshape"
-    
+
     def activate(self):
         """Activate tool"""
         for baseplot, start_state in self.start_state.items():
@@ -1247,7 +1238,7 @@ class GridShapeTool(RectangularShapeTool):
         shape.select()
         self.set_shape_style(shape)
         return shape, 0, 1
-        
+
     def add_shape_to_plot(self, plot, p0, p1):
         """
         Method called when shape's rectangular area
@@ -1257,7 +1248,7 @@ class GridShapeTool(RectangularShapeTool):
         shape = self.get_final_shape(plot, p0, p1)
         shape.unselect()
         #on donne a la shape le dernier numero  de la liste des EllipseStatShape
-        
+
         items=list([item for item in plot.get_items() if isinstance(item, GridShape)])
         N=len(items)
         shape.setTitle("Reseau %d"%N)
@@ -1280,9 +1271,9 @@ class PeakIdentificationParameters:
         self.k=k
         self.griditems=list([item for item in self.plot.get_items() if isinstance(item, GridShape)])
         self.reconstructionitems=list([item for item in self.plot.get_items() if isinstance(item, ReconstructionShape)])
-        
+
     def guess(self,xpic,ypic):
-        #fonction qui va donner pour chacun des elements de griditems et reconstructionitems 
+        #fonction qui va donner pour chacun des elements de griditems et reconstructionitems
         self.guesslist=list()
         self.distlist=list()  #liste des distances a la tache
         for item in self.griditems:
@@ -1292,12 +1283,12 @@ class PeakIdentificationParameters:
             h=(x*item.v[1]-y*item.v[0])/delta
             k=(y*item.u[0]-x*item.u[1])/delta
             self.guesslist.append([item.title().text(),h,k,item])
-            
+
             xth=item.u[0]*round(h)+item.v[0]*round(k)
             yth=item.u[1]*round(h)+item.v[1]*round(k)
-            dist=np.sqrt((xth-x)**2+(yth-y)**2)            
+            dist=np.sqrt((xth-x)**2+(yth-y)**2)
             self.distlist.append(dist)
-            
+
         for item in self.reconstructionitems:
             x=xpic-item.O[0]
             y=ypic-item.O[1]
@@ -1305,67 +1296,67 @@ class PeakIdentificationParameters:
             h=(x*item.v[1]-y*item.v[0])/delta
             k=(y*item.u[0]-x*item.u[1])/delta
             self.guesslist.append([item.title().text(),h,k,item])
-            
+
             xth=item.u[0]*round(h)+item.v[0]*round(k)
             yth=item.u[1]*round(h)+item.v[1]*round(k)
-            dist=np.sqrt((xth-x)**2+(yth-y)**2)            
+            dist=np.sqrt((xth-x)**2+(yth-y)**2)
             self.distlist.append(dist)
         if len(self.distlist)>0:
           self.itemindice=np.argmin(self.distlist)
           self.item=self.guesslist[self.itemindice][3]
-          self.itemname=self.guesslist[self.itemindice][0]        
+          self.itemname=self.guesslist[self.itemindice][0]
           self.h=round(self.guesslist[self.itemindice][1])
           self.k=round(self.guesslist[self.itemindice][2])
 
 class PeakIdentificationWindow(QDialog):
     # definit une fenetre pour rentrer la position de la tache reperee
     def __init__(self,pref):
-        QDialog.__init__(self)  
+        QDialog.__init__(self)
         self.pref=pref
-        self.itemtexts=list([item[0] for item in self.pref.guesslist])      
+        self.itemtexts=list([item[0] for item in self.pref.guesslist])
         self.Gridentry=QComboBox(self)
-        self.Gridentry.setGeometry(QRect(5, 5, 200, 25))        
+        self.Gridentry.setGeometry(QRect(5, 5, 200, 25))
         self.Gridentry.insertItems(0, self.itemtexts)
-                
+
         self.hlabel=QLabel(self)
-        self.hlabel.setGeometry(QRect(5, 35, 55, 25))        
-        
+        self.hlabel.setGeometry(QRect(5, 35, 55, 25))
+
         self.klabel=QLabel(self)
-        self.klabel.setGeometry(QRect(65, 35, 55, 25))        
-        
+        self.klabel.setGeometry(QRect(65, 35, 55, 25))
+
         self.hentry=QLineEdit(self)
-        self.hentry.setGeometry(QRect(5, 65, 55, 25))        
-        
+        self.hentry.setGeometry(QRect(5, 65, 55, 25))
+
         self.kentry=QLineEdit(self)
-        self.kentry.setGeometry(QRect(65, 65, 55, 25))        
+        self.kentry.setGeometry(QRect(65, 65, 55, 25))
 
         self.changeitem(self.pref.itemindice)
-                                
+
         self.OK = QPushButton(self)
-        self.OK.setGeometry(QRect(5, 185, 90, 25))   
+        self.OK.setGeometry(QRect(5, 185, 90, 25))
         self.OK.setText("OK")
-        
+
         self.Cancel = QPushButton(self)
-        self.Cancel.setGeometry(QRect(100, 185, 90, 25))   
+        self.Cancel.setGeometry(QRect(100, 185, 90, 25))
         self.Cancel.setText("Cancel")
 
 
         QObject.connect(self.Cancel, SIGNAL(_fromUtf8("clicked()")), self.closewin)
         QObject.connect(self.OK, SIGNAL(_fromUtf8("clicked()")), self.appl)
         QObject.connect(self.Gridentry, SIGNAL(_fromUtf8("currentIndexChanged (int)")), self.changeitem)
-     
+
     def changeitem(self,i):
         # quand on change x, on change les valeurs min et max de x par defaut
         self.Gridentry.setCurrentIndex(i)
-        
-        print "change"
+
+        print("change")
         self.hlabel.setText('%f'%self.pref.guesslist[i][1])
         self.klabel.setText('%f'%self.pref.guesslist[i][2])
-        h=int(round(self.pref.guesslist[i][1]))    
-        k=int(round(self.pref.guesslist[i][2]))         
+        h=int(round(self.pref.guesslist[i][1]))
+        k=int(round(self.pref.guesslist[i][2]))
         self.hentry.setText('%d'%h)
-        self.kentry.setText('%d'%k)        
-        
+        self.kentry.setText('%d'%k)
+
     def appl (self):
         h = self.hentry.text()
         k = self.kentry.text()
@@ -1374,19 +1365,19 @@ class PeakIdentificationWindow(QDialog):
             itemindex=self.Gridentry.currentIndex()
             self.pref.itemname=self.pref.guesslist[itemindex][0]
             self.pref.item=self.pref.guesslist[itemindex][3]
-            self.close()    
+            self.close()
             self.setResult(1)
             self.pref.h=int(h)
             self.pref.k=int(k)
         except Exception:
             QMessageBox.about(self, 'Error','Input not valid')
-            
+
     def closewin (self):
         self.setResult(0)
         self.close()
 
 class RectanglePeakShape(RectangleShape):
-    
+
     def __init__(self, x1=0, y1=0, x2=0, y2=0, shapeparam=None):
         super(RectanglePeakShape, self).__init__(x1,y1,x2,y2,shapeparam=shapeparam)
         #self.hasmask=False
@@ -1394,12 +1385,12 @@ class RectanglePeakShape(RectangleShape):
     def itemChanged(self):
         super(EllipseStatShape,self).itemChanged()
         print "item Changed!"
-    """    
-        
+    """
+
 class RectanglePeakTool(RectangularShapeTool):
     TITLE = None
     ICON = peakfindpath
-    
+
     def __init__(self, manager, setup_shape_cb=None,
                  handle_final_shape_cb=None, shape_style=None,
                  toolbar_id=DefaultToolbarID, title="find a peak", icon=ICON, tip=None,
@@ -1410,7 +1401,7 @@ class RectanglePeakTool(RectangularShapeTool):
                        switch_to_default_tool=switch_to_default_tool)
         self.setup_shape_cb = setup_shape_cb
         self.handle_final_shape_cb = handle_final_shape_cb
-        
+
     def add_shape_to_plot(self, plot, p0, p1):
         """
         Method called when shape's rectangular area
@@ -1430,7 +1421,7 @@ class RectanglePeakTool(RectangularShapeTool):
         x1=min(points[:,0])
         x2=max(points[:,0])
         y1=min(points[:,1])
-        y2=max(points[:,1])  
+        y2=max(points[:,1])
         #on recupere les datas de l'image en cours de traitement
 
         dim=data.shape
@@ -1442,9 +1433,9 @@ class RectanglePeakTool(RectangularShapeTool):
         iy2=min(dim[0]-1,round(y2))
         if iy2<iy1:
           iy2,iy1=iy1,iy2
-        print iy1,iy2,ix1,ix2
+        print(iy1,iy2,ix1,ix2)
         data2=data[iy1:iy2,ix1:ix2]
-        
+
         sx=ix2-ix1
         sy=iy2-iy1
         # Create x and y indices
@@ -1452,85 +1443,85 @@ class RectanglePeakTool(RectangularShapeTool):
         y = np.linspace(iy1, iy2-1, sy)
 
         self.handle_final_shape(shape)
-        
+
         try:
-        
+
             #dans un premier temps on regarde les sommes 1D
-            sumx=np.sum(data2,0)        
+            sumx=np.sum(data2,0)
             fond=np.min(sumx)
             pic=np.max(sumx)-fond
             x0=np.argmax(sumx)+ix1
             sigma=min(1.,sx/10.)
             initial_guess = (pic,x0,sigma,fond)
-            
+
             popt, pcov = opt.curve_fit(Gaussian, x, sumx, p0=initial_guess)
             picx=popt[0]/sy
             x0=popt[1]
             sigmax=popt[2]
             fondx=popt[3]/sy
-            
-            sumy=np.sum(data2,1)        
+
+            sumy=np.sum(data2,1)
             fond=np.min(sumy)
             pic=np.max(sumy)-fond
             y0=np.argmax(sumy)+iy1
             sigma=min(1.,sy/10.)
             initial_guess = (pic,y0,sigma,fond)
             popt, pcov = opt.curve_fit(Gaussian, y, sumy, p0=initial_guess)
-    
+
             picy=popt[0]/sx
             y0=popt[1]
             sigmay=popt[2]
             fondy=popt[3]/sx
-    
+
             pic=(picx+picy)/2.
             sigma=(sigmax+sigmay)/2.
             fond=(fondx+fondy)/2.
-                    
+
             initial_guess = (pic,x0,y0,sigma,fond)
             #print initial_guess
             x, y = np.meshgrid(x, y)
             popt, pcov = opt.curve_fit(twoD_iso_Gaussian, (x, y), data2.ravel(), p0=initial_guess)
-            
+
             initial_guess = (popt[0],popt[1],popt[2],popt[3],popt[3],0.,fond)
             #print popt
             popt, pcov = opt.curve_fit(twoD_Gaussian, (x, y), data2.ravel(), p0=initial_guess)
             #print popt
-            
+
             #conversion en unite de plot
             x0,y0=win.image.get_plot_coordinates(popt[1],popt[2])
-            print 'peak at',x0,y0
-            if  (x1<popt[1]<x2) and (y1<popt[2]<y2):   
+            print('peak at',x0,y0)
+            if  (x1<popt[1]<x2) and (y1<popt[2]<y2):
                 params=PeakIdentificationParameters(plot)
                 params.guess(x0,y0)
-                
+
                 centre=SpotShape(x0,y0,gridname=params.itemname,grid=params.item,h=params.h,k=params.k)
                 centre.set_style("plot", "shape/spot")
                 plot.add_item(centre)
                 self.handle_final_shape(centre)
                 plot.replot()
-                
+
                 centre.setTitle(params.itemname+'(%f,%f)'%(x0,y0))
                 if params.h is not None:
-                  Ok=PeakIdentificationWindow(params).exec_()        
+                  Ok=PeakIdentificationWindow(params).exec_()
                   if Ok:
                     centre.setTitle(params.itemname+'(%d,%d)'%(params.h,params.k))
             else:
                 QMessageBox.about(plot, 'Error','Spot not found')
-        
+
         except:
             QMessageBox.about(plot, 'Error','Spot not found')
-        
+
         plot.del_item(shape)
         plot.replot()
-        
-        
-        
+
+
+
     def setup_shape(self, shape):
         """To be reimplemented"""
         shape.setTitle(self.TITLE)
         if self.setup_shape_cb is not None:
             self.setup_shape_cb(shape)
-        
+
     def handle_final_shape(self, shape):
         """To be reimplemented"""
         if self.handle_final_shape_cb is not None:
@@ -1538,7 +1529,7 @@ class RectanglePeakTool(RectangularShapeTool):
 
 
 class ReconstructionInitParameters:
-    # classe pour les parametres de fit   
+    # classe pour les parametres de fit
     def __init__(self,plot,Ax=1,Ay=0,Bx=0,By=1,order=4):
         self.Ax=Ax
         self.Ay=Ay
@@ -1553,7 +1544,7 @@ class ReconstructionInitWindow(QDialog):
     # definit une fenetre pour rentrer les parametres d'affichage des preferences
     def __init__(self,pref):
 
-        QDialog.__init__(self)  
+        QDialog.__init__(self)
 
         self.pref=pref
         self.items=list([item for item in pref.plot.get_items() if isinstance(item, GridShape)])
@@ -1565,7 +1556,7 @@ class ReconstructionInitWindow(QDialog):
         self.lab1 = QLabel(self)
         self.lab1.setGeometry(QRect(5, 35, 55, 25))
         self.lab1.setText("x")
-        
+
         self.lab2 = QLabel(self)
         self.lab2.setGeometry(QRect(5, 65, 55, 25))
         self.lab2.setText("y")
@@ -1573,68 +1564,68 @@ class ReconstructionInitWindow(QDialog):
         self.lab1 = QLabel(self)
         self.lab1.setGeometry(QRect(65, 5, 55, 25))
         self.lab1.setText("A")
-        
+
         self.lab2 = QLabel(self)
         self.lab2.setGeometry(QRect(125, 5, 55, 25))
         self.lab2.setText("B")
-                
+
         self.Axentry = QLineEdit(self)
         self.Axentry.setGeometry(QRect(65, 35, 55, 25))
         self.Axentry.setText('%d'%pref.Ax)
-        
+
         self.Bxentry = QLineEdit(self)
         self.Bxentry.setGeometry(QRect(125, 35, 55, 25))
         self.Bxentry.setText('%d'%pref.Ay)
-        
+
         self.Ayentry = QLineEdit(self)
         self.Ayentry.setGeometry(QRect(65, 65, 55, 25))
         self.Ayentry.setText('%d'%pref.Bx)
-        
+
         self.Byentry = QLineEdit(self)
         self.Byentry.setGeometry(QRect(125, 65, 55, 25))
         self.Byentry.setText('%d'%pref.By)
-        
+
         self.lab5 = QLabel(self)
         self.lab5.setGeometry(QRect(5, 95, 55, 25))
         self.lab5.setText("Master")
-                
+
         self.Masterentry=QComboBox(self)
         self.Masterentry.setGeometry(QRect(65, 95, 120, 25))
         self.Masterentry.insertItems(0, self.itemtexts)
-        
+
         self.Symentry=QCheckBox(self)
         self.Symentry.setGeometry(QRect(5, 125, 180, 25))
         self.Symentry.setText("Add symetrical domains")
         self.Symentry.setChecked(pref.sym)
-        
+
         self.lab6 = QLabel(self)
         self.lab6.setGeometry(QRect(5, 155, 55, 25))
         self.lab6.setText("Order")
-        
+
         self.Orderentry=QLineEdit(self)
         self.Orderentry.setGeometry(QRect(65, 155, 55, 25))
         self.Orderentry.setText('%d'%pref.order)
-        
+
         self.OK = QPushButton(self)
-        self.OK.setGeometry(QRect(5, 185, 90, 25))   
+        self.OK.setGeometry(QRect(5, 185, 90, 25))
         self.OK.setText("OK")
-        
+
         self.Cancel = QPushButton(self)
-        self.Cancel.setGeometry(QRect(100, 185, 90, 25))   
+        self.Cancel.setGeometry(QRect(100, 185, 90, 25))
         self.Cancel.setText("Cancel")
 
         QObject.connect(self.Cancel, SIGNAL(_fromUtf8("clicked()")), self.closewin)
         QObject.connect(self.OK, SIGNAL(_fromUtf8("clicked()")), self.appl)
-        
+
         #self.exec_()
-  
+
     def appl (self):
         Ax = self.Axentry.text()
         Ay = self.Ayentry.text()
         Bx = self.Bxentry.text()
         By = self.Byentry.text()
         order = self.Orderentry.text()
-        
+
         try:
             Ax = float(Ax)
             Ay = float(Ay)
@@ -1649,11 +1640,11 @@ class ReconstructionInitWindow(QDialog):
             self.pref.sym=self.Symentry.isChecked()
             itemindex=self.Masterentry.currentIndex()
             self.pref.master=self.items[itemindex]
-            self.close()    
-            self.setResult(1)        
+            self.close()
+            self.setResult(1)
         except Exception:
             QMessageBox.about(self, 'Error','Input can only be a float')
-       
+
     def closewin (self):
         self.setResult(0)
         self.close()
@@ -1663,7 +1654,7 @@ def check_different(A1,B1,A2,B2):
     #le même reseau
     delta2=A2[0]*B2[1]-A2[1]*B2[0]
     nA1=(A1[0]*B2[1]-A1[1]*B2[0])/delta2
-    pA1=(A1[1]*A2[0]-A1[0]*A2[1])/delta2     
+    pA1=(A1[1]*A2[0]-A1[0]*A2[1])/delta2
     nB1=(B1[0]*B2[1]-B1[1]*B2[0])/delta2
     pB1=(B1[1]*A2[0]-B1[0]*A2[1])/delta2
     """
@@ -1672,13 +1663,13 @@ def check_different(A1,B1,A2,B2):
     print delta2,A1[0]*B2[1]-A1[0]*B2[1]
     print nA1,pA1,nB1,pB1
     """
-     
+
     if nA1%1==0 and pA1%1==0 and nB1%1==0 and pB1%1==0:
         return False
     else:
         return True
 
-class ReconstructionShapeTool(CommandTool):  
+class ReconstructionShapeTool(CommandTool):
     def __init__(self, manager, toolbar_id=DefaultToolbarID):
         CommandTool.__init__(self, manager, _("Reconstruction"),icon=reconstructionpath,
                                             tip=_("Add a recontruction"),
@@ -1695,79 +1686,79 @@ class ReconstructionShapeTool(CommandTool):
             By=params.By
             order=params.order
             master=params.master
-            sym=params.sym            
-            self.addreconstruction(plot,Ax,Ay,Bx,By,order,master,sym) 
-            
+            sym=params.sym
+            self.addreconstruction(plot,Ax,Ay,Bx,By,order,master,sym)
+
     def addreconstruction(self, plot,Ax,Ay,Bx,By,order,master,sym):
-    
+
         A1=[Ax,Ay]
         B1=[Bx,By]
-        shape = ReconstructionShape(master=master,A=A1,B=B1,order=order)        
+        shape = ReconstructionShape(master=master,A=A1,B=B1,order=order)
         shape.set_style("plot", "shape/reconstructionshape")
         shape.set_color(QColor("#ff5500"))  #orange
         self.items=list([item for item in plot.get_items() if isinstance(item, ReconstructionShape)])
         n=len(self.items)+1
         shape.setTitle("Reconstruction %d"%n)
-        
+
         shape.set_movable("False")
         master.add_slave(shape)
-        plot.add_item(shape)        
+        plot.add_item(shape)
         z1=master.z()
         z2=shape.z()
         shape.setZ(z1)
         master.setZ(z2)
-        #print plot,shape        
-        
+        #print plot,shape
+
         if sym:
             #il faut regarder les reconstructions possibles
             if master.sg in ["pm",'pg','cm','pmm','p2mm','p2mg','p2gg','c2mm']:
                 A2=[Ax,-Ay]
                 B2=[Bx,-By]
                 if check_different(A1,B1,A2,B2):
-                    shape = ReconstructionShape(master=master,A=A2,B=B2,order=order)        
+                    shape = ReconstructionShape(master=master,A=A2,B=B2,order=order)
                     shape.set_style("plot", "shape/reconstructionshape")
                     shape.set_color(QColor("#0000ff"))  #blue
                     n=n+1
                     shape.setTitle("Reconstruction %d"%n)
                     shape.set_movable("False")
                     master.add_slave(shape)
-                    plot.add_item(shape)        
+                    plot.add_item(shape)
                     z1=master.z()
                     z2=shape.z()
                     shape.setZ(z1)
                     master.setZ(z2)
-                    
+
             if master.sg in ['p4']:
                 #rotation 90°
                 A2=[Ay,Ax]
                 B2=[By,Bx]
                 if check_different(A1,B1,A2,B2):
-                    shape = ReconstructionShape(master=master,A=A2,B=B2,order=order)        
+                    shape = ReconstructionShape(master=master,A=A2,B=B2,order=order)
                     shape.set_style("plot", "shape/reconstructionshape")
                     n=n+1
                     shape.setTitle("Reconstruction %d"%n)
                     shape.set_color(QColor("#0000ff"))  #blue
                     shape.set_movable("False")
                     master.add_slave(shape)
-                    plot.add_item(shape)        
+                    plot.add_item(shape)
                     z1=master.z()
                     z2=shape.z()
                     shape.setZ(z1)
                     master.setZ(z2)
-                                            
+
             if master.sg in ['p4mm','p4gm']:
                 #rotation 90°
                 A2=[Ay,Ax]
                 B2=[By,Bx]
                 if check_different(A1,B1,A2,B2):
-                    shape = ReconstructionShape(master=master,A=A2,B=B2,order=order)        
+                    shape = ReconstructionShape(master=master,A=A2,B=B2,order=order)
                     shape.set_style("plot", "shape/reconstructionshape")
                     shape.set_color(QColor("#0000ff"))  #blue
                     n=n+1
                     shape.setTitle("Reconstruction %d"%n)
                     shape.set_movable("False")
                     master.add_slave(shape)
-                    plot.add_item(shape)        
+                    plot.add_item(shape)
                     z1=master.z()
                     z2=shape.z()
                     shape.setZ(z1)
@@ -1776,14 +1767,14 @@ class ReconstructionShapeTool(CommandTool):
                 A3=[Ax,-Ay]
                 B3=[Bx,-By]
                 if (check_different(A1,B1,A3,B3) and check_different(A2,B2,A3,B3)):
-                    shape = ReconstructionShape(master=master,A=A3,B=B3,order=order)        
+                    shape = ReconstructionShape(master=master,A=A3,B=B3,order=order)
                     shape.set_style("plot", "shape/reconstructionshape")
                     shape.set_color(QColor("#006400"))  #dark green
                     n=n+1
                     shape.setTitle("Reconstruction %d"%n)
                     shape.set_movable("False")
                     master.add_slave(shape)
-                    plot.add_item(shape)        
+                    plot.add_item(shape)
                     z1=master.z()
                     z2=shape.z()
                     shape.setZ(z1)
@@ -1792,136 +1783,136 @@ class ReconstructionShapeTool(CommandTool):
                 A4=[Ay,-Ax]
                 B4=[By,-Bx]
                 if (check_different(A1,B1,A4,B4) and check_different(A2,B2,A4,B4)):
-                    shape = ReconstructionShape(master=master,A=A4,B=B4,order=order)        
+                    shape = ReconstructionShape(master=master,A=A4,B=B4,order=order)
                     shape.set_style("plot", "shape/reconstructionshape")
                     shape.set_color(QColor("#ff0000"))  #red
                     n=n+1
                     shape.setTitle("Reconstruction %d"%n)
                     shape.set_movable("False")
                     master.add_slave(shape)
-                    plot.add_item(shape)        
+                    plot.add_item(shape)
                     z1=master.z()
                     z2=shape.z()
                     shape.setZ(z1)
                     master.setZ(z2)
-                    
+
             if master.sg in ['p3','p6']:
                 #rotation 120°
                 A2=[-Ay,Ax-Ay]
                 B2=[-By,Bx-By]
                 if check_different(A1,B1,A2,B2):
-                    shape = ReconstructionShape(master=master,A=A2,B=B2,order=order)        
+                    shape = ReconstructionShape(master=master,A=A2,B=B2,order=order)
                     shape.set_style("plot", "shape/reconstructionshape")
                     shape.set_color(QColor("#0000ff"))  #blue
                     n=n+1
                     shape.setTitle("Reconstruction %d"%n)
                     shape.set_movable("False")
                     master.add_slave(shape)
-                    plot.add_item(shape)        
+                    plot.add_item(shape)
                     z1=master.z()
                     z2=shape.z()
                     shape.setZ(z1)
                     master.setZ(z2)
-                    
+
                     #rotation -120°
                     A3=[-Ax+Ay,-Ax]
                     B3=[-Bx+By,-Bx]
-                    shape = ReconstructionShape(master=master,A=A3,B=B3,order=order)        
+                    shape = ReconstructionShape(master=master,A=A3,B=B3,order=order)
                     shape.set_style("plot", "shape/reconstructionshape")
                     shape.set_color(QColor("#006400"))  #dark green
                     n=n+1
                     shape.setTitle("Reconstruction %d"%n)
                     shape.set_movable("False")
                     master.add_slave(shape)
-                    plot.add_item(shape)        
+                    plot.add_item(shape)
                     z1=master.z()
                     z2=shape.z()
                     shape.setZ(z1)
                     master.setZ(z2)
-               
+
             if master.sg in ['p3m1','p31m','p6mm']:
                 A2=[-Ay,Ax-Ay]
                 B2=[-By,Bx-By]
                 if check_different(A1,B1,A2,B2):
-                    shape = ReconstructionShape(master=master,A=A2,B=B2,order=order)        
+                    shape = ReconstructionShape(master=master,A=A2,B=B2,order=order)
                     shape.set_style("plot", "shape/reconstructionshape")
                     shape.set_color(QColor("#0000ff"))  #blue
                     n=n+1
                     shape.setTitle("Reconstruction %d"%n)
                     shape.set_movable("False")
                     master.add_slave(shape)
-                    plot.add_item(shape)        
+                    plot.add_item(shape)
                     z1=master.z()
                     z2=shape.z()
                     shape.setZ(z1)
                     master.setZ(z2)
-                    
+
                 A3=[-Ax+Ay,-Ax]
                 B3=[-Bx+By,-Bx]
                 if check_different(A1,B1,A3,B3):
-                    shape = ReconstructionShape(master=master,A=A3,B=B3,order=order)        
+                    shape = ReconstructionShape(master=master,A=A3,B=B3,order=order)
                     shape.set_style("plot", "shape/reconstructionshape")
                     shape.set_color(QColor("#006400"))  #dark green
                     n=n+1
                     shape.setTitle("Reconstruction %d"%n)
                     shape.set_movable("False")
                     master.add_slave(shape)
-                    plot.add_item(shape)        
+                    plot.add_item(shape)
                     z1=master.z()
                     z2=shape.z()
                     shape.setZ(z1)
                     master.setZ(z2)
-                    
+
                 A4=[Ax-Ay,-Ay]
                 B4=[Bx-By,-By]
                 if (check_different(A1,B1,A4,B4) and check_different(A2,B2,A4,B4) and check_different(A3,B3,A4,B4)):
-                    shape = ReconstructionShape(master=master,A=A4,B=B4,order=order)        
+                    shape = ReconstructionShape(master=master,A=A4,B=B4,order=order)
                     shape.set_style("plot", "shape/reconstructionshape")
                     shape.set_color(QColor("#ff0000"))  #red
                     n=n+1
                     shape.setTitle("Reconstruction %d"%n)
                     shape.set_movable("False")
                     master.add_slave(shape)
-                    plot.add_item(shape)        
+                    plot.add_item(shape)
                     z1=master.z()
                     z2=shape.z()
                     shape.setZ(z1)
                     master.setZ(z2)
-                    
+
                     A5=[Ay,Ax]
                     B5=[By,Bx]
                     if check_different(A4,B4,A5,B5) :
-                    
-                        shape = ReconstructionShape(master=master,A=A5,B=B5,order=order)        
+
+                        shape = ReconstructionShape(master=master,A=A5,B=B5,order=order)
                         shape.set_style("plot", "shape/reconstructionshape")
                         shape.set_color(QColor("#808080"))  #grey
                         n=n+1
                         shape.setTitle("Reconstruction %d"%n)
                         shape.set_movable("False")
                         master.add_slave(shape)
-                        plot.add_item(shape)        
+                        plot.add_item(shape)
                         z1=master.z()
                         z2=shape.z()
                         shape.setZ(z1)
                         master.setZ(z2)
-                
+
                         A6=[-Ax,Ay-Ax]
                         B6=[-Bx,By-Bx]
-                        shape = ReconstructionShape(master=master,A=A6,B=B6,order=order)        
+                        shape = ReconstructionShape(master=master,A=A6,B=B6,order=order)
                         shape.set_style("plot", "shape/reconstructionshape")
                         shape.set_color(QColor("#000000"))  #black
                         n=n+1
                         shape.setTitle("Reconstruction %d"%n)
                         shape.set_movable("False")
                         master.add_slave(shape)
-                        plot.add_item(shape)        
+                        plot.add_item(shape)
                         z1=master.z()
                         z2=shape.z()
                         shape.setZ(z1)
                         master.setZ(z2)
         plot.replot()
-        
-class DistorsionCorrectionTool(CommandTool):  
+
+class DistorsionCorrectionTool(CommandTool):
     def __init__(self, manager, toolbar_id=DefaultToolbarID):
         CommandTool.__init__(self, manager, _("DistorsionCorrection"),icon=distorsionpath,
                                             tip=_("Distorsion Correction"),
@@ -1949,82 +1940,82 @@ class DistorsionCorrectionTool(CommandTool):
             yth.append(y1)
         p3x,p3y=self.compute_distorsion(xexp,yexp,xth,yth)
         self.correct_distorsion(plot,p3x,p3y)
-        
+
     def compute_distorsion(self,xexp,yexp,xth,yth):
-        #calcule la transformation quadratique pour passer de 
-        nref=len(xexp)        
+        #calcule la transformation quadratique pour passer de
+        nref=len(xexp)
         xexp=np.array(xexp)
         yexp=np.array(yexp)
         xth=np.array(xth)
         yth=np.array(yth)
         p1x=[0.,1.,0.]
         p1y=[0.,0.,1.]
-        
-        if nref>2:            
-            p1x, success = opt.leastsq(erreur_lin, p1x, args=(xth,yth,xexp), maxfev=10000)            
+
+        if nref>2:
+            p1x, success = opt.leastsq(erreur_lin, p1x, args=(xth,yth,xexp), maxfev=10000)
             p1y, success = opt.leastsq(erreur_lin, p1y, args=(xth,yth,yexp), maxfev=10000)
-            
-            p2x=[p1x[0],p1x[1],p1x[2],0.,0.,0.]   
-            p2y=[p1y[0],p1y[1],p1y[2],0.,0.,0.]                        
-            
+
+            p2x=[p1x[0],p1x[1],p1x[2],0.,0.,0.]
+            p2y=[p1y[0],p1y[1],p1y[2],0.,0.,0.]
+
             if nref>5:          # on ajoute des termes quadratiques
 
                 p2x, success = opt.leastsq(erreur_quad, p2x, args=(xth,yth,xexp), maxfev=10000)
                 p2y, success = opt.leastsq(erreur_quad, p2y, args=(xth,yth,yexp), maxfev=10000)
-                
-                p3x=[p2x[0],p2x[1],p2x[2],p2x[3],p2x[4],p2x[5],0.,0.,0.,0.]   
-                p3y=[p2y[0],p2y[1],p2y[2],p2y[3],p2y[4],p2y[5],0.,0.,0.,0.]   
-                
+
+                p3x=[p2x[0],p2x[1],p2x[2],p2x[3],p2x[4],p2x[5],0.,0.,0.,0.]
+                p3y=[p2y[0],p2y[1],p2y[2],p2y[3],p2y[4],p2y[5],0.,0.,0.,0.]
+
                 if nref>9:      # on ajoute des termes cubiques
                     p3x, success = opt.leastsq(erreur_cub, p3x, args=(xth,yth,xexp), maxfev=10000)
                     p3y, success = opt.leastsq(erreur_cub, p3y, args=(xth,yth,yexp), maxfev=10000)
- 
+
             else:
-                p3x=[p2x[0],p2x[1],p2x[2],p2x[3],p2x[4],p2x[5],0.,0.,0.,0.]   
-                p3y=[p2y[0],p2y[1],p2y[2],p2y[3],p2y[4],p2y[5],0.,0.,0.,0.]    
-                
+                p3x=[p2x[0],p2x[1],p2x[2],p2x[3],p2x[4],p2x[5],0.,0.,0.,0.]
+                p3y=[p2y[0],p2y[1],p2y[2],p2y[3],p2y[4],p2y[5],0.,0.,0.,0.]
+
         else:
-            p3x=[p1x[0],p1x[1],p1x[2],0.,0.,0.,0.,0.,0.,0.]   
+            p3x=[p1x[0],p1x[1],p1x[2],0.,0.,0.,0.,0.,0.,0.]
             p3y=[p1y[0],p1y[1],p1y[2],0.,0.,0.,0.,0.,0.,0.]
-                    
-        return p3x,p3y           
-        
+
+        return p3x,p3y
+
     def correct_distorsion(self,plot,p3x,p3y):
         #corrige la distorsion pour cela on mappe l'image d'arrivee avec des rectangles qui correspondent
         #a des quadrilateres sur l'image non deformee. Ceux-ci sont obtenus par la transformation
         #xth->xexp, yth->yexp
         #dans un premier temps, on regarde la valeur de p3x[1] et p3xy[2] pour savoir sur quelle taille d'image
         #faire la correction
-        win=plot.window()        
+        win=plot.window()
         w,h=win.pilim.size
         meshdata=[]
-        
+
         #dx=(x2-x1)/10.
         #dy=(y2-y1)/10.
-        
+
         ninter=10
         nsteps=ninter+1
         xdest=np.linspace(0,w,nsteps)
-        ydest=np.linspace(0,h,nsteps)        
+        ydest=np.linspace(0,h,nsteps)
         xgrid,ygrid=np.meshgrid(xdest,ydest)   #ensemble des valeurs de x et y de destination
         xgrid=xgrid.ravel()
-        ygrid=ygrid.ravel() 
+        ygrid=ygrid.ravel()
         xstart=corr_cub(p3x,xgrid,ygrid)       #ensemble des valeurs de x et y de depart
-        ystart=corr_cub(p3y,xgrid,ygrid)  
+        ystart=corr_cub(p3y,xgrid,ygrid)
         fic=open('sortie.txt','w')
         for i in range(len(xgrid)):
           fic.write('%f %f %f %f'%(xgrid[i],ygrid[i],xstart[i],ystart[i]))
           fic.write('\n')
         fic.close()
-                
+
         xstart=xstart.reshape(nsteps,nsteps)
         ystart=ystart.reshape(nsteps,nsteps)
-        
+
         xdest=np.array(np.around(xdest),int)
         ydest=np.array(np.around(ydest),int)
         xstart=np.array(np.around(xstart),int)
         ystart=np.array(np.around(ystart),int)
-        
+
         meshdata=[]
         for j in range(ninter):
             for i in range(ninter):
@@ -2039,18 +2030,18 @@ class DistorsionCorrectionTool(CommandTool):
                 xll=xstart[j+1,i]
                 xlr=xstart[j+1,i+1]
                 yll=ystart[j+1,i]
-                ylr=ystart[j+1,i+1]                
-                meshdata.append(((xl,yu,xr,yl),(xul,yul,xll,yll,xlr,ylr,xur,yur))) 
+                ylr=ystart[j+1,i+1]
+                meshdata.append(((xl,yu,xr,yl),(xul,yul,xll,yll,xlr,ylr,xur,yur)))
         img=win.pilim.transform((w,h),Image.MESH,meshdata,Image.BICUBIC)
         data=np.array(img).reshape((w,h))
-        
+
         win2=win.duplicate()
         win2.image.set_data(data)
-        
-        #on effectue la transformation sur les taches identifiees        
+
+        #on effectue la transformation sur les taches identifiees
         spotitems=list([item for item in plot.items if (isinstance(item, SpotShape))])
         spotitems2=list([item for item in win2.plot.items if (isinstance(item, SpotShape))])
-        
+
         for i in range(len(spotitems)):
             item=spotitems[i]
             item2=spotitems2[i]
@@ -2060,7 +2051,7 @@ class DistorsionCorrectionTool(CommandTool):
             jquad=-1
             for j in range(len(meshdata)):   #on pourrait faire plus rapide en affinant a partir de la position supposee....
                 quad=mplPath(np.array(meshdata[j][1]).reshape(4,2))
-                if quad.contains_point([x0,y0]):                    
+                if quad.contains_point([x0,y0]):
                     jquad=j
                     break
             if jquad==-1:
@@ -2080,7 +2071,7 @@ class DistorsionCorrectionTool(CommandTool):
                    [0.,0.,0.,xur,yur,1.,-xur*yu,-yur*yu],
                    [0.,0.,0.,xlr,ylr,1.,-xlr*yl,-ylr*yl]]
                 B=[xl,xr,xl,xr,yu,yl,yu,yl]
-                
+
                 C=np.linalg.solve(A,B)
                 #print B,np.dot(A,C)
                 a,b,c,d,e,f,g,h=C
@@ -2090,10 +2081,10 @@ class DistorsionCorrectionTool(CommandTool):
                 #coordonnees plot
                 x2,y2=win2.image.get_plot_coordinates(x1,y1)
                 item2.set_pos(x2,y2)
-            
-        
+
+
         win2.show()
-        
+
 
 class D2DDialog(ImageDialog):
     #une fenetre qui permet d'afficher les images D2D et gere les datas associees
@@ -2101,15 +2092,15 @@ class D2DDialog(ImageDialog):
         ImageDialog.__init__(self, edit=edit, toolbar=toolbar, wintitle="D2D window",options=options)
         self.setGeometry(QRect(440,470,500, 500))
         self.plot = self.get_plot()
-        #self.plot.window()=self 
+        #self.plot.window()=self
         self.add_tool(GridShapeTool)
         self.ReconstructionShapeTool=self.add_tool(ReconstructionShapeTool)
-        self.add_tool(RectanglePeakTool)                          
+        self.add_tool(RectanglePeakTool)
         self.add_tool(DistorsionCorrectionTool)
         self.data=data
         self.connect(self.plot,SIG_ITEM_REMOVED,self.refreshlist)
         self.show()
-        
+
     def set_data(self,data,xdata=[None, None], ydata=[None, None],colormap="bone",transformable=False):
         #data est un tableau 2D qui represente les donnees
         #xdata sont les bornes en x, ydata les bornes en y
@@ -2125,15 +2116,15 @@ class D2DDialog(ImageDialog):
         else:
           self.image = make.image(self.data, xdata=xdata,ydata=ydata,colormap=colormap)
         self.pilim = Image.frombuffer("F", (self.data.shape[1],self.data.shape[0]), self.data, "raw", "F", 0, 1)
-                                
+
     def show_image(self,remove=True):
         if remove:
-            #on enleve tout ce qu'il y a 
+            #on enleve tout ce qu'il y a
             self.plot.del_all_items()
-  
+
         self.plot.add_item(self.image)
         self.plot.show_items()
-    
+
     def refreshlist(self,item):
         #quand on efface un item
         if (isinstance(item, GridShape)):
@@ -2144,20 +2135,20 @@ class D2DDialog(ImageDialog):
         if (isinstance(item, ReconstructionShape)):
             if item.master is not None:
                 item.master.remove_slave(item)
-        
+
     def duplicate(self):
         #retourne une copie de la fenetre
         win2=D2DDialog()
         win2.set_data(self.data,xdata=self.image.get_xdata(),ydata=self.image.get_ydata())
-        
+
         win2.show_image()
-        plot=self.plot  
+        plot=self.plot
         plot2=win2.plot
         plot2.set_title(plot.get_title())
-        
-        allitems=plot.items        
-        griditems=list([item for item in allitems if (isinstance(item, GridShape))]) 
-        spotitems=list([item for item in allitems if (isinstance(item, SpotShape))])         
+
+        allitems=plot.items
+        griditems=list([item for item in allitems if (isinstance(item, GridShape))])
+        spotitems=list([item for item in allitems if (isinstance(item, SpotShape))])
 
         #on rajoute les griditems
         for item in griditems:
@@ -2179,97 +2170,97 @@ class D2DDialog(ImageDialog):
                 item2.add_slave(slave2)
                 slave2.set_master(item2)  #on ajoute la relation master-slave
                 plot2.add_item(slave2)
-                
-        #on rajoute les spotitems        
+
+        #on rajoute les spotitems
         for item in (spotitems):
             item.shapeparam.update_param(item)#certains parametres ne sont pas forcement actualises
-            item2=SpotShape()    
-            params=item.__getstate__()            
+            item2=SpotShape()
+            params=item.__getstate__()
             item2.__setstate__(params)
             plot2.add_item(item2)
             item2.set_grid_from_gridname(item2.gridname)
         return win2
 
-            
-        
+
+
 def test():
     """Test"""
     # -- Create QApplication
     # --
     filename = osp.join(osp.dirname(__file__), "test.jpg")
-    
+
     FNAME = "test.pickle"
     win = D2DDialog()
-            
+
     if access(FNAME, R_OK):
-        print "Restoring data...",
-        iofile = file(FNAME, "rb")
+        print("Restoring data...")
+        iofile = open(FNAME, "rb")
         image = pickle.load(iofile)
-        
+
         x0,x1=image.get_xdata()
         y0,y1=image.get_ydata()
         data=image.get_data(x0,y0,x1,y1)[2]
         image.data=np.array(data,float)
-        
-        print "taille de l'image",image.data.shape
-        
+
+        print("taille de l'image",image.data.shape)
+
         win.set_data(data,xdata=[x0,x1],ydata=[y0,y1])
         win.show_image(remove=True)
-        
+
         ngriditem=pickle.load(iofile)
         plot=win.get_plot()
         #print ngriditem
         for i in range(ngriditem):
-            griditem=pickle.load(iofile)                
+            griditem=pickle.load(iofile)
             plot.add_item(griditem)
             for slave in griditem.slaves:
                 #slave deja charge
 #               slave.set_master(griditem)
                 plot.add_item(slave)
-            
-        nspotitem=pickle.load(iofile) 
-        #print nspotitem            
+
+        nspotitem=pickle.load(iofile)
+        #print nspotitem
         for i in range(nspotitem):
-            spotitem=pickle.load(iofile)                
+            spotitem=pickle.load(iofile)
             plot.add_item(spotitem)
             spotitem.set_grid_from_gridname(spotitem.gridname)
             if spotitem.grid is None:
                 message='Spot %d not indexed'%(i)
                 QMessageBox.about(plot, 'Error',message)
             #print i,spotitem.gridname,spotitem.grid
-        
+
         iofile.close()
-        print "OK"
+        print("OK")
     else:
 
-        image = make.image(filename=filename, xdata=[-200.5,200.5],ydata=[-200.5,200.5],colormap="bone")        
+        image = make.image(filename=filename, xdata=[-200.5,200.5],ydata=[-200.5,200.5],colormap="bone")
         x0,x1=image.get_xdata()
         y0,y1=image.get_ydata()
         data=image.get_data(x0,y0,x1,y1)[2]
         image.data=np.array(data,float)
-        
-        print "taille de l'image",image.data.shape
+
+        print("taille de l'image",image.data.shape)
         win.set_data(data,xdata=[x0,x1],ydata=[y0,y1])
         win.show_image(remove=True)
-        
+
         plot = win.get_plot()
-        
+
         shape=GridShape(O=[00,000],u=[185,0],v=[92.5,160],sg='p3m1',order=2)
         shape.set_style("plot", "shape/gridshape")
         shape.setTitle("Reseau 1")
         plot.add_item(shape)
-        
+
         win.ReconstructionShapeTool.addreconstruction(plot,4.0,1.0,-1.0,3.0,4,shape,True)
-   
+
     win.exec_()
-    
-    iofile = file(FNAME, "wb")
+
+    iofile = open(FNAME, "wb")
     pickle.dump(image, iofile)
     allitems=plot.get_items()
     #print allitems
-    griditems=list([item for item in allitems if (isinstance(item, GridShape))]) 
-    #reconstructionitems=list([item for item in allitems if (isinstance(item, ReconstructionShape))]) 
-    spotitems=list([item for item in allitems if (isinstance(item, SpotShape))])         
+    griditems=list([item for item in allitems if (isinstance(item, GridShape))])
+    #reconstructionitems=list([item for item in allitems if (isinstance(item, ReconstructionShape))])
+    spotitems=list([item for item in allitems if (isinstance(item, SpotShape))])
     pickle.dump(len(griditems), iofile)
     for item in griditems:
         #print item
@@ -2278,8 +2269,8 @@ def test():
     for item in spotitems:
         #print item
         pickle.dump(item, iofile)
-        
-    
+
+
 if __name__ == "__main__":
     import guidata
     _app = guidata.qapplication()
