@@ -7,17 +7,36 @@ Created on Fri Feb 21 14:13:29 2020
 import numpy as np
 
 from guidata.configtools import get_icon
-from guidata.qt.QtGui import QAction,QColor,QMenu
-from guidata.qt.QtCore import QPoint,Qt,QEvent
-from guidata.qthelpers import add_actions,get_std_icon
+from guidata.qt.QtGui import QAction, QColor, QMenu
+from guidata.qt.QtCore import QPoint, Qt, QEvent
+from guidata.qthelpers import add_actions, get_std_icon
 
 from guiqwt.config import _
-from guiqwt.events import QtDragHandler,RectangularSelectionHandler,setup_standard_tool_filter,EventMatch,KeyEventMatch
-from guiqwt.signals import SIG_VALIDATE_TOOL, SIG_END_RECT, SIG_START_TRACKING, SIG_MOVE, SIG_STOP_NOT_MOVING, SIG_STOP_MOVING
-from guiqwt.tools import CommandTool,DefaultToolbarID,RectangularActionTool,InteractiveTool,ToggleTool
-from guiqwt.shapes import EllipseShape,PolygonShape
+from guiqwt.events import (
+    QtDragHandler,
+    RectangularSelectionHandler,
+    setup_standard_tool_filter,
+    EventMatch,
+    KeyEventMatch,
+)
+from guiqwt.signals import (
+    SIG_VALIDATE_TOOL,
+    SIG_END_RECT,
+    SIG_START_TRACKING,
+    SIG_MOVE,
+    SIG_STOP_NOT_MOVING,
+    SIG_STOP_MOVING,
+)
+from guiqwt.tools import (
+    CommandTool,
+    DefaultToolbarID,
+    RectangularActionTool,
+    InteractiveTool,
+    ToggleTool,
+)
+from guiqwt.shapes import EllipseShape, PolygonShape
 from guiqwt.baseplot import canvas_to_axes
-from grafit.signals import SIG_TRIGGERED,SIG_MODEL_ADDED,SIG_KEY_PRESSED_EVENT
+from grafit.signals import SIG_TRIGGERED, SIG_MODEL_ADDED, SIG_KEY_PRESSED_EVENT
 
 SHAPE_Z_OFFSET = 1000
 
@@ -27,6 +46,7 @@ class KeyMatch(EventMatch):
     A callable returning True if it matches a key event
     keysequence:  integer
     """
+
     def __init__(self, keysequence):
         super(KeyMatch, self).__init__()
         assert isinstance(keysequence, int)
@@ -36,20 +56,36 @@ class KeyMatch(EventMatch):
         return frozenset((QEvent.KeyPress,))
 
     def __call__(self, event):
-        return event.type() == QEvent.KeyPress and event.key()==self.keyseq
+        return event.type() == QEvent.KeyPress and event.key() == self.keyseq
+
 
 class ShowWeightsTool(ToggleTool):
-    def __init__(self, manager, title="show weights",icon = "weight.png" ,
-                 tip="show weights associated to the data", toolbar_id=DefaultToolbarID):
-        super(ShowWeightsTool,self).__init__(manager, title, icon, toolbar_id=toolbar_id)
+    def __init__(
+        self,
+        manager,
+        title="show weights",
+        icon="weight.png",
+        tip="show weights associated to the data",
+        toolbar_id=DefaultToolbarID,
+    ):
+        super(ShowWeightsTool, self).__init__(
+            manager, title, icon, toolbar_id=toolbar_id
+        )
 
     def activate(self, checked=True):
         self.emit(SIG_VALIDATE_TOOL)
 
+
 class RunTool(CommandTool):
-    def __init__(self, manager, title="Run",
-                 icon="apply.png", tip="run 2D fit", toolbar_id=DefaultToolbarID):
-        super(RunTool,self).__init__(manager, title, icon, toolbar_id=toolbar_id)
+    def __init__(
+        self,
+        manager,
+        title="Run",
+        icon="apply.png",
+        tip="run 2D fit",
+        toolbar_id=DefaultToolbarID,
+    ):
+        super(RunTool, self).__init__(manager, title, icon, toolbar_id=toolbar_id)
 
     def setup_context_menu(self, menu, plot):
         pass
@@ -57,68 +93,95 @@ class RunTool(CommandTool):
     def activate(self, checked=True):
         self.emit(SIG_VALIDATE_TOOL)
 
+
 class SaveFitTool(CommandTool):
     def __init__(self, manager, toolbar_id=DefaultToolbarID):
-        super(SaveFitTool,self).__init__(manager, _("Save fit result"),
-                                        get_std_icon("DialogSaveButton", 16),
-                                        toolbar_id=toolbar_id)
+        super(SaveFitTool, self).__init__(
+            manager,
+            _("Save fit result"),
+            get_std_icon("DialogSaveButton", 16),
+            toolbar_id=toolbar_id,
+        )
+
     def activate(self, checked=True):
         self.emit(SIG_VALIDATE_TOOL)
 
+
 class PrefTool(CommandTool):
     def __init__(self, manager, toolbar_id=DefaultToolbarID):
-        CommandTool.__init__(self, manager, _("Run"),icon="settings.png",
-                                            tip=_("Preferences"),
-                                            toolbar_id=toolbar_id)
-        self.manager=manager
+        CommandTool.__init__(
+            self,
+            manager,
+            _("Run"),
+            icon="settings.png",
+            tip=_("Preferences"),
+            toolbar_id=toolbar_id,
+        )
+        self.manager = manager
 
     def create_action_menu(self, manager):
-        #Create and return menu for the tool's action
-        self.saveprefaction = QAction("Save as...",self)
-        self.showtagsaction = QAction("Show tags",self)
-        self.scaleprefaction = QAction("Autoscale",self)
+        # Create and return menu for the tool's action
+        self.saveprefaction = QAction("Save as...", self)
+        self.showtagsaction = QAction("Show tags", self)
+        self.scaleprefaction = QAction("Autoscale", self)
         self.scaleprefaction.setCheckable(True)
         self.scaleprefaction.setChecked(True)
-        self.restartaction = QAction("Restart from last parameters saved",self)
+        self.restartaction = QAction("Restart from last parameters saved", self)
         self.restartaction.setCheckable(True)
         self.restartaction.setChecked(True)
-        self.samescaleaction = QAction("Same scale for data and model images",self)
+        self.samescaleaction = QAction("Same scale for data and model images", self)
         self.samescaleaction.setCheckable(True)
         self.samescaleaction.setChecked(True)
-        self.showdiffaction = QAction("Show difference profiles",self)
+        self.showdiffaction = QAction("Show difference profiles", self)
         self.showdiffaction.setCheckable(True)
         self.showdiffaction.setChecked(True)
 
-
         menu = QMenu()
-        add_actions(menu, (self.saveprefaction,self.showtagsaction,self.scaleprefaction,self.restartaction,self.samescaleaction,self.showdiffaction))
+        add_actions(
+            menu,
+            (
+                self.saveprefaction,
+                self.showtagsaction,
+                self.scaleprefaction,
+                self.restartaction,
+                self.samescaleaction,
+                self.showdiffaction,
+            ),
+        )
 
         self.action.setMenu(menu)
         return menu
 
+
 class EllipseSelectionHandlerCXY(RectangularSelectionHandler):
-    #on utilise la classe heritee dont on surcharge la methode move
+    # on utilise la classe heritee dont on surcharge la methode move
 
     def __init__(self, filter, btn, mods=Qt.NoModifier, start_state=0):
-        super(EllipseSelectionHandlerCXY, self).__init__(filter=filter, btn=btn, mods=mods, start_state=start_state)
-        filter.add_event(start_state, KeyEventMatch((42,43,45,47)),
-                         self.key_press, start_state)
+        super(EllipseSelectionHandlerCXY, self).__init__(
+            filter=filter, btn=btn, mods=mods, start_state=start_state
+        )
+        filter.add_event(
+            start_state, KeyEventMatch((42, 43, 45, 47)), self.key_press, start_state
+        )
 
     def move(self, filter, event):
         """methode surchargee par la classe """
-        x1,y1=canvas_to_axes(self.shape, event.pos())
-        x0,y0=canvas_to_axes(self.shape, self.start)
-        dx=x1-x0
-        dy=y1-y0
-        self.shape.points=np.array([[x0-dx,y0],[x0+dx,y0],[x0,y0-dy],[x0,y0+dy]])
+        x1, y1 = canvas_to_axes(self.shape, event.pos())
+        x0, y0 = canvas_to_axes(self.shape, self.start)
+        dx = x1 - x0
+        dy = y1 - y0
+        self.shape.points = np.array(
+            [[x0 - dx, y0], [x0 + dx, y0], [x0, y0 - dy], [x0, y0 + dy]]
+        )
         self.move_action(filter, event)
         filter.plot.replot()
 
-    def key_press(self,filter,event):
+    def key_press(self, filter, event):
         self.emit(SIG_KEY_PRESSED_EVENT, filter, event.key())
 
-    def set_shape(self, shape, h0, h1, h2, h3,
-                  setup_shape_cb=None, avoid_null_shape=False):
+    def set_shape(
+        self, shape, h0, h1, h2, h3, setup_shape_cb=None, avoid_null_shape=False
+    ):
         self.shape = shape
         self.shape_h0 = h0
         self.shape_h1 = h1
@@ -129,92 +192,121 @@ class EllipseSelectionHandlerCXY(RectangularSelectionHandler):
 
 
 class RectangularSelectionHandlerCXY(RectangularSelectionHandler):
-    #on utilise la classe heritee dont on surcharge la methode move
+    # on utilise la classe heritee dont on surcharge la methode move
 
     def move(self, filter, event):
         """methode surchargee par la classe """
-        sympos=QPoint(2*self.start.x()-event.pos().x(),2*self.start.y()-event.pos().y())
-        print(self.shape_h0,self.shape_h1)
+        sympos = QPoint(
+            2 * self.start.x() - event.pos().x(), 2 * self.start.y() - event.pos().y()
+        )
+        print(self.shape_h0, self.shape_h1)
         self.shape.move_local_point_to(self.shape_h0, sympos)
         self.shape.move_local_point_to(self.shape_h1, event.pos())
         self.move_action(filter, event)
         filter.plot.replot()
 
 
-
-
 class RectangularActionToolCXY(RectangularActionTool):
-    #outil de tracage de rectangles centre en x
-    #on utilise la classe heritee dont on surcharge la methode setup_filter
+    # outil de tracage de rectangles centre en x
+    # on utilise la classe heritee dont on surcharge la methode setup_filter
 
-    def setup_filter(self, baseplot):      #partie utilisee pendant le mouvement a la souris
-        #utilise a l'initialisation de la toolbar
-        #print "setup_filter"
+    def setup_filter(
+        self, baseplot
+    ):  # partie utilisee pendant le mouvement a la souris
+        # utilise a l'initialisation de la toolbar
+        # print "setup_filter"
         filter = baseplot.filter
         start_state = filter.new_state()
-        handler = RectangularSelectionHandlerCXY(filter, Qt.LeftButton,      #gestionnaire du filtre
-                                              start_state=start_state)
+        handler = RectangularSelectionHandlerCXY(
+            filter, Qt.LeftButton, start_state=start_state  # gestionnaire du filtre
+        )
         shape, h0, h1 = self.get_shape()
         shape.pen.setColor(QColor("#00bfff"))
 
-        handler.set_shape(shape, h0, h1, self.setup_shape,
-                          avoid_null_shape=self.AVOID_NULL_SHAPE)
+        handler.set_shape(
+            shape, h0, h1, self.setup_shape, avoid_null_shape=self.AVOID_NULL_SHAPE
+        )
         self.connect(handler, SIG_END_RECT, self.end_rect)
-        #self.connect(handler, SIG_CLICK_EVENT, self.start)   #a definir aussi dans RectangularSelectionHandler2
+        # self.connect(handler, SIG_CLICK_EVENT, self.start)   #a definir aussi dans RectangularSelectionHandler2
         return setup_standard_tool_filter(filter, start_state)
 
     def activate(self):
         """Activate tool"""
 
-        #print "commande active",self
+        # print "commande active",self
         for baseplot, start_state in self.start_state.items():
             baseplot.filter.set_state(start_state, None)
         self.action.setChecked(True)
         self.manager.set_active_tool(self)
-        #plot = self.get_active_plot()
-        #plot.newcurve=True
+        # plot = self.get_active_plot()
+        # plot.newcurve=True
 
     def deactivate(self):
         """Deactivate tool"""
-        #print "commande desactivee",self
+        # print "commande desactivee",self
         self.action.setChecked(False)
-
 
 
 class CircularActionToolCXY(RectangularActionToolCXY):
     TITLE = _("Circle")
     ICON = "circle.png"
 
-    def __init__(self, manager, func1, func2, shape_style=None,
-                 toolbar_id=DefaultToolbarID, title=None, icon=None, tip=None,
-                 fix_orientation=False, switch_to_default_tool=None):
+    def __init__(
+        self,
+        manager,
+        func1,
+        func2,
+        shape_style=None,
+        toolbar_id=DefaultToolbarID,
+        title=None,
+        icon=None,
+        tip=None,
+        fix_orientation=False,
+        switch_to_default_tool=None,
+    ):
 
-        self.key_func = func2  #function for keys
-        super(CircularActionToolCXY, self).__init__(manager, func1, shape_style=shape_style, toolbar_id=toolbar_id,
-                                 title=title, icon=icon, tip=tip, fix_orientation=fix_orientation,
-                                 switch_to_default_tool=switch_to_default_tool)
+        self.key_func = func2  # function for keys
+        super(CircularActionToolCXY, self).__init__(
+            manager,
+            func1,
+            shape_style=shape_style,
+            toolbar_id=toolbar_id,
+            title=title,
+            icon=icon,
+            tip=tip,
+            fix_orientation=fix_orientation,
+            switch_to_default_tool=switch_to_default_tool,
+        )
 
-
-    def setup_filter(self, baseplot):      #partie utilisee pendant le mouvement a la souris
-        #utilise a l'initialisation de la toolbar
-        #print "setup_filter"
+    def setup_filter(
+        self, baseplot
+    ):  # partie utilisee pendant le mouvement a la souris
+        # utilise a l'initialisation de la toolbar
+        # print "setup_filter"
         filter = baseplot.filter
         start_state = filter.new_state()
-        handler = EllipseSelectionHandlerCXY(filter, Qt.LeftButton,      #gestionnaire du filtre
-                                              start_state=start_state)
+        handler = EllipseSelectionHandlerCXY(
+            filter, Qt.LeftButton, start_state=start_state  # gestionnaire du filtre
+        )
         shape, h0, h1, h2, h3 = self.get_shape()
         shape.pen.setColor(QColor("#00bfff"))
 
-        handler.set_shape(shape, h0, h1, h2, h3, self.setup_shape,
-                          avoid_null_shape=self.AVOID_NULL_SHAPE)
+        handler.set_shape(
+            shape,
+            h0,
+            h1,
+            h2,
+            h3,
+            self.setup_shape,
+            avoid_null_shape=self.AVOID_NULL_SHAPE,
+        )
         self.connect(handler, SIG_END_RECT, self.end_rect)
         self.connect(handler, SIG_KEY_PRESSED_EVENT, self.key_pressed)
         return setup_standard_tool_filter(filter, start_state)
 
     def key_pressed(self, filter, key):
         plot = filter.plot
-        self.key_func(plot,key)
-
+        self.key_func(plot, key)
 
     def get_shape(self):
         """Reimplemented RectangularActionTool method"""
@@ -226,7 +318,7 @@ class CircularActionToolCXY(RectangularActionToolCXY):
         shape = EllipseShape(0, 0, 1, 1)
         self.set_shape_style(shape)
         shape.switch_to_ellipse()
-        return shape, 0, 1, 2, 3  #give the values of h0,h1,h2,h3 use to move the shape
+        return shape, 0, 1, 2, 3  # give the values of h0,h1,h2,h3 use to move the shape
 
 
 class MultiPointTool(InteractiveTool):
@@ -234,12 +326,26 @@ class MultiPointTool(InteractiveTool):
     ICON = "polyline.png"
     CURSOR = Qt.ArrowCursor
 
-    def __init__(self, manager, func, handle_final_shape_cb=None, shape_style=None,
-                 toolbar_id=DefaultToolbarID, title=None, icon=None, tip=None,
-                 switch_to_default_tool=None):
-        super(MultiPointTool, self).__init__(manager, toolbar_id,
-                                title=title, icon=icon, tip=tip,
-                                switch_to_default_tool=switch_to_default_tool)
+    def __init__(
+        self,
+        manager,
+        func,
+        handle_final_shape_cb=None,
+        shape_style=None,
+        toolbar_id=DefaultToolbarID,
+        title=None,
+        icon=None,
+        tip=None,
+        switch_to_default_tool=None,
+    ):
+        super(MultiPointTool, self).__init__(
+            manager,
+            toolbar_id,
+            title=title,
+            icon=icon,
+            tip=tip,
+            switch_to_default_tool=switch_to_default_tool,
+        )
         self.handle_final_shape_cb = handle_final_shape_cb
         self.shape = None
         self.current_handle = None
@@ -270,13 +376,18 @@ class MultiPointTool(InteractiveTool):
         start_state = filter.new_state()
         # Bouton gauche :
         handler = QtDragHandler(filter, Qt.LeftButton, start_state=start_state)
-        filter.add_event(start_state,
-                         KeyEventMatch( (Qt.Key_Enter, Qt.Key_Return,
-                                         Qt.Key_Space) ),
-                         self.validate, start_state)
-        filter.add_event(start_state,
-                         KeyEventMatch( (Qt.Key_Backspace,Qt.Key_Escape,) ),
-                         self.cancel_point, start_state)
+        filter.add_event(
+            start_state,
+            KeyEventMatch((Qt.Key_Enter, Qt.Key_Return, Qt.Key_Space)),
+            self.validate,
+            start_state,
+        )
+        filter.add_event(
+            start_state,
+            KeyEventMatch((Qt.Key_Backspace, Qt.Key_Escape,)),
+            self.cancel_point,
+            start_state,
+        )
         self.connect(handler, SIG_START_TRACKING, self.mouse_press)
         self.connect(handler, SIG_MOVE, self.move)
         self.connect(handler, SIG_STOP_NOT_MOVING, self.mouse_release)
@@ -320,7 +431,7 @@ class MultiPointTool(InteractiveTool):
             filter.plot.replot()
         else:
             self.current_handle = self.shape.add_local_point(event.pos())
-            if self.current_handle>2:
+            if self.current_handle > 2:
                 self.shape.del_point(0)
                 self.current_handle = 2
 
@@ -332,7 +443,7 @@ class MultiPointTool(InteractiveTool):
             # Error ??
             return
         self.shape.move_local_point_to(self.current_handle, event.pos())
-        self.move_func(filter.plot,self.shape.points)
+        self.move_func(filter.plot, self.shape.points)
         filter.plot.replot()
 
     def mouse_release(self, filter, event):
@@ -345,7 +456,7 @@ class MultiPointTool(InteractiveTool):
             self.shape.move_local_point_to(self.current_handle, event.pos())
         self.init_pos = None
         self.current_handle = None
-        self.move_func(filter.plot,self.shape.points)
+        self.move_func(filter.plot, self.shape.points)
         filter.plot.replot()
 
     def deactivate(self):
@@ -357,32 +468,31 @@ class MultiPointTool(InteractiveTool):
         self.action.setChecked(False)
 
 
-
-
-
-
-
 class AddModelTool(CommandTool):
-
     def __init__(self, manager, list_of_models, toolbar_id=DefaultToolbarID):
-        self.list_of_models=list_of_models
-        CommandTool.__init__(self, manager, _("Fit"),icon= get_icon("edit_add.png"),
-                                            tip=_("Add curve for fit"),
-                                            toolbar_id=toolbar_id)
-        self.manager=manager
+        self.list_of_models = list_of_models
+        CommandTool.__init__(
+            self,
+            manager,
+            _("Fit"),
+            icon=get_icon("edit_add.png"),
+            tip=_("Add curve for fit"),
+            toolbar_id=toolbar_id,
+        )
+        self.manager = manager
 
     def create_action_menu(self, manager):
-        #Create and return menu for the tool's action
+        # Create and return menu for the tool's action
         menu = QMenu()
-        for i,modelclass in enumerate(self.list_of_models):
+        for i, modelclass in enumerate(self.list_of_models):
             action = QAction(get_icon(modelclass.ICON), modelclass.NAME, self)
-            add_actions(menu,(action,))
+            add_actions(menu, (action,))
             self.connect(action, SIG_TRIGGERED, lambda arg=i: self.add_model(arg))
 
         self.action.setMenu(menu)
         return menu
 
-    def add_model(self,k):
+    def add_model(self, k):
         print(k)
-        i=k
-        self.emit(SIG_MODEL_ADDED,i)
+        i = k
+        self.emit(SIG_MODEL_ADDED, i)
