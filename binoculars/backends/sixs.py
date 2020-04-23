@@ -14,7 +14,7 @@
   along with the hkl library.  If not, see
   <http://www.gnu.org/licenses/>.
 
-  Copyright (C) 2015-2019 Synchrotron SOLEIL
+  Copyright (C) 2015-2020 Synchrotron SOLEIL
                           L'Orme des Merisiers Saint-Aubin
                           BP 48 91192 GIF-sur-YVETTE CEDEX
 
@@ -113,8 +113,6 @@ class HKLProjection(backend.ProjectionBase):
         UB = pdataframe.ub
         R = pdataframe.R
         P = pdataframe.P
-        idx = pdataframe.index
-        timestamp = pdataframe.timestamp
 
         if UB is None:
             raise Exception("In order to compute the HKL projection, you need a valid ub matrix")
@@ -150,8 +148,6 @@ class QxQyQzProjection(backend.ProjectionBase):
         k = pdataframe.k
         R = pdataframe.R
         P = pdataframe.P
-        idx = pdataframe.index
-        timestamp = pdataframe.timestamp
         surface_orientation = pdataframe.surface_orientation
 
         # TODO factorize with HklProjection. Here a trick in order to
@@ -293,45 +289,45 @@ class QIndex(Stereo):
         return "Q", "Index"
 
 
-class AnglesProjection(backend.ProjectionBase):
-    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
-        # put the detector at the right position
+# class AnglesProjection(backend.ProjectionBase):
+#     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
+#         # put the detector at the right position
 
-        pixels, k, UB, R, P, idx, timestamp, _surface_orientation = pdataframe
+#         pixels, k, UB, R, P, idx, timestamp, _surface_orientation = pdataframe
 
-        # on calcule le vecteur de l'axes de rotation de l'angle qui
-        # nous interesse. (ici delta et gamma). example delta (0, 1,
-        # 0) (dans le repere du detecteur). Il faut donc calculer la
-        # matrice de transformation pour un axe donnée. C'est la liste
-        # de transformations qui sont entre cet axe et le detecteur.
-        axis_delta = None
-        axis_gamma = None
+#         # on calcule le vecteur de l'axes de rotation de l'angle qui
+#         # nous interesse. (ici delta et gamma). example delta (0, 1,
+#         # 0) (dans le repere du detecteur). Il faut donc calculer la
+#         # matrice de transformation pour un axe donnée. C'est la liste
+#         # de transformations qui sont entre cet axe et le detecteur.
+#         axis_delta = None
+#         axis_gamma = None
 
-        # il nous faut ensuite calculer la normale du plan dans lequel
-        # nous allons projeter les pixels. (C'est le produit vectoriel
-        # de k0, axis_xxx).
-        n_delta = None
-        n_gamma = None
+#         # il nous faut ensuite calculer la normale du plan dans lequel
+#         # nous allons projeter les pixels. (C'est le produit vectoriel
+#         # de k0, axis_xxx).
+#         n_delta = None
+#         n_gamma = None
 
-        # On calcule la projection sur la normale des plans en
-        # question.
-        p_delta = None
-        p_gamma = None
+#         # On calcule la projection sur la normale des plans en
+#         # question.
+#         p_delta = None
+#         p_gamma = None
 
-        # On calcule la norme de chaque pixel. (qui pourra etre
-        # calcule une seule fois pour toutes les images).
-        l2 = numpy.linalg.norm(pixels, order=2, axis=-1)
+#         # On calcule la norme de chaque pixel. (qui pourra etre
+#         # calcule une seule fois pour toutes les images).
+#         l2 = numpy.linalg.norm(pixels, order=2, axis=-1)
 
-        # xxx0 is the angles of the diffractometer for the given
-        # image.
-        delta = numpy.arcsin(p_delta / l2) + delta0
-        gamma = numpy.arcsin(p_gamma / l2) + gamma0
-        omega = numpy.ones_like(delta) * omega0
+#         # xxx0 is the angles of the diffractometer for the given
+#         # image.
+#         delta = numpy.arcsin(p_delta / l2) + delta0
+#         gamma = numpy.arcsin(p_gamma / l2) + gamma0
+#         omega = numpy.ones_like(delta) * omega0
 
-        return (omega, delta, gamma)
+#         return (omega, delta, gamma)
 
-    def get_axis_labels(self) -> Tuple[str]:
-        return 'omega', 'delta', 'gamma'
+#     def get_axis_labels(self) -> Tuple[str]:
+#         return 'omega', 'delta', 'gamma'
 
 ###################
 # Common methodes #
@@ -707,7 +703,6 @@ class FlyScanUHV(SIXS):
     def get_pointcount(self, scanno):
         # just open the file in order to extract the number of step
         with File(self.get_filename(scanno), 'r') as scan:
-            n = get_nxclass(scan, "NXdata")['xpad_image'].shape[0]
             return get_nxclass(scan, "NXdata")['xpad_image'].shape[0]
 
     def get_attenuation(self, index, h5_nodes, offset):
@@ -852,6 +847,7 @@ class FlyMedH(FlyScanUHV):
 
         return (image, attenuation, timestamp, (pitch, mu, gamma, delta))
 
+    https://www.youtube.com/watch?v=V-cvlZLNEBM
 
 class SBSMedH(FlyScanUHV):
     HPATH = {
@@ -880,6 +876,37 @@ class SBSMedH(FlyScanUHV):
         timestamp = self.get_timestamp(index, h5_nodes)
 
         return (image, attenuation, timestamp, (pitch, mu, gamma, delta))
+
+
+class SBSMedV(FlyScanUHV):
+  HPATH = {
+      "image": DatasetPathWithAttribute("long_name", b"i14-c-c00/dt/xpad.1/image"),
+      "pitch": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/diff-med-tpp/pitch"),
+      "mu": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-V-dif-group.1/mu"),
+      "omega": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-V-dif-group.1/omega"),
+      "gamma": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-V-dif-group.1/gamma"),
+      "delta": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-V-dif-group.1/delta"),
+      "etaa": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-V-dif-group.1/etaa"),
+      "attenuation": DatasetPathWithAttribute("long_name", b"i14-c-c00/ex/roic/att"),
+      "timestamp": HItem("sensors_timestamps", True),
+  }
+
+  def get_pointcount(self, scanno: int) -> int:
+      # just open the file in order to extract the number of step
+      with File(self.get_filename(scanno), 'r') as scan:
+          path = self.HPATH["image"]
+          return get_dataset(scan, path).shape[0]
+
+  def get_values(self, index, h5_nodes):
+      image = h5_nodes['image'][index]
+      pitch = h5_nodes['pitch'][index]
+      mu = h5_nodes['mu'][index]
+      gamma = h5_nodes['gamma'][index]
+      delta = h5_nodes['delta'][index]
+      attenuation = self.get_attenuation(index, h5_nodes, 2)
+      timestamp = self.get_timestamp(index, h5_nodes)
+
+      return (image, attenuation, timestamp, (pitch, mu, omega, gamma, delta, etaa))
 
 
 class SBSFixedDetector(FlyScanUHV):
