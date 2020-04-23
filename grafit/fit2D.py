@@ -10,7 +10,7 @@ import numpy as np
 from os import path, getcwd
 
 from lmfit import Parameters
-from guidata.qt.QtCore import Qt, SIGNAL
+from guidata.qt.QtCore import Qt
 from guidata.qt.QtGui import (
     QListWidget,
     QListWidgetItem,
@@ -534,8 +534,8 @@ class FunctionList(QListWidget):
         self.setSelectionMode(1)
         self.current_item_number = -1
         self.initcontexts()
-        self.connect(self, SIGNAL("currentRowChanged (int)"), self.row_changed)
-        self.connect(self, SIGNAL("itemClicked (QListWidgetItem*)"), self.item_clicked)
+        self.currentRowChanged.connect(self.row_changed)
+        self.itemClicked.connect(self.item_clicked)
 
     def add_item(self, function_name):
         """ add a function name to the list """
@@ -606,11 +606,9 @@ class ParameterTable(QTableWidget):
         self.int1 = 0
 
         # On connecte les signaux
-        self.connect(self, SIGNAL("cellChanged(int,int)"), self.cellChanged)
-        self.connect(self, SIGNAL("cellPressed(int,int)"), self.cellPressed)
-        self.connect(
-            self.horizontalHeader(), SIGNAL("sectionPressed(int)"), self.sectionClicked
-        )
+        self.cellChanged.connect(self.cellChanged)
+        self.cellPressed.connect(self.cellPressed)
+        self.horizontalHeader().sectionPressed.connect(self.sectionClicked)
 
         # pas de fit sauve
         self.isfitted = False
@@ -967,9 +965,7 @@ class FitWidget(QWidget):
         self.method = QComboBox(self)
         for couple in minimizationmethods:
             self.method.addItem(couple[1])
-        self.connect(
-            self.method, SIGNAL(_("currentIndexChanged(int)")), self.index_changed
-        )
+        self.method.currentIndexChanged.connect(self.index_changed)
 
         self.chi2 = QLabel("chi2=")
         self.rf = QLabel("Rf=")
@@ -1256,11 +1252,7 @@ class Fit2DWindow(QMainWindow):
         self.connect(self.addmodeltool, SIG_MODEL_ADDED, self.add_model_class)
         self.connect(self.runtool, SIG_VALIDATE_TOOL, self.do_fit)
         self.connect(self.savefittool, SIG_VALIDATE_TOOL, self.save_fit)
-        self.connect(
-            self.image_list,
-            SIGNAL("currentRowChanged (int)"),
-            self.image_list_row_changed,
-        )
+        self.image_list.currentRowChanged.connect(self.image_list_row_changed)
         self.connect(self.preftool.showtagsaction, SIG_TRIGGERED, self.show_tags)
         self.connect(
             self.preftool.saveprefaction, SIG_TRIGGERED, self.set_save_filename
