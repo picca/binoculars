@@ -42,6 +42,7 @@ from numpy.linalg import inv
 from pyFAI.detectors import ALL_DETECTORS
 
 from .soleil import (
+    DatasetPathContains,
     DatasetPathWithAttribute,
     HItem,
     get_dataset,
@@ -793,8 +794,9 @@ class FlyScanUHV(SIXS):
         if not all([math.isfinite(v) for v in values]):
             return None
 
-        if not math.isfinite(attenuation):
-            return None
+        if attenuation is not None:
+            if not math.isfinite(attenuation):
+                return None
 
         # BEWARE in order to avoid precision problem we convert the
         # uint16 -> float32. (the size of the mantis is on 23 bits)
@@ -926,49 +928,6 @@ class SBSMedH(FlyScanUHV):
         return (image, attenuation, timestamp, (pitch, mu, gamma, delta))
 
 
-class SBSMedV(FlyScanUHV):
-    HPATH = {
-        "image": DatasetPathWithAttribute("long_name", b"i14-c-c00/dt/xpad.1/image"),
-        "pitch": DatasetPathWithAttribute(
-            "long_name", b"i14-c-cx1/ex/diff-med-tpp/pitch"
-        ),
-        "mu": DatasetPathWithAttribute(
-            "long_name", b"i14-c-cx1/ex/med-V-dif-group.1/mu"
-        ),
-        "omega": DatasetPathWithAttribute(
-            "long_name", b"i14-c-cx1/ex/med-V-dif-group.1/omega"
-        ),
-        "gamma": DatasetPathWithAttribute(
-            "long_name", b"i14-c-cx1/ex/med-V-dif-group.1/gamma"
-        ),
-        "delta": DatasetPathWithAttribute(
-            "long_name", b"i14-c-cx1/ex/med-V-dif-group.1/delta"
-        ),
-        "etaa": DatasetPathWithAttribute(
-            "long_name", b"i14-c-cx1/ex/med-V-dif-group.1/etaa"
-        ),
-        "attenuation": DatasetPathWithAttribute("long_name", b"i14-c-c00/ex/roic/att"),
-        "timestamp": HItem("sensors_timestamps", True),
-    }
-
-    def get_pointcount(self, scanno: int) -> int:
-        # just open the file in order to extract the number of step
-        with File(self.get_filename(scanno), "r") as scan:
-            path = self.HPATH["image"]
-            return get_dataset(scan, path).shape[0]
-
-    def get_values(self, index, h5_nodes):
-        image = h5_nodes["image"][index]
-        pitch = h5_nodes["pitch"][index]
-        mu = h5_nodes["mu"][index]
-        gamma = h5_nodes["gamma"][index]
-        delta = h5_nodes["delta"][index]
-        attenuation = self.get_attenuation(index, h5_nodes, 2)
-        timestamp = self.get_timestamp(index, h5_nodes)
-
-        return (image, attenuation, timestamp, (pitch, mu, omega, gamma, delta, etaa))
-
-
 class SBSFixedDetector(FlyScanUHV):
     HPATH = {
         "image": HItem("data_11", False),
@@ -1051,6 +1010,49 @@ class FlyMedV(FlyScanUHV):
         gamma = h5_nodes["gamma"][index]
         delta = h5_nodes["delta"][index]
         etaa = h5_nodes["etaa"][index] if h5_nodes["etaa"] else 0.0
+        attenuation = self.get_attenuation(index, h5_nodes, 2)
+        timestamp = self.get_timestamp(index, h5_nodes)
+
+        return (image, attenuation, timestamp, (beta, mu, omega, gamma, delta, etaa))
+
+
+class SBSMedV(FlyScanUHV):
+    HPATH = {
+        "image": DatasetPathWithAttribute("long_name", b"i14-c-c00/dt/xpad.1/image"),
+        "beta": DatasetPathContains("i14-c-cx1-ex-diff-med-tpp/TPP/Orientation/pitch"),
+        "mu": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-v-dif-group.1/mu"
+        ),
+        "omega": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-v-dif-group.1/omega"
+        ),
+        "gamma": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-v-dif-group.1/gamma"
+        ),
+        "delta": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-v-dif-group.1/delta"
+        ),
+        "etaa": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-v-dif-group.1/etaa"
+        ),
+        "attenuation": DatasetPathWithAttribute("long_name", b"i14-c-c00/ex/roic/att"),
+        "timestamp": HItem("sensors_timestamps", True),
+    }
+
+    def get_pointcount(self, scanno: int) -> int:
+        # just open the file in order to extract the number of step
+        with File(self.get_filename(scanno), "r") as scan:
+            path = self.HPATH["image"]
+            return get_dataset(scan, path).shape[0]
+
+    def get_values(self, index, h5_nodes):
+        image = h5_nodes["image"][index]
+        beta = h5_nodes["beta"][0]
+        mu = h5_nodes["mu"][index]
+        omega = h5_nodes["omega"][index]
+        gamma = h5_nodes["gamma"][index]
+        delta = h5_nodes["delta"][index]
+        etaa = h5_nodes["etaa"][index]
         attenuation = self.get_attenuation(index, h5_nodes, 2)
         timestamp = self.get_timestamp(index, h5_nodes)
 
