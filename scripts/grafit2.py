@@ -319,13 +319,6 @@ alpha0 = Parameter("alpha", 0.0)
 eps0 = Parameter("alpha", 0.0)
 
 
-# Emitted when a fit is performed
-SIG_FIT_DONE = SIGNAL("fit_done")
-
-# Emitted when a fit is performed
-SIG_FIT_SAVED = SIGNAL("fit_saved")
-
-
 class FitCurve:
     # definit une classe pour les fonction de fit
     def __init__(self, name, curvetype, list_of_parameters, integral=None):
@@ -472,6 +465,9 @@ class readfileparams:
 
 
 class readfilewindow(QDialog):
+
+    SIG_FIT_DONE = Signal("fit_done")
+
     def __init__(self, params, ficlines):
         self.params = params
         super(
@@ -1196,7 +1192,7 @@ class FitTable(QTableWidget):
         self.issaved = False
         self.drawopt()
         self.initparams(settry=False, setopt=True)
-        self.emit(SIG_FIT_DONE)
+        self.emit(self.SIG_FIT_DONE)
 
     def drawtry(self):
         xmin, xmax = self.plot.get_axis_limits("bottom")
@@ -1312,7 +1308,7 @@ class FitTable(QTableWidget):
             if self.updatestart:
                 self.set_wholeastry()
 
-            self.emit(SIG_FIT_DONE)
+            self.emit(self.SIG_FIT_DONE)
 
     def setfilename(self):
         self.savename = str(

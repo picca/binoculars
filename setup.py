@@ -39,7 +39,7 @@ setup(
     version="0.0.5-dev",
     description=description,
     long_description=long_description,
-    packages=find_packages(exclude=["*.test", "*.test.*", "test.*", "test"]),
+    packages=find_packages(exclude=["*.test", "*.test.*", "test.*", "test", "grafit"]),
     install_requires=install_requires,
     scripts=scripts,
     author="Willem Onderwaater, Sander Roobol, Frédéric-Emmanuel Picca",

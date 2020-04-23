@@ -40,7 +40,6 @@ from guiqwt.image import ImagePlot, ImageItem
 from guiqwt.plot import PlotManager
 from guiqwt._scaler import _histogram
 from guiqwt.styles import ImageParam
-from guiqwt.signals import SIG_VALIDATE_TOOL
 
 from grafit.calculation import get_xywxwy_cxy
 from grafit.signals import (
@@ -1250,15 +1249,15 @@ class Fit2DWindow(QMainWindow):
     def create_connect(self):
         self.connect(self.parametertable, SIG_TRY_CHANGED, self.update_try)
         self.connect(self.addmodeltool, SIG_MODEL_ADDED, self.add_model_class)
-        self.connect(self.runtool, SIG_VALIDATE_TOOL, self.do_fit)
-        self.connect(self.savefittool, SIG_VALIDATE_TOOL, self.save_fit)
+        self.runtool.SIG_VALIDATE_TOOL.connect(self.do_fit)
+        self.savefittool.SIG_VALIDATE_TOOL.connect(self.save_fit)
         self.image_list.currentRowChanged.connect(self.image_list_row_changed)
         self.connect(self.preftool.showtagsaction, SIG_TRIGGERED, self.show_tags)
         self.connect(
             self.preftool.saveprefaction, SIG_TRIGGERED, self.set_save_filename
         )
         self.connect(self.function_list, SIG_MODEL_REMOVED, self.remove_model)
-        self.connect(self.showweightstool, SIG_VALIDATE_TOOL, self.show_weigths)
+        self.showweightstool.SIG_VALIDATE_TOOL.connect(self.show_weigths)
         self.connect(self.preftool.showdiffaction, SIG_TRIGGERED, self.show_diff)
 
     def set_default_params(self):
