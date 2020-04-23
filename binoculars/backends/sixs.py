@@ -1,4 +1,4 @@
-'''This file is part of the binoculars project.
+"""This file is part of the binoculars project.
 
   The BINoculars library is free software: you can redistribute it
   and/or modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
   Authors: Willem Onderwaater <onderwaa@esrf.fr>
            Picca Frédéric-Emmanuel <picca@synchrotron-soleil.fr>
 
-'''
+"""
 from typing import Dict, NamedTuple, Optional, Tuple
 
 import numpy
@@ -41,11 +41,13 @@ from numpy import ndarray
 from numpy.linalg import inv
 from pyFAI.detectors import ALL_DETECTORS
 
-from .soleil import (DatasetPathWithAttribute,
-                     HItem,
-                     get_dataset,
-                     get_nxclass,
-                     node_as_string)
+from .soleil import (
+    DatasetPathWithAttribute,
+    HItem,
+    get_dataset,
+    get_nxclass,
+    node_as_string,
+)
 from .. import backend, errors, util
 
 # TODO
@@ -92,18 +94,19 @@ class RealSpace(backend.ProjectionBase):
         return (x, y, z)
 
     def get_axis_labels(self):
-        return ('x', 'y', 'z')
+        return ("x", "y", "z")
 
 
 class Pixels(backend.ProjectionBase):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         pixels = pdataframe.pixels
 
-        return numpy.meshgrid(numpy.arange(pixels[0].shape[1]),
-                              numpy.arange(pixels[0].shape[0]))
+        return numpy.meshgrid(
+            numpy.arange(pixels[0].shape[1]), numpy.arange(pixels[0].shape[0])
+        )
 
     def get_axis_labels(self) -> Tuple[str]:
-        return 'x', 'y'
+        return "x", "y"
 
 
 class HKLProjection(backend.ProjectionBase):
@@ -115,7 +118,9 @@ class HKLProjection(backend.ProjectionBase):
         P = pdataframe.P
 
         if UB is None:
-            raise Exception("In order to compute the HKL projection, you need a valid ub matrix")
+            raise Exception(
+                "In order to compute the HKL projection, you need a valid ub matrix"
+            )
 
         ki = [1, 0, 0]
         RUB_1 = inv(numpy.dot(R, UB))
@@ -130,7 +135,7 @@ class HKLProjection(backend.ProjectionBase):
         return h, k, l
 
     def get_axis_labels(self) -> Tuple[str]:
-        return 'H', 'K', 'L'
+        return "H", "K", "L"
 
 
 class HKProjection(HKLProjection):
@@ -139,7 +144,7 @@ class HKProjection(HKLProjection):
         return h, k
 
     def get_axis_labels(self) -> Tuple[str]:
-        return 'H', 'K'
+        return "H", "K"
 
 
 class QxQyQzProjection(backend.ProjectionBase):
@@ -153,22 +158,15 @@ class QxQyQzProjection(backend.ProjectionBase):
         # TODO factorize with HklProjection. Here a trick in order to
         # compute Qx Qy Qz in the omega basis.
         if surface_orientation is SurfaceOrientation.VERTICAL:
-            UB = numpy.array([[1,  0, 0],
-                              [0,  0, 1],
-                              [0, -1, 0]])
+            UB = numpy.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
 
             if self.config.omega_offset is not None:
-                UB = numpy.dot(UB,
-                               M(self.config.omega_offset, [0, 0, -1]))
+                UB = numpy.dot(UB, M(self.config.omega_offset, [0, 0, -1]))
         else:
-            UB = numpy.array([[1, 0, 0],
-                              [0, 1, 0],
-                              [0, 0, 1]])
+            UB = numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
             if self.config.mu_offset is not None:
-                UB = numpy.dot(UB,
-                               M(self.config.mu_offset, [0, 0, -1]))
-
+                UB = numpy.dot(UB, M(self.config.mu_offset, [0, 0, -1]))
 
         # the ki vector should be in the NexusFile or easily extracted
         # from the hkl library.
@@ -190,18 +188,19 @@ class QxQyQzProjection(backend.ProjectionBase):
         super(QxQyQzProjection, self).parse_config(config)
 
         # omega offset for the sample in degree then convert into radian
-        omega_offset = config.pop('omega_offset', None)
+        omega_offset = config.pop("omega_offset", None)
         if omega_offset is not None:
             self.config.omega_offset = math.radians(float(omega_offset))
         else:
             self.config.omega_offset = None
 
         # omega offset for the sample in degree then convert into radian
-        mu_offset = config.pop('mu_offset', None)
+        mu_offset = config.pop("mu_offset", None)
         if mu_offset is not None:
             self.config.mu_offset = math.radians(float(mu_offset))
         else:
             self.config.mu_offset = None
+
 
 class QxQyIndexProjection(QxQyQzProjection):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
@@ -211,7 +210,7 @@ class QxQyIndexProjection(QxQyQzProjection):
         return qx, qy, numpy.ones_like(qx) * timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
-        return 'Qx', 'Qy', 't'
+        return "Qx", "Qy", "t"
 
 
 class QxQzIndexProjection(QxQyQzProjection):
@@ -222,7 +221,7 @@ class QxQzIndexProjection(QxQyQzProjection):
         return qx, qz, numpy.ones_like(qx) * timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
-        return 'Qx', 'Qz', 't'
+        return "Qx", "Qz", "t"
 
 
 class QyQzIndexProjection(QxQyQzProjection):
@@ -233,16 +232,16 @@ class QyQzIndexProjection(QxQyQzProjection):
         return qy, qz, numpy.ones_like(qy) * timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
-        return 'Qy', 'Qz', 't'
+        return "Qy", "Qz", "t"
 
 
 class QparQperProjection(QxQyQzProjection):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         qx, qy, qz = super(QparQperProjection, self).project(index, pdataframe)
-        return numpy.sqrt(qx*qx + qy*qy), qz
+        return numpy.sqrt(qx * qx + qy * qy), qz
 
     def get_axis_labels(self) -> Tuple[str]:
-        return 'Qpar', 'Qper'
+        return "Qpar", "Qper"
 
 
 class QparQperIndexProjection(QparQperProjection):
@@ -253,13 +252,13 @@ class QparQperIndexProjection(QparQperProjection):
         return qpar, qper, numpy.ones_like(qpar) * timestamp
 
     def get_axis_labels(self) -> Tuple[str]:
-        return 'Qpar', 'Qper', 't'
+        return "Qpar", "Qper", "t"
 
 
 class Stereo(QxQyQzProjection):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         qx, qy, qz = super(Stereo, self).project(index, pdataframe)
-        q = numpy.sqrt(qx*qx+qy*qy+qz*qz)
+        q = numpy.sqrt(qx * qx + qy * qy + qz * qz)
         # ratio = qz + q
         # x = qx / ratio
         # y = qy / ratio
@@ -268,15 +267,17 @@ class Stereo(QxQyQzProjection):
     def get_axis_labels(self) -> Tuple[str]:
         return "Q", "Qx", "Qy"
 
+
 class QPolarProjection(QxQyQzProjection):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         qx, qy, qz = super(QPolarProjection, self).project(index, pdataframe)
         phi = numpy.rad2deg(numpy.arctan2(qx, qy))
-        q = numpy.sqrt(qx*qx+qy*qy+qz*qz)
+        q = numpy.sqrt(qx * qx + qy * qy + qz * qz)
         return phi, q, qz
 
     def get_axis_labels(self) -> Tuple[str]:
         return "Phi", "Q", "Qz"
+
 
 class QIndex(Stereo):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
@@ -344,15 +345,15 @@ class Diffractometer(NamedTuple):
 
 def get_diffractometer(hfile: File):
     """ Construct a Diffractometer from a NeXus file """
-    node = get_nxclass(hfile, 'NXdiffractometer')
+    node = get_nxclass(hfile, "NXdiffractometer")
 
-    name = node_as_string(node['type'][()])
-    if name.endswith('\n'):
+    name = node_as_string(node["type"][()])
+    if name.endswith("\n"):
         # remove the last "\n" char
         name = name[:-1]
 
     try:
-        ub = node['UB'][:]
+        ub = node["UB"][:]
     except AttributeError:
         ub = None
 
@@ -381,7 +382,7 @@ class Sample(NamedTuple):
 
 def get_sample(hfile, config):
     """ Construct a Diffractometer from a NeXus file """
-    node = get_nxclass(hfile, 'NXdiffractometer')
+    node = get_nxclass(hfile, "NXdiffractometer")
 
     def get_value(node, name, default, overwrite):
         if overwrite is not None:
@@ -395,21 +396,20 @@ def get_sample(hfile, config):
         return v
 
     # hkl default sample
-    a = get_value(node, 'A', 1.54, config.a)
-    b = get_value(node, 'B', 1.54, config.b)
-    c = get_value(node, 'C', 1.54, config.c)
-    alpha = get_value(node, 'alpha', 90, config.alpha)
-    beta = get_value(node, 'beta', 90, config.beta)
-    gamma = get_value(node, 'gamma', 90, config.gamma)
-    ux = get_value(node, 'Ux', 0, config.ux)
-    uy = get_value(node, 'Uy', 0, config.uy)
-    uz = get_value(node, 'Uz', 0, config.uz)
+    a = get_value(node, "A", 1.54, config.a)
+    b = get_value(node, "B", 1.54, config.b)
+    c = get_value(node, "C", 1.54, config.c)
+    alpha = get_value(node, "alpha", 90, config.alpha)
+    beta = get_value(node, "beta", 90, config.beta)
+    gamma = get_value(node, "gamma", 90, config.gamma)
+    ux = get_value(node, "Ux", 0, config.ux)
+    uy = get_value(node, "Uy", 0, config.uy)
+    uz = get_value(node, "Uz", 0, config.uz)
 
     sample = Hkl.Sample.new("test")
-    lattice = Hkl.Lattice.new(a, b, c,
-                              math.radians(alpha),
-                              math.radians(beta),
-                              math.radians(gamma))
+    lattice = Hkl.Lattice.new(
+        a, b, c, math.radians(alpha), math.radians(beta), math.radians(gamma)
+    )
     sample.lattice_set(lattice)
 
     parameter = sample.ux_get()
@@ -451,7 +451,7 @@ class Source(NamedTuple):
 
 def get_source(hfile):
     wavelength = None
-    node = get_nxclass(hfile, 'NXmonochromator')
+    node = get_nxclass(hfile, "NXmonochromator")
     for attr in ["wavelength", "lambda"]:
         try:
             wavelength = node[attr][0]
@@ -515,20 +515,31 @@ def M(theta, u):
     c = cos(theta)
     one_minus_c = 1 - c
     s = sin(theta)
-    return numpy.array([[c + u[0]**2 * one_minus_c,
-                         u[0] * u[1] * one_minus_c - u[2] * s,
-                         u[0] * u[2] * one_minus_c + u[1] * s],
-                        [u[0] * u[1] * one_minus_c + u[2] * s,
-                         c + u[1]**2 * one_minus_c,
-                         u[1] * u[2] * one_minus_c - u[0] * s],
-                        [u[0] * u[2] * one_minus_c - u[1] * s,
-                         u[1] * u[2] * one_minus_c + u[0] * s,
-                         c + u[2]**2 * one_minus_c]])
+    return numpy.array(
+        [
+            [
+                c + u[0] ** 2 * one_minus_c,
+                u[0] * u[1] * one_minus_c - u[2] * s,
+                u[0] * u[2] * one_minus_c + u[1] * s,
+            ],
+            [
+                u[0] * u[1] * one_minus_c + u[2] * s,
+                c + u[1] ** 2 * one_minus_c,
+                u[1] * u[2] * one_minus_c - u[0] * s,
+            ],
+            [
+                u[0] * u[2] * one_minus_c - u[1] * s,
+                u[1] * u[2] * one_minus_c + u[0] * s,
+                c + u[2] ** 2 * one_minus_c,
+            ],
+        ]
+    )
 
 
 ##################
 # Input Backends #
 ##################
+
 
 class SIXS(backend.InputBase):
     # OFFICIAL API
@@ -537,11 +548,11 @@ class SIXS(backend.InputBase):
     dbg_pointno = None
 
     def generate_jobs(self, command):
-        scans = util.parse_multi_range(','.join(command).replace(' ', ','))
+        scans = util.parse_multi_range(",".join(command).replace(" ", ","))
         if not len(scans):
-            sys.stderr.write('error: no scans selected, nothing to do\n')
+            sys.stderr.write("error: no scans selected, nothing to do\n")
         for scanno in scans:
-            util.status('processing scan {0}...'.format(scanno))
+            util.status("processing scan {0}...".format(scanno))
             if self.config.pr:
                 pointcount = self.config.pr[1] - self.config.pr[0] + 1
                 start = self.config.pr[0]
@@ -549,21 +560,24 @@ class SIXS(backend.InputBase):
                 start = 0
                 pointcount = self.get_pointcount(scanno)
             if pointcount > self.config.target_weight * 1.4:
-                for s in util.chunk_slicer(pointcount,
-                                           self.config.target_weight):
-                    yield backend.Job(scan=scanno,
-                                      firstpoint=start+s.start,
-                                      lastpoint=start+s.stop-1,
-                                      weight=s.stop-s.start)
+                for s in util.chunk_slicer(pointcount, self.config.target_weight):
+                    yield backend.Job(
+                        scan=scanno,
+                        firstpoint=start + s.start,
+                        lastpoint=start + s.stop - 1,
+                        weight=s.stop - s.start,
+                    )
             else:
-                yield backend.Job(scan=scanno,
-                                  firstpoint=start,
-                                  lastpoint=start+pointcount-1,
-                                  weight=pointcount)
+                yield backend.Job(
+                    scan=scanno,
+                    firstpoint=start,
+                    lastpoint=start + pointcount - 1,
+                    weight=pointcount,
+                )
 
     def process_job(self, job):
         super(SIXS, self).process_job(job)
-        with File(self.get_filename(job.scan), 'r') as scan:
+        with File(self.get_filename(job.scan), "r") as scan:
             self.metadict = dict()
             try:
                 for dataframe in dataframes(scan, self.HPATH, self.config):
@@ -584,46 +598,55 @@ class SIXS(backend.InputBase):
                             yield res
                 util.statuseol()
             except Exception as exc:
-                exc.args = errors.addmessage(exc.args, ', An error occured for scan {0} at point {1}. See above for more information'.format(self.dbg_scanno, self.dbg_pointno))  # noqa
+                exc.args = errors.addmessage(
+                    exc.args,
+                    ", An error occured for scan {0} at point {1}. See above for more information".format(
+                        self.dbg_scanno, self.dbg_pointno
+                    ),
+                )  # noqa
                 raise
-            self.metadata.add_section('sixs_backend', self.metadict)
+            self.metadata.add_section("sixs_backend", self.metadict)
 
     def parse_config(self, config):
         super(SIXS, self).parse_config(config)
         # Optional, select a subset of the image range in the x
         # direction. all by default
-        self.config.xmask = util.parse_multi_range(config.pop('xmask', None))
+        self.config.xmask = util.parse_multi_range(config.pop("xmask", None))
 
         # Optional, select a subset of the image range in the y
         # direction. all by default
-        self.config.ymask = util.parse_multi_range(config.pop('ymask', None))
+        self.config.ymask = util.parse_multi_range(config.pop("ymask", None))
 
         # location of the nexus files (take precedence on nexusfile)
-        self.config.nexusdir = config.pop('nexusdir', None)
+        self.config.nexusdir = config.pop("nexusdir", None)
 
         # Location of the specfile
-        self.config.nexusfile = config.pop('nexusfile', None)
+        self.config.nexusfile = config.pop("nexusfile", None)
 
         # Optional, all range by default
-        self.config.pr = config.pop('pr', None)
+        self.config.pr = config.pop("pr", None)
         if self.config.xmask is None:
             self.config.xmask = slice(None)
         if self.config.ymask is None:
             self.config.ymask = slice(None)
         if self.config.pr:
-            self.config.pr = util.parse_tuple(self.config.pr, length=2, type=int)  # noqa
+            self.config.pr = util.parse_tuple(
+                self.config.pr, length=2, type=int
+            )  # noqa
 
         # sample to detector distance (mm)
-        self.config.sdd = float(config.pop('sdd'))
+        self.config.sdd = float(config.pop("sdd"))
 
         # x,y coordinates of the central pixel
-        self.config.centralpixel = util.parse_tuple(config.pop('centralpixel'), length=2, type=int)  # noqa
+        self.config.centralpixel = util.parse_tuple(
+            config.pop("centralpixel"), length=2, type=int
+        )  # noqa
 
         # Optional, if supplied pixels where the mask is 0 will be removed
-        self.config.maskmatrix = config.pop('maskmatrix', None)
+        self.config.maskmatrix = config.pop("maskmatrix", None)
 
         # detector rotation around x (1, 0, 0)
-        self.config.detrot = config.pop('detrot', None)
+        self.config.detrot = config.pop("detrot", None)
         if self.config.detrot is not None:
             try:
                 self.config.detrot = float(self.config.detrot)
@@ -631,17 +654,19 @@ class SIXS(backend.InputBase):
                 self.config.detrot = None
 
         # attenuation_coefficient (Optional)
-        attenuation_coefficient = config.pop('attenuation_coefficient', None)
+        attenuation_coefficient = config.pop("attenuation_coefficient", None)
         if attenuation_coefficient is not None:
             try:
-                self.config.attenuation_coefficient = float(attenuation_coefficient)  # noqa
+                self.config.attenuation_coefficient = float(
+                    attenuation_coefficient
+                )  # noqa
             except ValueError:
                 self.config.attenuation_coefficient = None
         else:
             self.config.attenuation_coefficient = None
 
         # surface_orientation
-        surface_orientation = config.pop('surface_orientation', None)
+        surface_orientation = config.pop("surface_orientation", None)
         surface_orientation_opt = SurfaceOrientation.VERTICAL
         if surface_orientation is not None:
             if surface_orientation.lower() == "horizontal":
@@ -649,38 +674,48 @@ class SIXS(backend.InputBase):
         self.config.surface_orientation = surface_orientation_opt
 
         # sample
-        self.config.a = util.parse_float(config, 'a', None)
-        self.config.b = util.parse_float(config, 'b', None)
-        self.config.c = util.parse_float(config, 'c', None)
-        self.config.alpha = util.parse_float(config, 'alpha', None)
-        self.config.beta = util.parse_float(config, 'beta', None)
-        self.config.gamma = util.parse_float(config, 'gamma', None)
-        self.config.ux = util.parse_float(config, 'ux', None)
-        self.config.uy = util.parse_float(config, 'uy', None)
-        self.config.uz = util.parse_float(config, 'uz', None)
+        self.config.a = util.parse_float(config, "a", None)
+        self.config.b = util.parse_float(config, "b", None)
+        self.config.c = util.parse_float(config, "c", None)
+        self.config.alpha = util.parse_float(config, "alpha", None)
+        self.config.beta = util.parse_float(config, "beta", None)
+        self.config.gamma = util.parse_float(config, "gamma", None)
+        self.config.ux = util.parse_float(config, "ux", None)
+        self.config.uy = util.parse_float(config, "uy", None)
+        self.config.uz = util.parse_float(config, "uz", None)
 
     def get_destination_options(self, command):
         if not command:
             return False
-        command = ','.join(command).replace(' ', ',')
+        command = ",".join(command).replace(" ", ",")
         scans = util.parse_multi_range(command)
-        return dict(first=min(scans), last=max(scans), range=','.join(str(scan) for scan in scans))  # noqa
+        return dict(
+            first=min(scans),
+            last=max(scans),
+            range=",".join(str(scan) for scan in scans),
+        )  # noqa
 
     # CONVENIENCE FUNCTIONS
     def get_filename(self, scanno):
         filename = None
         if self.config.nexusdir:
             dirname = self.config.nexusdir
-            files = [f for f in os.listdir(dirname)
-                     if ((str(scanno).zfill(5) in f)
-                         and (os.path.splitext(f)[1] in ['.hdf5', '.nxs']))
-                     ]
+            files = [
+                f
+                for f in os.listdir(dirname)
+                if (
+                    (str(scanno).zfill(5) in f)
+                    and (os.path.splitext(f)[1] in [".hdf5", ".nxs"])
+                )
+            ]
             if files is not []:
                 filename = os.path.join(dirname, files[0])
         else:
             filename = self.config.nexusfile.format(scanno=str(scanno).zfill(5))  # noqa
         if not os.path.exists(filename):
-            raise errors.ConfigError('nexus filename does not exist: {0}'.format(filename))  # noqa
+            raise errors.ConfigError(
+                "nexus filename does not exist: {0}".format(filename)
+            )  # noqa
         return filename
 
     @staticmethod
@@ -702,19 +737,21 @@ class FlyScanUHV(SIXS):
 
     def get_pointcount(self, scanno):
         # just open the file in order to extract the number of step
-        with File(self.get_filename(scanno), 'r') as scan:
-            return get_nxclass(scan, "NXdata")['xpad_image'].shape[0]
+        with File(self.get_filename(scanno), "r") as scan:
+            return get_nxclass(scan, "NXdata")["xpad_image"].shape[0]
 
     def get_attenuation(self, index, h5_nodes, offset):
         attenuation = None
         if self.config.attenuation_coefficient is not None:
             try:
                 try:
-                    node = h5_nodes['attenuation']
+                    node = h5_nodes["attenuation"]
                     if node is not None:
                         attenuation = node[index + offset]
                     else:
-                        raise Exception("you asked for attenuation but the file does not contain attenuation informations.")  # noqa
+                        raise Exception(
+                            "you asked for attenuation but the file does not contain attenuation informations."
+                        )  # noqa
                 except KeyError:
                     attenuation = 1.0
             except ValueError:
@@ -724,23 +761,25 @@ class FlyScanUHV(SIXS):
     def get_timestamp(self, index, h5_nodes):
         timestamp = None
         try:
-            timestamp = h5_nodes['timestamp'][index]
+            timestamp = h5_nodes["timestamp"][index]
         except KeyError:
             timestamp = index
         return timestamp
 
     def get_values(self, index, h5_nodes):
-        image = h5_nodes['image'][index]
-        mu = h5_nodes['mu'][index]
-        omega = h5_nodes['omega'][index]
-        delta = h5_nodes['delta'][index]
-        gamma = h5_nodes['gamma'][index]
+        image = h5_nodes["image"][index]
+        mu = h5_nodes["mu"][index]
+        omega = h5_nodes["omega"][index]
+        delta = h5_nodes["delta"][index]
+        gamma = h5_nodes["gamma"][index]
         attenuation = self.get_attenuation(index, h5_nodes, 2)
         timestamp = self.get_timestamp(index, h5_nodes)
 
         return (image, attenuation, timestamp, (mu, omega, delta, gamma))
 
-    def process_image(self, index, dataframe, pixels, mask) -> Optional[Tuple[ndarray, ndarray, Tuple[int, PDataFrame]]]:
+    def process_image(
+        self, index, dataframe, pixels, mask
+    ) -> Optional[Tuple[ndarray, ndarray, Tuple[int, PDataFrame]]]:
         util.status(str(index))
 
         # extract the data from the h5 nodes
@@ -761,7 +800,7 @@ class FlyScanUHV(SIXS):
         # uint16 -> float32. (the size of the mantis is on 23 bits)
         # enought to contain the uint16. If one day we use uint32, it
         # should be necessary to convert into float64.
-        intensity = intensity.astype('float32')
+        intensity = intensity.astype("float32")
 
         weights = None
         if self.config.attenuation_coefficient is not None:
@@ -795,7 +834,9 @@ class FlyScanUHV(SIXS):
 
         surface_orientation = self.config.surface_orientation
 
-        pdataframe = PDataFrame(pixels, k, dataframe.sample.ub, R, P, index, timestamp, surface_orientation)
+        pdataframe = PDataFrame(
+            pixels, k, dataframe.sample.ub, R, P, index, timestamp, surface_orientation
+        )
 
         return intensity, weights, (index, pdataframe)
 
@@ -837,41 +878,48 @@ class FlyMedH(FlyScanUHV):
     }
 
     def get_values(self, index, h5_nodes):
-        image = h5_nodes['image'][index]
-        pitch = h5_nodes['pitch'][index] if h5_nodes['pitch'] else 0.3
-        mu = h5_nodes['mu'][index]
-        gamma = h5_nodes['gamma'][index]
-        delta = h5_nodes['delta'][index]
+        image = h5_nodes["image"][index]
+        pitch = h5_nodes["pitch"][index] if h5_nodes["pitch"] else 0.3
+        mu = h5_nodes["mu"][index]
+        gamma = h5_nodes["gamma"][index]
+        delta = h5_nodes["delta"][index]
         attenuation = self.get_attenuation(index, h5_nodes, 2)
         timestamp = self.get_timestamp(index, h5_nodes)
 
         return (image, attenuation, timestamp, (pitch, mu, gamma, delta))
 
-    https://www.youtube.com/watch?v=V-cvlZLNEBM
 
 class SBSMedH(FlyScanUHV):
     HPATH = {
         "image": DatasetPathWithAttribute("long_name", b"i14-c-c00/dt/xpad.1/image"),
-        "pitch": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/diff-med-tpp/pitch"),
-        "mu": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-h-dif-group.1/mu"),
-        "gamma": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-h-dif-group.1/gamma"),
-        "delta": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-h-dif-group.1/delta"),
+        "pitch": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/diff-med-tpp/pitch"
+        ),
+        "mu": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-h-dif-group.1/mu"
+        ),
+        "gamma": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-h-dif-group.1/gamma"
+        ),
+        "delta": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-h-dif-group.1/delta"
+        ),
         "attenuation": DatasetPathWithAttribute("long_name", b"i14-c-c00/ex/roic/att"),
         "timestamp": HItem("sensors_timestamps", True),
     }
 
     def get_pointcount(self, scanno: int) -> int:
         # just open the file in order to extract the number of step
-        with File(self.get_filename(scanno), 'r') as scan:
+        with File(self.get_filename(scanno), "r") as scan:
             path = self.HPATH["image"]
             return get_dataset(scan, path).shape[0]
 
     def get_values(self, index, h5_nodes):
-        image = h5_nodes['image'][index]
-        pitch = h5_nodes['pitch'][index]
-        mu = h5_nodes['mu'][index]
-        gamma = h5_nodes['gamma'][index]
-        delta = h5_nodes['delta'][index]
+        image = h5_nodes["image"][index]
+        pitch = h5_nodes["pitch"][index]
+        mu = h5_nodes["mu"][index]
+        gamma = h5_nodes["gamma"][index]
+        delta = h5_nodes["delta"][index]
         attenuation = self.get_attenuation(index, h5_nodes, 2)
         timestamp = self.get_timestamp(index, h5_nodes)
 
@@ -879,34 +927,46 @@ class SBSMedH(FlyScanUHV):
 
 
 class SBSMedV(FlyScanUHV):
-  HPATH = {
-      "image": DatasetPathWithAttribute("long_name", b"i14-c-c00/dt/xpad.1/image"),
-      "pitch": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/diff-med-tpp/pitch"),
-      "mu": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-V-dif-group.1/mu"),
-      "omega": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-V-dif-group.1/omega"),
-      "gamma": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-V-dif-group.1/gamma"),
-      "delta": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-V-dif-group.1/delta"),
-      "etaa": DatasetPathWithAttribute("long_name", b"i14-c-cx1/ex/med-V-dif-group.1/etaa"),
-      "attenuation": DatasetPathWithAttribute("long_name", b"i14-c-c00/ex/roic/att"),
-      "timestamp": HItem("sensors_timestamps", True),
-  }
+    HPATH = {
+        "image": DatasetPathWithAttribute("long_name", b"i14-c-c00/dt/xpad.1/image"),
+        "pitch": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/diff-med-tpp/pitch"
+        ),
+        "mu": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-V-dif-group.1/mu"
+        ),
+        "omega": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-V-dif-group.1/omega"
+        ),
+        "gamma": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-V-dif-group.1/gamma"
+        ),
+        "delta": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-V-dif-group.1/delta"
+        ),
+        "etaa": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-V-dif-group.1/etaa"
+        ),
+        "attenuation": DatasetPathWithAttribute("long_name", b"i14-c-c00/ex/roic/att"),
+        "timestamp": HItem("sensors_timestamps", True),
+    }
 
-  def get_pointcount(self, scanno: int) -> int:
-      # just open the file in order to extract the number of step
-      with File(self.get_filename(scanno), 'r') as scan:
-          path = self.HPATH["image"]
-          return get_dataset(scan, path).shape[0]
+    def get_pointcount(self, scanno: int) -> int:
+        # just open the file in order to extract the number of step
+        with File(self.get_filename(scanno), "r") as scan:
+            path = self.HPATH["image"]
+            return get_dataset(scan, path).shape[0]
 
-  def get_values(self, index, h5_nodes):
-      image = h5_nodes['image'][index]
-      pitch = h5_nodes['pitch'][index]
-      mu = h5_nodes['mu'][index]
-      gamma = h5_nodes['gamma'][index]
-      delta = h5_nodes['delta'][index]
-      attenuation = self.get_attenuation(index, h5_nodes, 2)
-      timestamp = self.get_timestamp(index, h5_nodes)
+    def get_values(self, index, h5_nodes):
+        image = h5_nodes["image"][index]
+        pitch = h5_nodes["pitch"][index]
+        mu = h5_nodes["mu"][index]
+        gamma = h5_nodes["gamma"][index]
+        delta = h5_nodes["delta"][index]
+        attenuation = self.get_attenuation(index, h5_nodes, 2)
+        timestamp = self.get_timestamp(index, h5_nodes)
 
-      return (image, attenuation, timestamp, (pitch, mu, omega, gamma, delta, etaa))
+        return (image, attenuation, timestamp, (pitch, mu, omega, gamma, delta, etaa))
 
 
 class SBSFixedDetector(FlyScanUHV):
@@ -917,17 +977,19 @@ class SBSFixedDetector(FlyScanUHV):
 
     def get_pointcount(self, scanno):
         # just open the file in order to extract the number of step
-        with File(self.get_filename(scanno), 'r') as scan:
-            return get_nxclass(scan, "NXdata")['data_11'].shape[0]
+        with File(self.get_filename(scanno), "r") as scan:
+            return get_nxclass(scan, "NXdata")["data_11"].shape[0]
 
     def get_values(self, index, h5_nodes):
-        image = h5_nodes['image'][index]
+        image = h5_nodes["image"][index]
         attenuation = self.get_attenuation(index, h5_nodes, 2)
         timestamp = self.get_timestamp(index, h5_nodes)
 
         return (image, attenuation, timestamp, None)
 
-    def process_image(self, index, dataframe, pixels, mask) -> Optional[Tuple[ndarray, ndarray, Tuple[int, PDataFrame]]]:
+    def process_image(
+        self, index, dataframe, pixels, mask
+    ) -> Optional[Tuple[ndarray, ndarray, Tuple[int, PDataFrame]]]:
         util.status(str(index))
 
         # extract the data from the h5 nodes
@@ -942,7 +1004,7 @@ class SBSFixedDetector(FlyScanUHV):
         # uint16 -> float32. (the size of the mantis is on 23 bits)
         # enought to contain the uint16. If one day we use uint32, it
         # should be necessary to convert into float64.
-        intensity = intensity.astype('float32')
+        intensity = intensity.astype("float32")
 
         weights = None
         if self.config.attenuation_coefficient is not None:
@@ -958,9 +1020,7 @@ class SBSFixedDetector(FlyScanUHV):
 
         k = 2 * math.pi / dataframe.source.wavelength
 
-        I = numpy.array([[1,  0, 0],
-                         [0,  0, 1],
-                         [0, -1, 0]])
+        I = numpy.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
 
         if self.config.detrot is not None:
             P = M(math.radians(self.config.detrot), [1, 0, 0])
@@ -968,7 +1028,6 @@ class SBSFixedDetector(FlyScanUHV):
         pdataframe = PDataFrame(pixels, k, I, I, P, index, timestamp)
 
         return intensity, weights, (index, pdataframe)
-
 
 
 class FlyMedV(FlyScanUHV):
@@ -985,13 +1044,13 @@ class FlyMedV(FlyScanUHV):
     }
 
     def get_values(self, index, h5_nodes):
-        image = h5_nodes['image'][index]
-        beta = h5_nodes['beta'][index] if h5_nodes['beta'] else 0.0
-        mu = h5_nodes['mu'][index]
-        omega = h5_nodes['omega'][index]
-        gamma = h5_nodes['gamma'][index]
-        delta = h5_nodes['delta'][index]
-        etaa = h5_nodes['etaa'][index] if h5_nodes['etaa'] else 0.0
+        image = h5_nodes["image"][index]
+        beta = h5_nodes["beta"][index] if h5_nodes["beta"] else 0.0
+        mu = h5_nodes["mu"][index]
+        omega = h5_nodes["omega"][index]
+        gamma = h5_nodes["gamma"][index]
+        delta = h5_nodes["delta"][index]
+        etaa = h5_nodes["etaa"][index] if h5_nodes["etaa"] else 0.0
         attenuation = self.get_attenuation(index, h5_nodes, 2)
         timestamp = self.get_timestamp(index, h5_nodes)
 
@@ -1003,13 +1062,17 @@ def load_matrix(filename):
         return None
     if os.path.exists(filename):
         ext = os.path.splitext(filename)[-1]
-        if ext == '.txt':
+        if ext == ".txt":
             return numpy.array(numpy.loadtxt(filename), dtype=numpy.bool)
-        elif ext == '.npy':
+        elif ext == ".npy":
             mask = numpy.array(numpy.load(filename), dtype=numpy.bool)
             print("loaded mask sum: ", numpy.sum(mask))
             return mask
         else:
-            raise ValueError('unknown extension {0}, unable to load matrix!\n'.format(ext))  # noqa
+            raise ValueError(
+                "unknown extension {0}, unable to load matrix!\n".format(ext)
+            )  # noqa
     else:
-        raise IOError('filename: {0} does not exist. Can not load matrix'.format(filename))  # noqa
+        raise IOError(
+            "filename: {0} does not exist. Can not load matrix".format(filename)
+        )  # noqa

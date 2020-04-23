@@ -27,6 +27,7 @@ from . import errors
 
 ### ARGUMENT HANDLING
 
+
 def as_string(text):
     if hasattr(text, "decode"):
         text = text.decode()
@@ -35,40 +36,87 @@ def as_string(text):
 
 class OrderedOperation(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        oops = getattr(namespace, 'ordered_operations', [])
+        oops = getattr(namespace, "ordered_operations", [])
         oops.append((self.dest, values))
-        setattr(namespace, 'ordered_operations', oops)
+        setattr(namespace, "ordered_operations", oops)
 
 
 def argparse_common_arguments(parser, *args):
     for arg in args:
         # (ORDERED) OPERATIONS
-        if arg == 'project':
-            parser.add_argument('-p', '--project', metavar='AXIS', action=OrderedOperation, help='project space on AXIS')
-        elif arg == 'slice':
-            parser.add_argument('--slice', nargs=2, metavar=('AXIS', 'START:STOP'), action=OrderedOperation, help="slice AXIS from START to STOP (replace minus signs by 'm')")
-        elif arg == 'pslice':
-            parser.add_argument('--pslice', nargs=2, metavar=('AXIS', 'START:STOP'), action=OrderedOperation, help="like slice, but also project on AXIS after slicing")
-        elif arg == 'transform':
-            parser.add_argument('--transform', metavar='VAR@RES=EXPR;VAR2@RES2=EXPR2;...', action=OrderedOperation, help='perform coordinate transformation, rebinning data on new axis named VAR with resolution RES defined by EXPR, example: Q@0.1=sqrt(H**2+K**2+L**2)')
-        elif arg == 'rebin':
-            parser.add_argument('--rebin', metavar='N,M,...', action=OrderedOperation, help='reduce binsize by factor N in first dimension, M in second, etc')
+        if arg == "project":
+            parser.add_argument(
+                "-p",
+                "--project",
+                metavar="AXIS",
+                action=OrderedOperation,
+                help="project space on AXIS",
+            )
+        elif arg == "slice":
+            parser.add_argument(
+                "--slice",
+                nargs=2,
+                metavar=("AXIS", "START:STOP"),
+                action=OrderedOperation,
+                help="slice AXIS from START to STOP (replace minus signs by 'm')",
+            )
+        elif arg == "pslice":
+            parser.add_argument(
+                "--pslice",
+                nargs=2,
+                metavar=("AXIS", "START:STOP"),
+                action=OrderedOperation,
+                help="like slice, but also project on AXIS after slicing",
+            )
+        elif arg == "transform":
+            parser.add_argument(
+                "--transform",
+                metavar="VAR@RES=EXPR;VAR2@RES2=EXPR2;...",
+                action=OrderedOperation,
+                help="perform coordinate transformation, rebinning data on new axis named VAR with resolution RES defined by EXPR, example: Q@0.1=sqrt(H**2+K**2+L**2)",
+            )
+        elif arg == "rebin":
+            parser.add_argument(
+                "--rebin",
+                metavar="N,M,...",
+                action=OrderedOperation,
+                help="reduce binsize by factor N in first dimension, M in second, etc",
+            )
 
         # SUBTRACT
-        elif arg == 'subtract':
-            parser.add_argument('--subtract', metavar='SPACE', help='subtract SPACE from input file')
+        elif arg == "subtract":
+            parser.add_argument(
+                "--subtract", metavar="SPACE", help="subtract SPACE from input file"
+            )
 
         # PRESENTATION
-        elif arg == 'nolog':
-            parser.add_argument('--nolog', action='store_true', help='do not use logarithmic axis')
-        elif arg == 'clip':
-            parser.add_argument('-c', '--clip', metavar='FRACTION', default=0.00, help='clip color scale to remove FRACTION datapoints')
+        elif arg == "nolog":
+            parser.add_argument(
+                "--nolog", action="store_true", help="do not use logarithmic axis"
+            )
+        elif arg == "clip":
+            parser.add_argument(
+                "-c",
+                "--clip",
+                metavar="FRACTION",
+                default=0.00,
+                help="clip color scale to remove FRACTION datapoints",
+            )
 
         # OUTPUT
-        elif arg == 'savepdf':
-            parser.add_argument('-s', '--savepdf', action='store_true', help='save output as pdf, automatic file naming')
-        elif arg == 'savefile':
-            parser.add_argument('--savefile', metavar='FILENAME', help='save output as FILENAME, autodetect filetype')
+        elif arg == "savepdf":
+            parser.add_argument(
+                "-s",
+                "--savepdf",
+                action="store_true",
+                help="save output as pdf, automatic file naming",
+            )
+        elif arg == "savefile":
+            parser.add_argument(
+                "--savefile",
+                metavar="FILENAME",
+                help="save output as FILENAME, autodetect filetype",
+            )
 
         # ERROR!
         else:
@@ -76,61 +124,72 @@ def argparse_common_arguments(parser, *args):
 
 
 def parse_transform_args(transform):
-    for t in transform.split(';'):
-        lhs, expr = t.split('=')
-        ax, res = lhs.split('@')
+    for t in transform.split(";"):
+        lhs, expr = t.split("=")
+        ax, res = lhs.split("@")
         yield ax.strip(), float(res), expr.strip()
 
 
 def handle_ordered_operations(space, args, auto3to2=False):
     info = []
-    for command, opts in getattr(args, 'ordered_operations', []):
+    for command, opts in getattr(args, "ordered_operations", []):
 
-        if command == 'slice' or command == 'pslice':
+        if command == "slice" or command == "pslice":
             ax, key = opts
             axindex = space.axes.index(ax)
             axlabel = space.axes[axindex].label
-            if ':' in key:
-                start, stop = key.split(':')
+            if ":" in key:
+                start, stop = key.split(":")
                 if start:
-                    start = float(start.replace('m', '-'))
+                    start = float(start.replace("m", "-"))
                 else:
                     start = space.axes[axindex].min
                 if stop:
-                    stop = float(stop.replace('m', '-'))
+                    stop = float(stop.replace("m", "-"))
                 else:
                     stop = space.axes[axindex].max
                 key = slice(start, stop)
 
-                info.append('sliced in {0} from {1} to {2}'.format(axlabel, start, stop))
+                info.append(
+                    "sliced in {0} from {1} to {2}".format(axlabel, start, stop)
+                )
             else:
-                key = float(key.replace('m', '-'))
-                info.append('sliced in {0} at {1}'.format(axlabel, key))
+                key = float(key.replace("m", "-"))
+                info.append("sliced in {0} at {1}".format(axlabel, key))
             space = space.slice(axindex, key)
 
-            if command == 'pslice':
+            if command == "pslice":
                 try:
                     projectaxis = space.axes.index(ax)
                 except ValueError:
                     pass
                 else:
-                    info.append('projected on {0}'.format(space.axes[projectaxis].label))
+                    info.append(
+                        "projected on {0}".format(space.axes[projectaxis].label)
+                    )
                     space = space.project(projectaxis)
 
-        elif command == 'project':
+        elif command == "project":
             projectaxis = space.axes.index(opts)
-            info.append('projected on {0}'.format(space.axes[projectaxis].label))
+            info.append("projected on {0}".format(space.axes[projectaxis].label))
             space = space.project(projectaxis)
 
-        elif command == 'transform':
+        elif command == "transform":
             labels, resolutions, exprs = list(zip(*parse_transform_args(opts)))
             transformation = transformation_from_expressions(space, exprs)
-            info.append('transformed to {0}'.format(', '.join('{0} = {1}'.format(label, expr) for (label, expr) in zip(labels, exprs))))
+            info.append(
+                "transformed to {0}".format(
+                    ", ".join(
+                        "{0} = {1}".format(label, expr)
+                        for (label, expr) in zip(labels, exprs)
+                    )
+                )
+            )
             space = space.transform_coordinates(resolutions, labels, transformation)
 
-        elif command == 'rebin':
-            if ',' in opts:
-                factors = tuple(int(i) for i in opts.split(','))
+        elif command == "rebin":
+            if "," in opts:
+                factors = tuple(int(i) for i in opts.split(","))
             else:
                 factors = (int(opts),) * space.dimension
             space = space.rebin(factors)
@@ -140,7 +199,7 @@ def handle_ordered_operations(space, args, auto3to2=False):
 
     if auto3to2 and space.dimension == 3:  # automatic projection on smallest axis
         projectaxis = numpy.argmin(space.photons.shape)
-        info.append('projected on {0}'.format(space.axes[projectaxis].label))
+        info.append("projected on {0}".format(space.axes[projectaxis].label))
         space = space.project(projectaxis)
 
     return space, info
@@ -156,9 +215,9 @@ def status(line, eol=False):
     Set eol to True to append a newline to the end of the line"""
 
     global _status_line_length
-    sys.stdout.write('\r{0}\r{1}'.format(' '*_status_line_length, line))
+    sys.stdout.write("\r{0}\r{1}".format(" " * _status_line_length, line))
     if eol:
-        sys.stdout.write('\n')
+        sys.stdout.write("\n")
         _status_line_length = 0
     else:
         _status_line_length = len(line)
@@ -175,33 +234,35 @@ def statuseol():
     """Starts a new status line, keeping the previous one intact"""
     global _status_line_length
     _status_line_length = 0
-    sys.stdout.write('\n')
+    sys.stdout.write("\n")
     sys.stdout.flush()
 
 
 def statuscl():
     """Clears the status line, shortcut for status('')"""
-    return status('')
+    return status("")
 
 
 ### Dispatcher, projection and input finder
 def get_backends():
-    modules = glob.glob(os.path.join(os.path.dirname(__file__), 'backends', '*.py'))
+    modules = glob.glob(os.path.join(os.path.dirname(__file__), "backends", "*.py"))
     names = list()
 
     for module in modules:
-        if not module.endswith('__init__.py'):
+        if not module.endswith("__init__.py"):
             names.append(os.path.splitext(os.path.basename(module))[0])
     return names
 
 
 def get_projections(module):
     from . import backend
+
     return get_base(module, backend.ProjectionBase)
 
 
 def get_inputs(module):
     from . import backend
+
     return get_base(module, backend.InputBase)
 
 
@@ -227,9 +288,13 @@ def get_base(modname, base):
     if modname not in get_backends():
         raise KeyError("{0} is not an available backend".format(modname))
     try:
-        backends = __import__('backends.{0}'.format(modname), globals(), locals(), [], 1)
+        backends = __import__(
+            "backends.{0}".format(modname), globals(), locals(), [], 1
+        )
     except ImportError as e:
-        raise ImportError("Unable to import module backends.{0}: {1}".format(modname, e))
+        raise ImportError(
+            "Unable to import module backends.{0}: {1}".format(modname, e)
+        )
 
     backend = getattr(backends, modname)
     items = dir(backend)
@@ -242,11 +307,13 @@ def get_base(modname, base):
                 options.append(item)
     return options
 
+
 ### Dispatcher, projection and input configuration options finder
 
 
 def get_dispatcher_configkeys(classname):
     from . import dispatcher
+
     cls = getattr(dispatcher, classname)
     return get_configkeys(cls)
 
@@ -260,7 +327,7 @@ def get_input_configkeys(modname, classname):
 
 
 def get_backend_configkeys(modname, classname):
-    backends = __import__('backends.{0}'.format(modname), globals(), locals(), [], 1)
+    backends = __import__("backends.{0}".format(modname), globals(), locals(), [], 1)
     backend = getattr(backends, modname)
     cls = getattr(backend, classname)
     return get_configkeys(cls)
@@ -268,10 +335,11 @@ def get_backend_configkeys(modname, classname):
 
 def get_configkeys(cls):
     from inspect import getsource
+
     items = list()
-    while hasattr(cls, 'parse_config'):
+    while hasattr(cls, "parse_config"):
         code = getsource(cls.parse_config)
-        for line in code.split('\n'):
+        for line in code.split("\n"):
             key = parse_configcode(line)
             if key:
                 if key not in items:
@@ -282,11 +350,11 @@ def get_configkeys(cls):
 
 def parse_configcode(line):
     try:
-        comment = '#'.join(line.split('#')[1:])
-        line = line.split('#')[0]
-        index = line.index('config.pop')
-        item = line[index:].split('\'')[1]
-        if item == 'action':
+        comment = "#".join(line.split("#")[1:])
+        line = line.split("#")[0]
+        index = line.index("config.pop")
+        item = line[index:].split("'")[1]
+        if item == "action":
             return  # action is reserved for internal use!
         return item, comment
     except ValueError:
@@ -295,6 +363,7 @@ def parse_configcode(line):
 
 ### CONFIGURATION MANAGEMENT
 
+
 def parse_float(config, option, default=None):
     value = default
     value_as_string = config.pop(option, None)
@@ -302,13 +371,14 @@ def parse_float(config, option, default=None):
         try:
             value = float(value_as_string)  # noqa
         except ValueError:
-                pass
+            pass
     return value
 
+
 def parse_range(r):
-    if '-' in r:
-        a, b = r.split('-')
-        return list(range(int(a), int(b)+1))
+    if "-" in r:
+        a, b = r.split("-")
+        return list(range(int(a), int(b) + 1))
     elif r:
         return [int(r)]
     else:
@@ -319,7 +389,7 @@ def parse_multi_range(s):
     if not s:
         return s
     out = []
-    ranges = s.split(',')
+    ranges = s.split(",")
     for r in ranges:
         out.extend(parse_range(r))
     return out
@@ -328,17 +398,19 @@ def parse_multi_range(s):
 def parse_tuple(s, length=None, type=str):
     if not s:
         return s
-    t = tuple(type(i) for i in s.split(','))
+    t = tuple(type(i) for i in s.split(","))
     if length is not None and len(t) != length:
-        raise ValueError('invalid tuple length: expected {0} got {1}'.format(length, len(t)))
+        raise ValueError(
+            "invalid tuple length: expected {0} got {1}".format(length, len(t))
+        )
     return t
 
 
 def parse_bool(s):
     l = s.lower()
-    if l in ('1', 'true', 'yes', 'on'):
+    if l in ("1", "true", "yes", "on"):
         return True
-    elif l in ('0', 'false', 'no', 'off'):
+    elif l in ("0", "false", "no", "off"):
         return False
     raise ValueError("invalid input for boolean: '{0}'".format(s))
 
@@ -347,19 +419,21 @@ def parse_pairs(s):
     if not s:
         return s
     limits = []
-    for lim in re.findall('\[(.*?)\]', s):
+    for lim in re.findall("\[(.*?)\]", s):
         parsed = []
-        for pair in re.split(',', lim):
-            mi, ma = tuple(m.strip() for m in pair.split(':'))
-            if mi == '' and ma == '':
+        for pair in re.split(",", lim):
+            mi, ma = tuple(m.strip() for m in pair.split(":"))
+            if mi == "" and ma == "":
                 parsed.append(slice(None))
-            elif mi == '':
+            elif mi == "":
                 parsed.append(slice(None, float(ma)))
-            elif ma == '':
+            elif ma == "":
                 parsed.append(slice(float(mi), None))
             else:
                 if float(ma) < float(mi):
-                    raise ValueError("invalid input. maximum is larger than minimum: '{0}'".format(s))
+                    raise ValueError(
+                        "invalid input. maximum is larger than minimum: '{0}'".format(s)
+                    )
                 else:
                     parsed.append(slice(float(mi), float(ma)))
         limits.append(parsed)
@@ -367,7 +441,10 @@ def parse_pairs(s):
 
 
 def limit_to_filelabel(s):
-    return tuple('[{0}]'.format(lim.replace('-', 'm').replace(':', '-').replace(' ', '')) for lim in re.findall('\[(.*?)\]', s))
+    return tuple(
+        "[{0}]".format(lim.replace("-", "m").replace(":", "-").replace(" ", ""))
+        for lim in re.findall("\[(.*?)\]", s)
+    )
 
 
 class MetaBase(object):
@@ -388,13 +465,13 @@ class MetaBase(object):
             setattr(self, label, dict())
 
     def __repr__(self):
-        str = '{0.__class__.__name__}{{\n'.format(self)
+        str = "{0.__class__.__name__}{{\n".format(self)
         for section in self.sections:
-            str += '  [{}]\n'.format(section)
+            str += "  [{}]\n".format(section)
             s = getattr(self, section)
             for entry in s:
-                str += '    {} = {}\n'.format(entry, s[entry])
-        str += '}\n'
+                str += "    {} = {}\n".format(entry, s[entry])
+        str += "}\n"
         return str
 
     def copy(self):
@@ -406,11 +483,15 @@ class MetaBase(object):
             section_dict = {}
             attr = getattr(self, section)
             for key in list(attr.keys()):
-                if isinstance(attr[key], numpy.ndarray):  # to be able to include numpy arrays in the serialisation
+                if isinstance(
+                    attr[key], numpy.ndarray
+                ):  # to be able to include numpy arrays in the serialisation
                     sio = io.StringIO()
                     numpy.save(sio, attr[key])
                     sio.seek(0)
-                    section_dict[key] = binascii.b2a_hex(sio.read())  # hex codation is needed to let json work with the string
+                    section_dict[key] = binascii.b2a_hex(
+                        sio.read()
+                    )  # hex codation is needed to let json work with the string
                 else:
                     section_dict[key] = attr[key]
             sections[section] = section_dict
@@ -423,8 +504,12 @@ class MetaBase(object):
         for section in list(data.keys()):
             section_dict = data[section]
             for key in list(section_dict.keys()):
-                if isinstance(section_dict[key], str):  # find and replace all the numpy serialised objects
-                    if section_dict[key].startswith('934e554d505901004600'):  # numpy marker
+                if isinstance(
+                    section_dict[key], str
+                ):  # find and replace all the numpy serialised objects
+                    if section_dict[key].startswith(
+                        "934e554d505901004600"
+                    ):  # numpy marker
                         sio = io.StringIO()
                         sio.write(binascii.a2b_hex(section_dict[key]))
                         sio.seek(0)
@@ -435,15 +520,13 @@ class MetaBase(object):
         return obj
 
 
-
-
-class MetaData(object): # a collection of metadata objects
+class MetaData(object):  # a collection of metadata objects
     def __init__(self):
         self.metas = []
 
     def add_dataset(self, dataset):
         if not isinstance(dataset, MetaBase) and not isinstance(dataset, ConfigFile):
-            raise ValueError('MetaBase instance expected')
+            raise ValueError("MetaBase instance expected")
         else:
             self.metas.append(dataset)
 
@@ -461,28 +544,34 @@ class MetaData(object): # a collection of metadata objects
     def fromfile(cls, filename):
         if isinstance(filename, str):
             if not os.path.exists(filename):
-                raise IOError('Error importing configuration file. filename {0} does not exist'.format(filename))
+                raise IOError(
+                    "Error importing configuration file. filename {0} does not exist".format(
+                        filename
+                    )
+                )
 
         metadataobj = cls()
-        with open_h5py(filename, 'r') as fp:
+        with open_h5py(filename, "r") as fp:
             try:
-                metadata = fp['metadata']
+                metadata = fp["metadata"]
             except KeyError:
                 metadata = []  # when metadata is not present, proceed without Error
             for label in metadata:
                 meta = MetaBase()
                 for section in list(metadata[label].keys()):
                     group = metadata[label][section]
-                    setattr(meta, section, dict((key, group[key].value) for key in group))
+                    setattr(
+                        meta, section, dict((key, group[key].value) for key in group)
+                    )
                     meta.sections.append(section)
                 metadataobj.metas.append(meta)
         return metadataobj
 
     def tofile(self, filename):
-        with open_h5py(filename, 'w') as fp:
-            metadata = fp.create_group('metadata')
+        with open_h5py(filename, "w") as fp:
+            metadata = fp.create_group("metadata")
             for meta in self.metas:
-                label = find_unused_label('metasection', list(metadata.keys()))
+                label = find_unused_label("metasection", list(metadata.keys()))
                 metabase = metadata.create_group(label)
                 for section in meta.sections:
                     sectiongroup = metabase.create_group(section)
@@ -491,11 +580,11 @@ class MetaData(object): # a collection of metadata objects
                         sectiongroup.create_dataset(key, data=s[key])
 
     def __repr__(self):
-        str = '{0.__class__.__name__}{{\n'.format(self)
+        str = "{0.__class__.__name__}{{\n".format(self)
         for meta in self.metas:
-            for line in meta.__repr__().split('\n'):
-                str += '    ' + line + '\n'
-        str += '}\n'
+            for line in meta.__repr__().split("\n"):
+                str += "    " + line + "\n"
+        str += "}\n"
         return str
 
     def serialize(self):
@@ -508,15 +597,16 @@ class MetaData(object): # a collection of metadata objects
             obj.metas.append(MetaBase.fromserial(item))
         return obj
 
-#Contains the unparsed config dicts
+
+# Contains the unparsed config dicts
 
 
 class ConfigFile(MetaBase):
-    def __init__(self, origin='n/a', command=[]):
+    def __init__(self, origin="n/a", command=[]):
         self.origin = origin
         self.command = command
         super(ConfigFile, self).__init__()
-        self.sections = ['dispatcher', 'projection', 'input']
+        self.sections = ["dispatcher", "projection", "input"]
         for section in self.sections:
             setattr(self, section, dict())
 
@@ -524,17 +614,28 @@ class ConfigFile(MetaBase):
     def fromfile(cls, filename):
         if isinstance(filename, str):
             if not os.path.exists(filename):
-                raise IOError('Error importing configuration file. filename {0} does not exist'.format(filename))
+                raise IOError(
+                    "Error importing configuration file. filename {0} does not exist".format(
+                        filename
+                    )
+                )
 
         configobj = cls(str(filename))
-        with open_h5py(filename, 'r') as fp:
+        with open_h5py(filename, "r") as fp:
             try:
-                config = fp['configuration']
-                if 'command' in config.attrs:
-                    configobj.command = json.loads(as_string(config.attrs['command']))
+                config = fp["configuration"]
+                if "command" in config.attrs:
+                    configobj.command = json.loads(as_string(config.attrs["command"]))
                 for section in config:
-                    if isinstance(config[section],  h5py._hl.group.Group):  # new
-                        setattr(configobj, section, dict((key, config[section][key].value) for key in config[section]))
+                    if isinstance(config[section], h5py._hl.group.Group):  # new
+                        setattr(
+                            configobj,
+                            section,
+                            dict(
+                                (key, config[section][key].value)
+                                for key in config[section]
+                            ),
+                        )
                     else:  # old
                         setattr(configobj, section, dict(config[section]))
             except KeyError:
@@ -542,9 +643,13 @@ class ConfigFile(MetaBase):
         return configobj
 
     @classmethod
-    def fromtxtfile(cls, filename, command=[],  overrides=[]):
+    def fromtxtfile(cls, filename, command=[], overrides=[]):
         if not os.path.exists(filename):
-            raise IOError('Error importing configuration file. filename {0} does not exist'.format(filename))
+            raise IOError(
+                "Error importing configuration file. filename {0} does not exist".format(
+                    filename
+                )
+            )
 
         config = configparser.RawConfigParser()
         config.read(filename)
@@ -554,14 +659,18 @@ class ConfigFile(MetaBase):
 
         configobj = cls(filename, command=command)
         for section in configobj.sections:
-            setattr(configobj, section, dict((k, v.split('#')[0].strip()) for (k, v) in config.items(section)))
+            setattr(
+                configobj,
+                section,
+                dict((k, v.split("#")[0].strip()) for (k, v) in config.items(section)),
+            )
         return configobj
 
     def tofile(self, filename):
-        with open_h5py(filename, 'w') as fp:
-            conf = fp.create_group('configuration')
-            conf.attrs['origin'] = str(self.origin)
-            conf.attrs['command'] = json.dumps(self.command)
+        with open_h5py(filename, "w") as fp:
+            conf = fp.create_group("configuration")
+            conf.attrs["origin"] = str(self.origin)
+            conf.attrs["command"] = json.dumps(self.command)
             for section in self.sections:
                 sectiongroup = conf.create_group(section)
                 s = getattr(self, section)
@@ -569,21 +678,22 @@ class ConfigFile(MetaBase):
                     sectiongroup.create_dataset(key, data=s[key])
 
     def totxtfile(self, filename):
-        with open(filename, 'w') as fp:
-            fp.write('# Configurations origin: {}\n'.format(self.origin))
+        with open(filename, "w") as fp:
+            fp.write("# Configurations origin: {}\n".format(self.origin))
             for section in self.sections:
-                fp.write('[{}]\n'.format(section))
+                fp.write("[{}]\n".format(section))
                 s = getattr(self, section)
                 for entry in s:
-                    fp.write('{} = {}\n'.format(entry, s[entry]))
+                    fp.write("{} = {}\n".format(entry, s[entry]))
 
     def __repr__(self):
         str = super(ConfigFile, self).__repr__()
-        str += 'origin = {0}\n'.format(self.origin)
-        str += 'command = {0}'.format(','.join(self.command))
+        str += "origin = {0}\n".format(self.origin)
+        str += "command = {0}".format(",".join(self.command))
         return str
 
-#contains one parsed dict, for distribution to dispatcher, input or projection class
+
+# contains one parsed dict, for distribution to dispatcher, input or projection class
 
 
 class ConfigSection(object):
@@ -593,13 +703,14 @@ class ConfigSection(object):
     def copy(self):
         return copy.deepcopy(self)
 
-#contains the parsed configsections
+
+# contains the parsed configsections
 
 
 class ConfigSectionGroup(object):
-    def __init__(self, origin='n/a'):
+    def __init__(self, origin="n/a"):
         self.origin = origin
-        self.sections = 'dispatcher', 'projection', 'input'
+        self.sections = "dispatcher", "projection", "input"
         for section in self.sections:
             setattr(self, section, ConfigSection())
         self.configfile = ConfigFile()
@@ -610,20 +721,39 @@ class ConfigurableObject(object):
         if isinstance(config, ConfigSection):
             self.config = config
         elif not isinstance(config, dict):
-            raise ValueError('expecting dict or Configsection, not: {0}'.format(type(config)))
+            raise ValueError(
+                "expecting dict or Configsection, not: {0}".format(type(config))
+            )
         else:
             self.config = ConfigSection()
             try:
                 allkeys = list(config.keys())
                 self.parse_config(config)
             except KeyError as exc:
-                raise errors.ConfigError("Configuration option {0} is missing from the configuration file. Please specify this option in the configuration file".format(exc))
+                raise errors.ConfigError(
+                    "Configuration option {0} is missing from the configuration file. Please specify this option in the configuration file".format(
+                        exc
+                    )
+                )
             except Exception as exc:
-                missing = set(key for key in allkeys if key not in list(self.config.__dict__.keys())) - set(config.keys())
-                exc.args = errors.addmessage(exc.args, ". Unable to parse configuration option '{0}'. The error can quite likely be solved by modifying the option in the configuration file.".format(','.join(missing)))
+                missing = set(
+                    key
+                    for key in allkeys
+                    if key not in list(self.config.__dict__.keys())
+                ) - set(config.keys())
+                exc.args = errors.addmessage(
+                    exc.args,
+                    ". Unable to parse configuration option '{0}'. The error can quite likely be solved by modifying the option in the configuration file.".format(
+                        ",".join(missing)
+                    ),
+                )
                 raise
             for k in config:
-                print('warning: unrecognized configuration option {0} for {1}'.format(k, self.__class__.__name__))
+                print(
+                    "warning: unrecognized configuration option {0} for {1}".format(
+                        k, self.__class__.__name__
+                    )
+                )
             self.config.class_ = self.__class__
 
     def parse_config(self, config):
@@ -635,7 +765,7 @@ class ConfigurableObject(object):
 
 ### FILES
 def best_effort_atomic_rename(src, dest):
-    if sys.platform == 'win32' and os.path.exists(dest):
+    if sys.platform == "win32" and os.path.exists(dest):
         os.remove(dest)
     os.rename(src, dest)
 
@@ -643,7 +773,7 @@ def best_effort_atomic_rename(src, dest):
 def filename_enumerator(filename, start=0):
     base, ext = os.path.splitext(filename)
     for count in itertools.count(start):
-        yield '{0}_{2}{1}'.format(base, ext, count)
+        yield "{0}_{2}{1}".format(base, ext, count)
 
 
 def find_unused_filename(filename):
@@ -656,7 +786,7 @@ def find_unused_filename(filename):
 
 def label_enumerator(label, start=0):
     for count in itertools.count(start):
-        yield '{0}_{1}'.format(label, count)
+        yield "{0}_{1}".format(label, count)
 
 
 def find_unused_label(label, labellist):
@@ -700,7 +830,7 @@ def wait_for_file(file, timeout=None):
 def space_to_edf(space, filename):
     header = {}
     for a in space.axes:
-        header[str(a.label)] = '{0} {1} {2}'.format(a.min, a.max, a.res)
+        header[str(a.label)] = "{0} {1} {2}".format(a.min, a.max, a.res)
     edf = EdfFile.EdfFile(filename)
     edf.WriteImage(header, space.get_masked().filled(0), DataType="Float")
 
@@ -710,10 +840,10 @@ def space_to_txt(space, filename):
     data.append(space.get_masked().filled(0).flatten())
     data = numpy.array(data).T
 
-    with open(filename, 'w') as fp:
-        fp.write('\t'.join(ax.label for ax in space.axes))
-        fp.write('\tintensity\n')
-        numpy.savetxt(fp, data, fmt='%.6g', delimiter='\t')
+    with open(filename, "w") as fp:
+        fp.write("\t".join(ax.label for ax in space.axes))
+        fp.write("\tintensity\n")
+        numpy.savetxt(fp, data, fmt="%.6g", delimiter="\t")
 
 
 @contextlib.contextmanager
@@ -722,20 +852,21 @@ def open_h5py(fn, mode):
         yield fn
     else:
         with h5py.File(fn, mode) as fp:
-            if mode == 'w':
-                fp.create_group('binoculars')
-                yield fp['binoculars']
-            if mode == 'r':
-                if 'binoculars' in fp:
-                    yield fp['binoculars']
+            if mode == "w":
+                fp.create_group("binoculars")
+                yield fp["binoculars"]
+            if mode == "r":
+                if "binoculars" in fp:
+                    yield fp["binoculars"]
                 else:
                     yield fp
+
 
 ### VARIOUS
 
 
 def uniqid():
-    return '{0:08x}'.format(random.randint(0, 2**32-1))
+    return "{0:08x}".format(random.randint(0, 2 ** 32 - 1))
 
 
 def grouper(iterable, n):
@@ -744,6 +875,7 @@ def grouper(iterable, n):
         if not chunk:
             break
         yield chunk
+
 
 _python_executable = None
 
@@ -762,7 +894,7 @@ def chunk_slicer(count, chunksize):
     chunkcount = int(numpy.ceil(float(count) / chunksize))
     realchunksize = int(numpy.ceil(float(count) / chunkcount))
     for i in range(chunkcount):
-        yield slice(i*realchunksize, min(count, (i+1)*realchunksize))
+        yield slice(i * realchunksize, min(count, (i + 1) * realchunksize))
 
 
 def cluster_jobs(jobs, target_weight):
@@ -775,7 +907,9 @@ def cluster_jobs(jobs, target_weight):
     while jobs:
         cluster = [jobs.pop()]  # take the biggest remaining job
         size = cluster[0].weight
-        for i in range(len(jobs)-1, -1, -1):  # and exhaustively search for all jobs that can accompany it (biggest first)
+        for i in range(
+            len(jobs) - 1, -1, -1
+        ):  # and exhaustively search for all jobs that can accompany it (biggest first)
             if size + jobs[i].weight <= target_weight:
                 size += jobs[i].weight
                 cluster.append(jobs.pop(i))
@@ -803,6 +937,7 @@ def loop_delayer(delay):
         next(delay)
         do_other_tasks
     """
+
     def generator():
         polltime = 0
         while 1:
@@ -811,6 +946,7 @@ def loop_delayer(delay):
                 time.sleep(delay - diff)
             polltime = time.time()
             yield
+
     return generator()
 
 
@@ -819,22 +955,24 @@ def transformation_from_expressions(space, exprs):
         ns = dict((i, getattr(numpy, i)) for i in dir(numpy))
         ns.update(**dict((ax.label, coord) for ax, coord in zip(space.axes, coords)))
         return tuple(eval(expr, ns) for expr in exprs)
+
     return transformation
 
 
 def format_bytes(bytes):
-    units = 'kB', 'MB', 'GB', 'TB'
-    exp = min(max(int(numpy.log(bytes) / numpy.log(1024.)), 1), 4)
-    return '{0:.1f} {1}'.format(bytes / 1024**exp, units[exp-1])
+    units = "kB", "MB", "GB", "TB"
+    exp = min(max(int(numpy.log(bytes) / numpy.log(1024.0)), 1), 4)
+    return "{0:.1f} {1}".format(bytes / 1024 ** exp, units[exp - 1])
 
 
 ### GZIP PICKLING (zpi)
 
 # handle old zpi's
 def _pickle_translate(module, name):
-    if module in ('__main__', 'ivoxoar.space') and name in ('Space', 'Axis'):
-        return 'BINoculars.space', name
+    if module in ("__main__", "ivoxoar.space") and name in ("Space", "Axis"):
+        return "BINoculars.space", name
     return module, name
+
 
 if inspect.isbuiltin(pickle.Unpickler):
     # real cPickle: cannot subclass
@@ -847,6 +985,8 @@ if inspect.isbuiltin(pickle.Unpickler):
         unpickler = pickle.Unpickler(fileobj)
         unpickler.find_global = _find_global
         return unpickler.load()
+
+
 else:
     # pure python implementation
     class _Unpickler(pickle.Unpickler):
@@ -874,7 +1014,7 @@ def atomic_write(filename):
     if isinstance(filename, h5py._hl.group.Group):
         yield filename
     else:
-        tmpfile = '{0}-{1}.tmp'.format(os.path.splitext(filename)[0], uniqid())
+        tmpfile = "{0}-{1}.tmp".format(os.path.splitext(filename)[0], uniqid())
         try:
             yield tmpfile
         except:
@@ -888,7 +1028,7 @@ def atomic_write(filename):
 
 def zpi_save(obj, filename):
     with atomic_write(filename) as tmpfile:
-        fp = gzip.open(tmpfile, 'wb')
+        fp = gzip.open(tmpfile, "wb")
         try:
             pickle.dump(obj, fp, pickle.HIGHEST_PROTOCOL)
         finally:
@@ -896,10 +1036,10 @@ def zpi_save(obj, filename):
 
 
 def zpi_load(filename):
-    if hasattr(filename, 'read'):
+    if hasattr(filename, "read"):
         fp = gzip.GzipFile(filename.name, fileobj=filename)
     else:
-        fp = gzip.open(filename, 'rb')
+        fp = gzip.open(filename, "rb")
     try:
         return pickle_load(fp)
     finally:
@@ -909,7 +1049,7 @@ def zpi_load(filename):
 def serialize(space, command):
     # first 48 bytes contain length of the message, whereby the first 8 give the length of the command, the second 8 the length of the configfile etc..
     message = io.StringIO()
-    message.write(struct.pack('QQQQQQ', 0, 0, 0, 0, 0, 0))
+    message.write(struct.pack("QQQQQQ", 0, 0, 0, 0, 0, 0))
 
     message.write(command)
     commandlength = message.len - 48
@@ -924,13 +1064,33 @@ def serialize(space, command):
     arraylength = message.len - metalength - configlength - commandlength - 48
 
     numpy.save(message, space.photons)
-    photonlength = message.len - arraylength - metalength - configlength - commandlength - 48
+    photonlength = (
+        message.len - arraylength - metalength - configlength - commandlength - 48
+    )
 
     numpy.save(message, space.contributions)
-    contributionlength = message.len - photonlength - arraylength - metalength - configlength - commandlength - 48
+    contributionlength = (
+        message.len
+        - photonlength
+        - arraylength
+        - metalength
+        - configlength
+        - commandlength
+        - 48
+    )
 
     message.seek(0)
-    message.write(struct.pack('QQQQQQ', commandlength, configlength, metalength, arraylength, photonlength, contributionlength))
+    message.write(
+        struct.pack(
+            "QQQQQQ",
+            commandlength,
+            configlength,
+            metalength,
+            arraylength,
+            photonlength,
+            contributionlength,
+        )
+    )
     message.seek(0)
 
     return message
@@ -945,7 +1105,9 @@ def packet_slicer(length, size=1024):  # limit the communication to 1024 bytes
 
 def socket_send(ip, port, mssg):
     try:
-        mssglengths = struct.unpack('QQQQQQ', mssg.read(48))  # the lengths of all the components
+        mssglengths = struct.unpack(
+            "QQQQQQ", mssg.read(48)
+        )  # the lengths of all the components
         mssg.seek(0)
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -964,12 +1126,30 @@ def socket_recieve(RequestHandler):  # pass one the handler to deal with incomin
     def get_msg(length):
         msg = io.StringIO()
         for packet in packet_slicer(length):
-            p = RequestHandler.request.recv(packet, socket.MSG_WAITALL)  # wait for full mssg
+            p = RequestHandler.request.recv(
+                packet, socket.MSG_WAITALL
+            )  # wait for full mssg
             msg.write(p)
         if msg.len != length:
-            raise  errors.CommunicationError('recieved message is too short. expected length {0}, recieved length {1}'.format(length, msg.len))
+            raise errors.CommunicationError(
+                "recieved message is too short. expected length {0}, recieved length {1}".format(
+                    length, msg.len
+                )
+            )
         msg.seek(0)
         return msg
 
-    command, config, metadata, axes, photons, contributions = tuple(get_msg(msglength) for msglength in struct.unpack('QQQQQQ', RequestHandler.request.recv(48, socket.MSG_WAITALL)))
-    return command.read(), config.read(), metadata.read(), numpy.load(axes), numpy.load(photons), numpy.load(contributions)
+    command, config, metadata, axes, photons, contributions = tuple(
+        get_msg(msglength)
+        for msglength in struct.unpack(
+            "QQQQQQ", RequestHandler.request.recv(48, socket.MSG_WAITALL)
+        )
+    )
+    return (
+        command.read(),
+        config.read(),
+        metadata.read(),
+        numpy.load(axes),
+        numpy.load(photons),
+        numpy.load(contributions),
+    )

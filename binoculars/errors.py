@@ -31,8 +31,8 @@ class CommunicationError(ExceptionBase):
 
 def addmessage(args, errormsg):
     if not args:
-        arg0 = ''
+        arg0 = ""
     else:
         arg0 = args[0]
     arg0 += errormsg
-    return (arg0, )
+    return (arg0,)

@@ -6,21 +6,30 @@ from . import space, backend, util, errors
 
 
 def parse_args(args):
-    parser = argparse.ArgumentParser(prog='binoculars process')
-    parser.add_argument('-c', metavar='SECTION:OPTION=VALUE', action='append',
-                        type=parse_commandline_config_option, default=[],
-                        help='additional configuration option in the form section:option=value')  # noqa
-    parser.add_argument('configfile', help='configuration file')
-    parser.add_argument('command', nargs='*', default=[])
+    parser = argparse.ArgumentParser(prog="binoculars process")
+    parser.add_argument(
+        "-c",
+        metavar="SECTION:OPTION=VALUE",
+        action="append",
+        type=parse_commandline_config_option,
+        default=[],
+        help="additional configuration option in the form section:option=value",
+    )  # noqa
+    parser.add_argument("configfile", help="configuration file")
+    parser.add_argument("command", nargs="*", default=[])
     return parser.parse_args(args)
 
 
 def parse_commandline_config_option(s):
     try:
-        key, value = s.split('=', 1)
-        section, option = key.split(':')
+        key, value = s.split("=", 1)
+        section, option = key.split(":")
     except ValueError:
-        raise argparse.ArgumentTypeError("configuration specification '{0}' not in the form section:option=value".format(s))  # noqa
+        raise argparse.ArgumentTypeError(
+            "configuration specification '{0}' not in the form section:option=value".format(
+                s
+            )
+        )  # noqa
     return section, option, value
 
 
@@ -38,7 +47,7 @@ class Main(object):
         elif isinstance(config, util.ConfigFile):
             self.config = config.copy()
         else:
-            raise ValueError('Configfile is the wrong type')
+            raise ValueError("Configfile is the wrong type")
 
         # distribute the configfile to space and to the metadata
         # instance
@@ -46,14 +55,19 @@ class Main(object):
 
         # input from either the configfile or the configsectiongroup
         # is valid
-        self.dispatcher = backend.get_dispatcher(config.dispatcher, self,
-                                                 default='local')
+        self.dispatcher = backend.get_dispatcher(
+            config.dispatcher, self, default="local"
+        )
         self.projection = backend.get_projection(config.projection)
         self.input = backend.get_input(config.input)
 
-        self.dispatcher.config.destination.set_final_options(self.input.get_destination_options(command))  # noqa
-        if 'limits' in self.config.projection:
-            self.dispatcher.config.destination.set_limits(self.config.projection['limits'])  # noqa
+        self.dispatcher.config.destination.set_final_options(
+            self.input.get_destination_options(command)
+        )  # noqa
+        if "limits" in self.config.projection:
+            self.dispatcher.config.destination.set_limits(
+                self.config.projection["limits"]
+            )  # noqa
         if command:
             self.dispatcher.config.destination.set_config(spaceconf)
         self.run(command)
@@ -64,19 +78,24 @@ class Main(object):
         if not os.path.exists(args.configfile):
             # wait up to 10 seconds if it is a zpi, it might take a
             # while for the file to appear accross the network
-            if not args.configfile.endswith('.zpi') or not util.wait_for_file(args.configfile, 10):  # noqa
-                raise errors.FileError("configuration file '{0}' does not exist"  # noqa
-                                       .format(args.configfile))
+            if not args.configfile.endswith(".zpi") or not util.wait_for_file(
+                args.configfile, 10
+            ):  # noqa
+                raise errors.FileError(
+                    "configuration file '{0}' does not exist".format(  # noqa
+                        args.configfile
+                    )
+                )
         configobj = False
-        with open(args.configfile, 'rb') as fp:
-            if fp.read(2) == '\x1f\x8b':  # gzip marker
+        with open(args.configfile, "rb") as fp:
+            if fp.read(2) == "\x1f\x8b":  # gzip marker
                 fp.seek(0)
                 configobj = util.zpi_load(fp)
         if not configobj:
             # reopen args.configfile as text
-            configobj = util.ConfigFile.fromtxtfile(args.configfile,
-                                                    command=args.command,
-                                                    overrides=args.c)
+            configobj = util.ConfigFile.fromtxtfile(
+                args.configfile, command=args.command, overrides=args.c
+            )
         return cls(configobj, args.command)
 
     @classmethod
@@ -94,7 +113,7 @@ class Main(object):
             if self.result is True:
                 pass
             elif isinstance(self.result, space.EmptySpace):
-                sys.stderr.write('error: output is an empty dataset\n')
+                sys.stderr.write("error: output is an empty dataset\n")
             else:
                 self.dispatcher.config.destination.store(self.result)
 
@@ -105,9 +124,26 @@ class Main(object):
             for intensity, weights, params in self.input.process_job(job):
                 coords = self.projection.project(*params)
                 if self.projection.config.limits is None:
-                    yield space.Multiverse((space.Space.from_image(res, labels, coords, intensity, weights=weights), ))  # noqa
+                    yield space.Multiverse(
+                        (
+                            space.Space.from_image(
+                                res, labels, coords, intensity, weights=weights
+                            ),
+                        )
+                    )  # noqa
                 else:
-                    yield space.Multiverse(space.Space.from_image(res, labels, coords, intensity, weights=weights, limits=limits) for limits in self.projection.config.limits)  # noqa
+                    yield space.Multiverse(
+                        space.Space.from_image(
+                            res,
+                            labels,
+                            coords,
+                            intensity,
+                            weights=weights,
+                            limits=limits,
+                        )
+                        for limits in self.projection.config.limits
+                    )  # noqa
+
         jobverse = space.chunked_sum(generator(), chunksize=25)
         for sp in jobverse.spaces:
             if isinstance(sp, space.Space):
@@ -135,7 +171,7 @@ class Split(Main):
         elif isinstance(config, util.ConfigFile):
             self.config = config.copy()
         else:
-            raise ValueError('Configfile is the wrong type')
+            raise ValueError("Configfile is the wrong type")
 
         # input from either the configfile or the configsectiongroup is valid
         self.projection = backend.get_projection(config.projection)
@@ -147,9 +183,16 @@ class Split(Main):
         for intensity, weights, params in self.input.process_job(job):
             coords = self.projection.project(*params)
             if self.projection.config.limits is None:
-                yield space.Space.from_image(res, labels, coords, intensity, weights=weights)  # noqa
+                yield space.Space.from_image(
+                    res, labels, coords, intensity, weights=weights
+                )  # noqa
             else:
-                yield space.Multiverse(space.Space.from_image(res, labels, coords, intensity, weights=weights, limits=limits) for limits in self.projection.config.limits)  # noqa
+                yield space.Multiverse(
+                    space.Space.from_image(
+                        res, labels, coords, intensity, weights=weights, limits=limits
+                    )
+                    for limits in self.projection.config.limits
+                )  # noqa
 
     def run(self):
         for job in self.input.generate_jobs(self.command):

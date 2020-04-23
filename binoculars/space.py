@@ -10,7 +10,7 @@ from functools import reduce
 from itertools import chain
 
 from numpy import ndarray
-from vtk import vtkImageData,  vtkXMLImageDataWriter
+from vtk import vtkImageData, vtkXMLImageDataWriter
 from vtk.util import numpy_support
 
 from . import util, errors
@@ -20,7 +20,7 @@ basestring = (str, bytes)
 
 def silence_numpy_errors():
     """Silence numpy warnings about zero division. Normal usage of Space() will trigger these warnings."""
-    numpy.seterr(divide='ignore', invalid='ignore')
+    numpy.seterr(divide="ignore", invalid="ignore")
 
 
 def sum_onto(a, axis):
@@ -73,40 +73,46 @@ class Axis(object):
     def __getitem__(self, key):
         if isinstance(key, slice):
             if key.step is not None:
-                raise IndexError('stride not supported')
+                raise IndexError("stride not supported")
             if key.start is None:
                 start = 0
             elif key.start < 0:
-                raise IndexError('key out of range')
+                raise IndexError("key out of range")
             elif isinstance(key.start, int):
                 start = key.start
             else:
-                raise IndexError('key start must be integer')
+                raise IndexError("key start must be integer")
             if key.stop is None:
                 stop = len(self)
             elif key.stop > len(self):
-                raise IndexError('key out of range')
+                raise IndexError("key out of range")
             elif isinstance(key.stop, int):
                 stop = key.stop
             else:
-                raise IndexError('slice stop must be integer')
-            return self.__class__(self.imin + start, self.imin + stop - 1, self.res, self.label)
+                raise IndexError("slice stop must be integer")
+            return self.__class__(
+                self.imin + start, self.imin + stop - 1, self.res, self.label
+            )
         elif isinstance(key, int) or isinstance(key, numpy.int64):
             if key >= len(self):  # to support iteration
-                raise IndexError('key out of range')
+                raise IndexError("key out of range")
             return (self.imin + key) * self.res
         else:
-            raise IndexError('unknown key {0!r}'.format(key))
+            raise IndexError("unknown key {0!r}".format(key))
 
     def get_index(self, value):
         if isinstance(value, numbers.Number):
             intvalue = int(round(value / self.res))
             if self.imin <= intvalue <= self.imax:
                 return intvalue - self.imin
-            raise ValueError('cannot get index: value {0} not in range [{1}, {2}]'.format(value, self.min, self.max))
+            raise ValueError(
+                "cannot get index: value {0} not in range [{1}, {2}]".format(
+                    value, self.min, self.max
+                )
+            )
         elif isinstance(value, slice):
             if value.step is not None:
-                raise IndexError('stride not supported')
+                raise IndexError("stride not supported")
             if value.start is None:
                 start = None
             else:
@@ -122,19 +128,30 @@ class Axis(object):
             intvalue = numpy.around(value / self.res).astype(int)
             if ((self.imin <= intvalue) & (intvalue <= self.imax)).all():
                 return intvalue - self.imin
-            raise ValueError('cannot get indices, values from [{0}, {1}], axes range [{2}, {3}]'.format(value.min(), value.max(), self.min, self.max))
+            raise ValueError(
+                "cannot get indices, values from [{0}, {1}], axes range [{2}, {3}]".format(
+                    value.min(), value.max(), self.min, self.max
+                )
+            )
 
     def __or__(self, other):  # union operation
         if not isinstance(other, Axis):
             return NotImplemented
         if not self.is_compatible(other):
-            raise ValueError('cannot unite axes with different resolution/label')
-        return self.__class__(min(self.imin, other.imin), max(self.imax, other.imax), self.res, self.label)
+            raise ValueError("cannot unite axes with different resolution/label")
+        return self.__class__(
+            min(self.imin, other.imin), max(self.imax, other.imax), self.res, self.label
+        )
 
     def __eq__(self, other):
         if not isinstance(other, Axis):
             return NotImplemented
-        return self.res == other.res and self.imin == other.imin and self.imax == other.imax and self.label == other.label
+        return (
+            self.res == other.res
+            and self.imin == other.imin
+            and self.imax == other.imax
+            and self.label == other.label
+        )
 
     def __hash__(self):
         return hash(self.imin) ^ hash(self.imax) ^ hash(self.res) ^ hash(self.label)
@@ -148,18 +165,26 @@ class Axis(object):
         if isinstance(other, numbers.Number):
             return self.min <= other <= self.max
         elif isinstance(other, Axis):
-            return self.is_compatible(other) and self.imin <= other.imin and self.imax >= other.imax
+            return (
+                self.is_compatible(other)
+                and self.imin <= other.imin
+                and self.imax >= other.imax
+            )
 
     def rebound(self, min, max):
         return self.__class__(min, max, self.res, self.label)
 
     def rebin(self, factor):
         # for integers the following relations hold: a // b == floor(a / b), -(-a // b) == ceil(a / b)
-        new = self.__class__(self.imin // factor, -(-self.imax // factor), factor*self.res, self.label)
+        new = self.__class__(
+            self.imin // factor, -(-self.imax // factor), factor * self.res, self.label
+        )
         return self.imin % factor, -self.imax % factor, new
 
     def __repr__(self):
-        return '{0.__class__.__name__} {0.label} (min={0.min}, max={0.max}, res={0.res}, count={1})'.format(self, len(self))
+        return "{0.__class__.__name__} {0.label} (min={0.min}, max={0.max}, res={0.res}, count={1})".format(
+            self, len(self)
+        )
 
     def restrict(self, value):  # Useful for plotting
         if isinstance(value, numbers.Number):
@@ -171,7 +196,7 @@ class Axis(object):
                 return value
         elif isinstance(value, slice):
             if value.step is not None:
-                    raise IndexError('stride not supported')
+                raise IndexError("stride not supported")
             if value.start is None:
                 start = None
             else:
@@ -193,7 +218,7 @@ class Axes(object):
     def __init__(self, axes):
         self.axes = tuple(axes)
         if len(self.axes) > 1 and any(axis.label is None for axis in self.axes):
-            raise ValueError('axis label is required for multidimensional space')
+            raise ValueError("axis label is required for multidimensional space")
 
     def __iter__(self):
         return iter(self.axes)
@@ -209,39 +234,83 @@ class Axes(object):
     @property
     def memory_size(self):
         # assuming double precision floats for photons, 32 bit integers for contributions
-        return (8+4) * self.npoints
+        return (8 + 4) * self.npoints
 
     @classmethod
     def fromfile(cls, filename):
-        with util.open_h5py(filename, 'r') as fp:
+        with util.open_h5py(filename, "r") as fp:
             try:
-                if 'axes' in fp and 'axes_labels' in fp:
+                if "axes" in fp and "axes_labels" in fp:
                     # oldest style, float min/max
-                    return cls(tuple(Axis(min, max, res, lbl) for ((min, max, res), lbl) in zip(fp['axes'], fp['axes_labels'])))
-                elif 'axes' in fp:  # new
+                    return cls(
+                        tuple(
+                            Axis(min, max, res, lbl)
+                            for ((min, max, res), lbl) in zip(
+                                fp["axes"], fp["axes_labels"]
+                            )
+                        )
+                    )
+                elif "axes" in fp:  # new
                     try:
-                        axes = tuple(Axis(int(imin), int(imax), res, lbl) for ((index, fmin, fmax, res, imin, imax), lbl) in zip(fp['axes'].values(), fp['axes'].keys()))
-                        return cls(tuple(axes[int(values[0])] for values in fp['axes'].values()))  # reorder the axes to the way in which they were saved
+                        axes = tuple(
+                            Axis(int(imin), int(imax), res, lbl)
+                            for ((index, fmin, fmax, res, imin, imax), lbl) in zip(
+                                fp["axes"].values(), fp["axes"].keys()
+                            )
+                        )
+                        return cls(
+                            tuple(
+                                axes[int(values[0])] for values in fp["axes"].values()
+                            )
+                        )  # reorder the axes to the way in which they were saved
                     except ValueError:
-                        return cls(tuple(Axis(int(imin), int(imax), res, lbl) for ((imin, imax, res), lbl) in zip(fp['axes'].values(), fp['axes'].keys())))
+                        return cls(
+                            tuple(
+                                Axis(int(imin), int(imax), res, lbl)
+                                for ((imin, imax, res), lbl) in zip(
+                                    fp["axes"].values(), fp["axes"].keys()
+                                )
+                            )
+                        )
                 else:
                     # older style, integer min/max
-                    return cls(tuple(Axis(imin, imax, res, lbl) for ((imin, imax), res, lbl) in zip(fp['axes_range'], fp['axes_res'], fp['axes_labels'])))
+                    return cls(
+                        tuple(
+                            Axis(imin, imax, res, lbl)
+                            for ((imin, imax), res, lbl) in zip(
+                                fp["axes_range"], fp["axes_res"], fp["axes_labels"]
+                            )
+                        )
+                    )
             except (KeyError, TypeError) as e:
-                raise errors.HDF5FileError('unable to load axes definition from HDF5 file {0}, is it a valid BINoculars file? (original error: {1!r})'.format(filename, e))
+                raise errors.HDF5FileError(
+                    "unable to load axes definition from HDF5 file {0}, is it a valid BINoculars file? (original error: {1!r})".format(
+                        filename, e
+                    )
+                )
 
     def tofile(self, filename):
-        with util.open_h5py(filename, 'w') as fp:
-            axes = fp.create_group('axes')
+        with util.open_h5py(filename, "w") as fp:
+            axes = fp.create_group("axes")
             for index, ax in enumerate(self.axes):
-                axes.create_dataset(ax.label, data=[index, ax.min, ax.max, ax.res, ax.imin, ax.imax])
+                axes.create_dataset(
+                    ax.label, data=[index, ax.min, ax.max, ax.res, ax.imin, ax.imax]
+                )
 
     def toarray(self):
-        return numpy.vstack(numpy.hstack([str(ax.imin), str(ax.imax), str(ax.res), ax.label]) for ax in self.axes)
+        return numpy.vstack(
+            numpy.hstack([str(ax.imin), str(ax.imax), str(ax.res), ax.label])
+            for ax in self.axes
+        )
 
     @classmethod
     def fromarray(cls, arr):
-        return cls(tuple(Axis(int(imin), int(imax), float(res), lbl) for (imin, imax, res, lbl) in arr))
+        return cls(
+            tuple(
+                Axis(int(imin), int(imax), float(res), lbl)
+                for (imin, imax, res, lbl) in arr
+            )
+        )
 
     def index(self, obj):
         if isinstance(obj, Axis):
@@ -250,15 +319,17 @@ class Axes(object):
             return obj
         elif isinstance(obj, basestring):
             label = obj.lower()
-            matches = tuple(i for i, axis in enumerate(self.axes) if axis.label.lower() == label)
+            matches = tuple(
+                i for i, axis in enumerate(self.axes) if axis.label.lower() == label
+            )
             if len(matches) == 0:
-                raise ValueError('no matching axis found')
+                raise ValueError("no matching axis found")
             elif len(matches) == 1:
                 return matches[0]
             else:
-                raise ValueError('ambiguous axis label {0}'.format(label))
+                raise ValueError("ambiguous axis label {0}".format(label))
         else:
-            raise ValueError('invalid axis identifier {0!r}'.format(obj))
+            raise ValueError("invalid axis identifier {0!r}".format(obj))
 
     def __contains__(self, obj):
         if isinstance(obj, Axis):
@@ -269,7 +340,7 @@ class Axes(object):
             label = obj.lower()
             return any(axis.label.lower() == label for axis in self.axes)
         else:
-            raise ValueError('invalid axis identifier {0!r}'.format(obj))
+            raise ValueError("invalid axis identifier {0!r}".format(obj))
 
     def __len__(self):
         return len(self.axes)
@@ -288,7 +359,11 @@ class Axes(object):
         return self.axes != other.axes
 
     def __repr__(self):
-        return '{0.__class__.__name__} ({0.dimension} dimensions, {0.npoints} points, {1}) {{\n    {2}\n}}'.format(self, util.format_bytes(self.memory_size), '\n    '.join(repr(ax) for ax in self.axes))
+        return "{0.__class__.__name__} ({0.dimension} dimensions, {0.npoints} points, {1}) {{\n    {2}\n}}".format(
+            self,
+            util.format_bytes(self.memory_size),
+            "\n    ".join(repr(ax) for ax in self.axes),
+        )
 
     def restricted_key(self, key):
         if len(key) == 0:
@@ -296,12 +371,13 @@ class Axes(object):
         if len(key) == len(self.axes):
             return tuple(ax.restrict(s) for s, ax in zip(key, self.axes))
         else:
-            raise IndexError('dimension mismatch')
+            raise IndexError("dimension mismatch")
 
 
 class EmptySpace(object):
     """Convenience object for sum() and friends. Treated as zero for addition.
     Does not share a base class with Space for simplicity."""
+
     def __init__(self, config=None, metadata=None):
         self.config = config
         self.metadata = metadata
@@ -324,11 +400,11 @@ class EmptySpace(object):
     def tofile(self, filename):
         """Store EmptySpace in HDF5 file."""
         with util.atomic_write(filename) as tmpname:
-            with util.open_h5py(tmpname, 'w') as fp:
-                fp.attrs['type'] = 'Empty'
+            with util.open_h5py(tmpname, "w") as fp:
+                fp.attrs["type"] = "Empty"
 
     def __repr__(self):
-        return '{0.__class__.__name__}'.format(self)
+        return "{0.__class__.__name__}".format(self)
 
 
 class Space(object):
@@ -352,8 +428,8 @@ class Space(object):
         self.config = config
         self.metadata = metadata
 
-        self.photons = numpy.zeros([len(ax) for ax in self.axes], order='C')
-        self.contributions = numpy.zeros(self.photons.shape, order='C')
+        self.photons = numpy.zeros([len(ax) for ax in self.axes], order="C")
+        self.contributions = numpy.zeros(self.photons.shape, order="C")
 
     @property
     def dimension(self):
@@ -406,17 +482,23 @@ class Space(object):
 
     def get(self):
         """Returns normalized photon count."""
-        return self.photons/self.contributions
+        return self.photons / self.contributions
 
     def __repr__(self):
-        return '{0.__class__.__name__} ({0.dimension} dimensions, {0.npoints} points, {1}) {{\n    {2}\n}}'.format(self, util.format_bytes(self.memory_size), '\n    '.join(repr(ax) for ax in self.axes))
+        return "{0.__class__.__name__} ({0.dimension} dimensions, {0.npoints} points, {1}) {{\n    {2}\n}}".format(
+            self,
+            util.format_bytes(self.memory_size),
+            "\n    ".join(repr(ax) for ax in self.axes),
+        )
 
     def __getitem__(self, key):
         """Slicing only! space[-0.2:0.2, 0.9:1.1] does exactly what the syntax implies.
         Ellipsis operator '...' is not supported."""
 
         newkey = self.get_key(key)
-        newaxes = tuple(ax[k] for k, ax in zip(newkey, self.axes) if isinstance(ax[k], Axis))
+        newaxes = tuple(
+            ax[k] for k, ax in zip(newkey, self.axes) if isinstance(ax[k], Axis)
+        )
         if not newaxes:
             return self.photons[newkey] / self.contributions[newkey]
         newspace = self.__class__(newaxes, self.config, self.metadata)
@@ -424,15 +506,19 @@ class Space(object):
         newspace.contributions = self.contributions[newkey].copy()
         return newspace
 
-    def get_key(self, key):  # needed in the fitaid for visualising the interpolated data
+    def get_key(
+        self, key
+    ):  # needed in the fitaid for visualising the interpolated data
         """Convert the n-dimensional interval described by key (as used by e.g. __getitem__()) from data coordinates to indices."""
         if isinstance(key, numbers.Number) or isinstance(key, slice):
             if not len(self.axes) == 1:
-                raise IndexError('dimension mismatch')
+                raise IndexError("dimension mismatch")
             else:
                 key = [key]
-        elif not (isinstance(key, tuple) or isinstance(key, list)) or not len(key) == len(self.axes):
-            raise IndexError('dimension mismatch')
+        elif not (isinstance(key, tuple) or isinstance(key, list)) or not len(
+            key
+        ) == len(self.axes):
+            raise IndexError("dimension mismatch")
         return tuple(ax.get_index(k) for k, ax in zip(key, self.axes))
 
     def project(self, axis, *more_axes):
@@ -468,13 +554,17 @@ class Space(object):
         return numpy.ma.array(data=self.get(), mask=(self.contributions == 0))
 
     def get_variance(self):
-        return numpy.ma.array(data=1 / self.contributions, mask=(self.contributions == 0))
+        return numpy.ma.array(
+            data=1 / self.contributions, mask=(self.contributions == 0)
+        )
 
     def get_grid(self):
         """Returns the data coordinates of each grid point, as n-tuple of n-dimensinonal arrays.
         Basically numpy.mgrid() in data coordinates."""
         igrid = numpy.mgrid[tuple(slice(0, len(ax)) for ax in self.axes)]
-        grid = tuple(numpy.array((grid + ax.imin) * ax.res) for grid, ax in zip(igrid, self.axes))
+        grid = tuple(
+            numpy.array((grid + ax.imin) * ax.res) for grid, ax in zip(igrid, self.axes)
+        )
         return grid
 
     def max(self, axis=None):
@@ -484,7 +574,12 @@ class Space(object):
     def argmax(self):
         """Returns data coordinates of grid point with maximum intensity."""
         array = self.get_masked()
-        return tuple(ax[key] for ax, key in zip(self.axes, numpy.unravel_index(numpy.argmax(array), array.shape)))
+        return tuple(
+            ax[key]
+            for ax, key in zip(
+                self.axes, numpy.unravel_index(numpy.argmax(array), array.shape)
+            )
+        )
 
     def __add__(self, other):
         if isinstance(other, numbers.Number):
@@ -493,8 +588,12 @@ class Space(object):
             return new
         if not isinstance(other, Space):
             return NotImplemented
-        if not len(self.axes) == len(other.axes) or not all(a.is_compatible(b) for (a, b) in zip(self.axes, other.axes)):
-            raise ValueError('cannot add spaces with different dimensionality or resolution')
+        if not len(self.axes) == len(other.axes) or not all(
+            a.is_compatible(b) for (a, b) in zip(self.axes, other.axes)
+        ):
+            raise ValueError(
+                "cannot add spaces with different dimensionality or resolution"
+            )
 
         new = self.__class__([a | b for (a, b) in zip(self.axes, other.axes)])
         new += self
@@ -507,13 +606,25 @@ class Space(object):
             return self
         if not isinstance(other, Space):
             return NotImplemented
-        if not len(self.axes) == len(other.axes) or not all(a.is_compatible(b) for (a, b) in zip(self.axes, other.axes)):
-            raise ValueError('cannot add spaces with different dimensionality or resolution')
+        if not len(self.axes) == len(other.axes) or not all(
+            a.is_compatible(b) for (a, b) in zip(self.axes, other.axes)
+        ):
+            raise ValueError(
+                "cannot add spaces with different dimensionality or resolution"
+            )
 
-        if not all(other_ax in self_ax for (self_ax, other_ax) in zip(self.axes, other.axes)):
+        if not all(
+            other_ax in self_ax for (self_ax, other_ax) in zip(self.axes, other.axes)
+        ):
             return self.__add__(other)
 
-        index = tuple(slice(self_ax.get_index(other_ax.min), self_ax.get_index(other_ax.min) + len(other_ax)) for (self_ax, other_ax) in zip(self.axes, other.axes))
+        index = tuple(
+            slice(
+                self_ax.get_index(other_ax.min),
+                self_ax.get_index(other_ax.min) + len(other_ax),
+            )
+            for (self_ax, other_ax) in zip(self.axes, other.axes)
+        )
         self.photons[index] += other.photons
         self.contributions[index] += other.contributions
         self.metadata += other.metadata
@@ -531,7 +642,7 @@ class Space(object):
             # we would like to keep 1/contributions as the variance
             # var(aX) = a**2var(X)
             new.photons = self.photons / other
-            new.contributions = self.contributions / other**2
+            new.contributions = self.contributions / other ** 2
             return new
         else:
             return NotImplemented
@@ -539,10 +650,15 @@ class Space(object):
     def trim(self):
         """Reduce total size of Space by trimming zero-contribution data points on the boundaries."""
         mask = self.contributions > 0
-        lims = (numpy.flatnonzero(sum_onto(mask, i)) for (i, ax) in enumerate(self.axes))
+        lims = (
+            numpy.flatnonzero(sum_onto(mask, i)) for (i, ax) in enumerate(self.axes)
+        )
         lims = tuple((i.min(), i.max()) for i in lims)
-        self.axes = Axes(ax.rebound(min + ax.imin, max + ax.imin) for (ax, (min, max)) in zip(self.axes, lims))
-        slices = tuple(slice(min, max+1) for (min, max) in lims)
+        self.axes = Axes(
+            ax.rebound(min + ax.imin, max + ax.imin)
+            for (ax, (min, max)) in zip(self.axes, lims)
+        )
+        slices = tuple(slice(min, max + 1) for (min, max) in lims)
         self.photons = self.photons[slices].copy()
         self.contributions = self.contributions[slices].copy()
 
@@ -551,7 +667,7 @@ class Space(object):
 
         resolution    n-tuple of floats, new resolution of each axis"""
         if not len(resolutions) == len(self.axes):
-            raise ValueError('cannot rebin space with different dimensionality')
+            raise ValueError("cannot rebin space with different dimensionality")
         if resolutions == tuple(ax.res for ax in self.axes):
             return self
 
@@ -564,9 +680,11 @@ class Space(object):
     def reorder(self, labels):
         """Change order of axes."""
         if not self.dimension == len(labels):
-            raise ValueError('dimension mismatch')
+            raise ValueError("dimension mismatch")
         newindices = list(self.axes.index(label) for label in labels)
-        new = self.__class__(tuple(self.axes[index] for index in newindices), self.config, self.metadata)
+        new = self.__class__(
+            tuple(self.axes[index] for index in newindices), self.config, self.metadata
+        )
         new.photons = numpy.transpose(self.photons, axes=newindices)
         new.contributions = numpy.transpose(self.contributions, axes=newindices)
         return new
@@ -579,10 +697,16 @@ class Space(object):
         weights = self.contributions
 
         # get rid of invalid coords
-        valid = reduce(numpy.bitwise_and, chain((numpy.isfinite(t) for t in transcoords)), (weights > 0))
+        valid = reduce(
+            numpy.bitwise_and,
+            chain((numpy.isfinite(t) for t in transcoords)),
+            (weights > 0),
+        )
         transcoords = tuple(t[valid] for t in transcoords)
 
-        return self.from_image(resolutions, labels, transcoords, intensity[valid], weights[valid])
+        return self.from_image(
+            resolutions, labels, transcoords, intensity[valid], weights[valid]
+        )
 
     def process_image(self, coordinates, intensity, weights):
         """Load image data into Space.
@@ -591,25 +715,31 @@ class Space(object):
         intensity    data intensity array
         weights      weights array, supply numpy.ones_like(intensity) for equal weights"""
         if len(coordinates) != len(self.axes):
-            raise ValueError('dimension mismatch between coordinates and axes')
+            raise ValueError("dimension mismatch between coordinates and axes")
 
-        intensity = numpy.nan_to_num(intensity).flatten()  # invalids can be handeled by setting weight to 0, this ensures the weights can do that
+        intensity = numpy.nan_to_num(
+            intensity
+        ).flatten()  # invalids can be handeled by setting weight to 0, this ensures the weights can do that
         weights = weights.flatten()
 
-        indices = numpy.array(tuple(ax.get_index(coord) for (ax, coord) in zip(self.axes, coordinates)))
+        indices = numpy.array(
+            tuple(ax.get_index(coord) for (ax, coord) in zip(self.axes, coordinates))
+        )
         for i in range(0, len(self.axes)):
-            for j in range(i+1, len(self.axes)):
+            for j in range(i + 1, len(self.axes)):
                 indices[i, :] *= len(self.axes[j])
         indices = indices.sum(axis=0).astype(int).flatten()
 
         photons = numpy.bincount(indices, weights=intensity * weights)
         contributions = numpy.bincount(indices, weights=weights)
 
-        self.photons.ravel()[:photons.size] += photons
-        self.contributions.ravel()[:contributions.size] += contributions
+        self.photons.ravel()[: photons.size] += photons
+        self.contributions.ravel()[: contributions.size] += contributions
 
     @classmethod
-    def from_image(cls, resolutions, labels, coordinates, intensity, weights, limits=None):
+    def from_image(
+        cls, resolutions, labels, coordinates, intensity, weights, limits=None
+    ):
         """Create Space from image data.
 
         resolutions   n-tuple of axis resolutions
@@ -633,7 +763,10 @@ class Space(object):
             intensity = intensity[~invalid]
             weights = weights[~invalid]
 
-        axes = tuple(Axis(coord.min(), coord.max(), res, label) for res, label, coord in zip(resolutions, labels, coordinates))
+        axes = tuple(
+            Axis(coord.min(), coord.max(), res, label)
+            for res, label, coord in zip(resolutions, labels, coordinates)
+        )
         newspace = cls(axes)
         newspace.process_image(coordinates, intensity, weights)
         return newspace
@@ -669,13 +802,23 @@ class Space(object):
     def tofile(self, filename):
         """Store Space in HDF5 file."""
         with util.atomic_write(filename) as tmpname:
-            with util.open_h5py(tmpname, 'w') as fp:
-                fp.attrs['type'] = 'Space'
+            with util.open_h5py(tmpname, "w") as fp:
+                fp.attrs["type"] = "Space"
                 self.config.tofile(fp)
                 self.axes.tofile(fp)
                 self.metadata.tofile(fp)
-                fp.create_dataset('counts', self.photons.shape, dtype=self.photons.dtype, compression='gzip').write_direct(self.photons)
-                fp.create_dataset('contributions', self.contributions.shape, dtype=self.contributions.dtype, compression='gzip').write_direct(self.contributions)
+                fp.create_dataset(
+                    "counts",
+                    self.photons.shape,
+                    dtype=self.photons.dtype,
+                    compression="gzip",
+                ).write_direct(self.photons)
+                fp.create_dataset(
+                    "contributions",
+                    self.contributions.shape,
+                    dtype=self.contributions.dtype,
+                    compression="gzip",
+                ).write_direct(self.contributions)
 
     @classmethod
     def fromfile(cls, file, key=None):
@@ -684,9 +827,9 @@ class Space(object):
         file      filename string or h5py.Group instance
         key       sliced (subset) loading, should be an n-tuple of slice()s in data coordinates"""
         try:
-            with util.open_h5py(file, 'r') as fp:
-                if 'type' in fp.attrs.keys():
-                    if fp.attrs['type'] == 'Empty':
+            with util.open_h5py(file, "r") as fp:
+                if "type" in fp.attrs.keys():
+                    if fp.attrs["type"] == "Empty":
                         return EmptySpace()
 
                 axes = Axes.fromfile(fp)
@@ -694,23 +837,37 @@ class Space(object):
                 metadata = util.MetaData.fromfile(fp)
                 if key:
                     if len(axes) != len(key):
-                        raise ValueError("dimensionality of 'key' does not match dimensionality of Space in HDF5 file {0}".format(file))
+                        raise ValueError(
+                            "dimensionality of 'key' does not match dimensionality of Space in HDF5 file {0}".format(
+                                file
+                            )
+                        )
                     key = tuple(ax.get_index(k) for k, ax in zip(key, axes))
                     for index, sl in enumerate(key):
                         if sl.start == sl.stop and sl.start is not None:
-                            raise KeyError('key results in empty space')
-                    axes = tuple(ax[k] for k, ax in zip(key, axes) if isinstance(k, slice))
+                            raise KeyError("key results in empty space")
+                    axes = tuple(
+                        ax[k] for k, ax in zip(key, axes) if isinstance(k, slice)
+                    )
                 else:
                     key = Ellipsis
                 space = cls(axes, config, metadata)
                 try:
-                    fp['counts'].read_direct(space.photons, key)
-                    fp['contributions'].read_direct(space.contributions, key)
+                    fp["counts"].read_direct(space.photons, key)
+                    fp["contributions"].read_direct(space.contributions, key)
                 except (KeyError, TypeError) as e:
-                    raise errors.HDF5FileError('unable to load Space from HDF5 file {0}, is it a valid BINoculars file? (original error: {1!r})'.format(file, e))
+                    raise errors.HDF5FileError(
+                        "unable to load Space from HDF5 file {0}, is it a valid BINoculars file? (original error: {1!r})".format(
+                            file, e
+                        )
+                    )
 
         except IOError as e:
-            raise errors.HDF5FileError("unable to open '{0}' as HDF5 file (original error: {1!r})".format(file, e))
+            raise errors.HDF5FileError(
+                "unable to open '{0}' as HDF5 file (original error: {1!r})".format(
+                    file, e
+                )
+            )
         return space
 
 
@@ -730,47 +887,52 @@ class Multiverse(object):
         if not isinstance(other, Multiverse):
             return NotImplemented
         if not self.dimension == other.dimension:
-            raise ValueError('cannot add multiverses with different dimensionality')
+            raise ValueError("cannot add multiverses with different dimensionality")
         return self.__class__(tuple(s + o for s, o in zip(self.spaces, other.spaces)))
 
     def __iadd__(self, other):
         if not isinstance(other, Multiverse):
             return NotImplemented
         if not self.dimension == other.dimension:
-            raise ValueError('cannot add multiverses with different dimensionality')
+            raise ValueError("cannot add multiverses with different dimensionality")
         for index, o in enumerate(other.spaces):
             self.spaces[index] += o
         return self
 
     def tofile(self, filename):
         with util.atomic_write(filename) as tmpname:
-            with util.open_h5py(tmpname, 'w') as fp:
-                fp.attrs['type'] = 'Multiverse'
+            with util.open_h5py(tmpname, "w") as fp:
+                fp.attrs["type"] = "Multiverse"
                 for index, sp in enumerate(self.spaces):
-                    spacegroup = fp.create_group('space_{0}'.format(index))
+                    spacegroup = fp.create_group("space_{0}".format(index))
                     sp.tofile(spacegroup)
 
     @classmethod
     def fromfile(cls, file):
         """Load Multiverse from HDF5 file."""
         try:
-            with util.open_h5py(file, 'r') as fp:
-                if 'type' in fp.attrs:
-                    if fp.attrs['type'] == 'Multiverse':
+            with util.open_h5py(file, "r") as fp:
+                if "type" in fp.attrs:
+                    if fp.attrs["type"] == "Multiverse":
                         return cls(tuple(Space.fromfile(fp[label]) for label in fp))
                     else:
-                        raise TypeError('This is not a multiverse')
+                        raise TypeError("This is not a multiverse")
                 else:
-                    raise TypeError('This is not a multiverse')
+                    raise TypeError("This is not a multiverse")
         except IOError as e:
-            raise errors.HDF5FileError("unable to open '{0}' as HDF5 file (original error: {1!r})".format(file, e))
+            raise errors.HDF5FileError(
+                "unable to open '{0}' as HDF5 file (original error: {1!r})".format(
+                    file, e
+                )
+            )
 
     def __repr__(self):
-        return '{0.__class__.__name__}\n{1}'.format(self, self.spaces)
+        return "{0.__class__.__name__}\n{1}".format(self, self.spaces)
 
 
 class EmptyVerse(object):
     """Convenience object for sum() and friends. Treated as zero for addition."""
+
     spaces = [EmptySpace()]
 
     @property
@@ -798,9 +960,9 @@ def union_axes(axes):
     if len(axes) == 1:
         return axes[0]
     if not all(isinstance(ax, Axis) for ax in axes):
-        raise TypeError('not all objects are Axis instances')
+        raise TypeError("not all objects are Axis instances")
     if len(set(ax.res for ax in axes)) != 1 or len(set(ax.label for ax in axes)) != 1:
-        raise ValueError('cannot unite axes with different resolution/label')
+        raise ValueError("cannot unite axes with different resolution/label")
     mi = min(ax.min for ax in axes)
     ma = max(ax.max for ax in axes)
     first = axes[0]
@@ -812,12 +974,14 @@ def union_unequal_axes(axes):
     if len(axes) == 1:
         return axes[0]
     if not all(isinstance(ax, Axis) for ax in axes):
-        raise TypeError('not all objects are Axis instances')
+        raise TypeError("not all objects are Axis instances")
     if len(set(ax.label for ax in axes)) != 1:
-        raise ValueError('cannot unite axes with different label')
+        raise ValueError("cannot unite axes with different label")
     mi = min(ax.min for ax in axes)
     ma = max(ax.max for ax in axes)
-    res = min(ax.res for ax in axes)  # making it easier to use the sliderwidget otherwise this hase no meaning
+    res = min(
+        ax.res for ax in axes
+    )  # making it easier to use the sliderwidget otherwise this hase no meaning
     first = axes[0]
     return first.__class__(mi, ma, res, first.label)
 
@@ -830,10 +994,12 @@ def sum(spaces):
     if len(spaces) == 1:
         return spaces[0]
     if len(set(space.dimension for space in spaces)) != 1:
-        raise TypeError('dimension mismatch in spaces')
+        raise TypeError("dimension mismatch in spaces")
 
     first = spaces[0]
-    axes = tuple(union_axes(space.axes[i] for space in spaces) for i in range(first.dimension))
+    axes = tuple(
+        union_axes(space.axes[i] for space in spaces) for i in range(first.dimension)
+    )
     newspace = first.__class__(axes)
     for space in spaces:
         newspace += space
@@ -843,6 +1009,7 @@ def sum(spaces):
 def verse_sum(verses: List[Multiverse]) -> Multiverse:
     i = iter(M.spaces for M in verses)
     return Multiverse(sum(spaces) for spaces in zip(*i))
+
 
 # hybrid sum() / __iadd__()
 
@@ -895,7 +1062,9 @@ def iterate_over_axis_keys(axes, axis, resolution=None):
 
 def get_bins(ax, resolution):
     if float(resolution) < ax.res:
-        raise ValueError('interval {0} to low, minimum interval is {1}'.format(resolution, ax.res))
+        raise ValueError(
+            "interval {0} to low, minimum interval is {1}".format(resolution, ax.res)
+        )
 
     mi, ma = ax.min, ax.max
     return numpy.linspace(mi, ma, numpy.ceil(1 / numpy.float(resolution) * (ma - mi)))
@@ -908,17 +1077,21 @@ def dstack(spaces, dindices, dlabel, dresolution):
         labels = list(ax.label for ax in space.axes)
         labels.append(dlabel)
         exprs = list(ax.label for ax in space.axes)
-        exprs.append('ones_like({0}) * {1}'.format(labels[0], dindex))
+        exprs.append("ones_like({0}) * {1}".format(labels[0], dindex))
         transformation = util.transformation_from_expressions(space, exprs)
         return space.transform_coordinates(resolutions, labels, transformation)
+
     return sum(transform(space, dindex) for space, dindex in zip(spaces, dindices))
+
 
 def axis_offset(space, label, offset):
     exprs = list(ax.label for ax in space.axes)
     index = space.axes.index(label)
-    exprs[index] += '+ {0}'.format(offset)
+    exprs[index] += "+ {0}".format(offset)
     transformation = util.transformation_from_expressions(space, exprs)
-    return space.transform_coordinates((ax.res for ax in space.axes), (ax.label for ax in space.axes), transformation)
+    return space.transform_coordinates(
+        (ax.res for ax in space.axes), (ax.label for ax in space.axes), transformation
+    )
 
 
 def bkgsubtract(space, bkg):
@@ -929,7 +1102,9 @@ def bkgsubtract(space, bkg):
         return space - bkg
     else:
         photons = numpy.broadcast_arrays(space.photons, bkg.photons)[1]
-        contributions = numpy.broadcast_arrays(space.contributions, bkg.contributions)[1]
+        contributions = numpy.broadcast_arrays(space.contributions, bkg.contributions)[
+            1
+        ]
         bkg = Space(space.axes)
         bkg.photons = photons
         bkg.contributions = contributions
@@ -938,10 +1113,22 @@ def bkgsubtract(space, bkg):
 
 def make_compatible(spaces):
     if not numpy.alen(numpy.unique(len(space.axes) for space in spaces)) == 1:
-        raise ValueError('cannot make spaces with different dimensionality compatible')
+        raise ValueError("cannot make spaces with different dimensionality compatible")
     ax0 = tuple(ax.label for ax in spaces[0].axes)
-    resmax = tuple(numpy.vstack(tuple(ax.res for ax in space.reorder(ax0).axes) for space in spaces).max(axis=0))
-    resmin = tuple(numpy.vstack(tuple(ax.res for ax in space.reorder(ax0).axes) for space in spaces).min(axis=0))
+    resmax = tuple(
+        numpy.vstack(
+            tuple(ax.res for ax in space.reorder(ax0).axes) for space in spaces
+        ).max(axis=0)
+    )
+    resmin = tuple(
+        numpy.vstack(
+            tuple(ax.res for ax in space.reorder(ax0).axes) for space in spaces
+        ).min(axis=0)
+    )
     if not resmax == resmin:
-        print('Warning: Not all spaces have the same resolution. Resolution will be changed to: {0}'.format(resmax))
+        print(
+            "Warning: Not all spaces have the same resolution. Resolution will be changed to: {0}".format(
+                resmax
+            )
+        )
     return tuple(space.reorder(ax0).rebin2(resmax) for space in spaces)

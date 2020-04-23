@@ -23,9 +23,7 @@ class HItem(NamedTuple):
     optional: bool
 
 
-DatasetPath = Union[DatasetPathContains,
-                    DatasetPathWithAttribute,
-                    HItem]
+DatasetPath = Union[DatasetPathContains, DatasetPathWithAttribute, HItem]
 
 
 def _v_attrs(attribute: Text, value: Text, _name: Text, obj) -> Dataset:
@@ -46,17 +44,16 @@ def get_dataset(h5file: File, path: DatasetPath) -> Optional[Dataset]:
     if isinstance(path, DatasetPathContains):
         res = h5file.visititems(partial(_v_item, path.path))
     elif isinstance(path, DatasetPathWithAttribute):
-        res = h5file.visititems(partial(_v_attrs,
-                                        path.attribute, path.value))
+        res = h5file.visititems(partial(_v_attrs, path.attribute, path.value))
     elif isinstance(path, HItem):
-        res = h5file.visititems(partial(_v_item,
-                                        join("scan_data", path.name)))
+        res = h5file.visititems(partial(_v_item, join("scan_data", path.name)))
         if not path.optional and res is None:
             raise Exception("Can not find : {}".format(path))
     return res
 
 
 # tables here...
+
 
 class GroupPathWithAttribute(NamedTuple):
     attribute: Text
@@ -67,14 +64,10 @@ class GroupPathNxClass(NamedTuple):
     value: bytes
 
 
-GroupPath = Union[GroupPathWithAttribute,
-                  GroupPathNxClass,
-                  str]
+GroupPath = Union[GroupPathWithAttribute, GroupPathNxClass, str]
 
 
-def _g_attrs(attribute: Text,
-             value: Text,
-             _name: Text, obj) -> Optional[Group]:
+def _g_attrs(attribute: Text, value: Text, _name: Text, obj) -> Optional[Group]:
     """visite each node and check the attribute value"""
     if isinstance(obj, Group):
         if attribute in obj.attrs and obj.attrs[attribute] == value:
@@ -82,18 +75,14 @@ def _g_attrs(attribute: Text,
     return None
 
 
-def get_nxclass(h5file: File,
-                gpath: GroupPath) -> Optional[Group]:
+def get_nxclass(h5file: File, gpath: GroupPath) -> Optional[Group]:
     res = None
     if isinstance(gpath, GroupPathWithAttribute):
-        res = h5file.visititems(partial(_g_attrs,
-                                        gpath.attribute, gpath.value))
+        res = h5file.visititems(partial(_g_attrs, gpath.attribute, gpath.value))
     elif isinstance(gpath, GroupPathNxClass):
-        res = h5file.visititems(partial(_g_attrs,
-                                        'NX_class', gpath.value))
+        res = h5file.visititems(partial(_g_attrs, "NX_class", gpath.value))
     elif isinstance(gpath, str):
-        res = h5file.visititems(partial(_g_attrs,
-                                        'NX_class', gpath.encode()))
+        res = h5file.visititems(partial(_g_attrs, "NX_class", gpath.encode()))
 
     return res
 

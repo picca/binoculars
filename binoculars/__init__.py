@@ -4,7 +4,7 @@ import os
 
 
 def run(args):
-    '''Parameters
+    """Parameters
         args: string
             String as if typed in terminal. The string must consist
             of the location of the configuration file and the command
@@ -22,11 +22,12 @@ def run(args):
             Axis qy (min=-0.04, max=-0.01, res=0.01, count=4)
             Axis qz (min=0.48, max=4.03, res=0.01, count=356)
         }
-    '''
+    """
 
     import binoculars.main
+
     binoculars.util.register_python_executable(__file__)
-    main = binoculars.main.Main.from_args(args.split(' '))
+    main = binoculars.main.Main.from_args(args.split(" "))
 
     if isinstance(main.result, binoculars.space.Multiverse):
         return main.result.spaces
@@ -36,7 +37,7 @@ def run(args):
 
 
 def load(filename, key=None):
-    ''' Parameters
+    """ Parameters
         filename: string
             Only hdf5 files are acceptable
         key: a tuple with slices in as much dimensions as the space is
@@ -52,8 +53,9 @@ def load(filename, key=None):
             Axis qy (min=-0.04, max=-0.01, res=0.01, count=4)
             Axis qz (min=0.48, max=4.03, res=0.01, count=356)
         }
-    '''
+    """
     import binoculars.space
+
     if os.path.exists(filename):
         return binoculars.space.Space.fromfile(filename, key=key)
     else:
@@ -61,7 +63,7 @@ def load(filename, key=None):
 
 
 def save(filename, space):
-    '''
+    """
         Save a space to file
 
         Parameters
@@ -78,15 +80,16 @@ def save(filename, space):
             Axis qz (min=0.48, max=4.03, res=0.01, count=356)
         }
         >>> binoculars.save('test.hdf5', space)
-    '''
+    """
 
     import binoculars.space
     import binoculars.util
+
     if isinstance(space, binoculars.space.Space):
         ext = os.path.splitext(filename)[-1]
-        if ext == '.txt':
+        if ext == ".txt":
             binoculars.util.space_to_txt(space, filename)
-        elif ext == '.edf':
+        elif ext == ".edf":
             binoculars.util.space_to_edf(space, filename)
         else:
             space.tofile(filename)
@@ -94,9 +97,17 @@ def save(filename, space):
         raise TypeError("'{0!r}' is not a binoculars space".format(space))
 
 
-def plotspace(space, log=True, clipping=0.0, fit=None, norm=None,
-              colorbar=True, labels=True, **plotopts):
-    '''plots a space with the correct axes. The space can be either one
+def plotspace(
+    space,
+    log=True,
+    clipping=0.0,
+    fit=None,
+    norm=None,
+    colorbar=True,
+    labels=True,
+    **plotopts
+):
+    """plots a space with the correct axes. The space can be either one
         or two dimensinal.
 
         Parameters
@@ -128,7 +139,7 @@ def plotspace(space, log=True, clipping=0.0, fit=None, norm=None,
             Axis qz (min=0.48, max=4.03, res=0.01, count=356)
         }
         >>> binoculars.plotspace('test.hdf5')
-    '''
+    """
 
     import matplotlib.pyplot as pyplot
     import binoculars.plot
@@ -137,32 +148,66 @@ def plotspace(space, log=True, clipping=0.0, fit=None, norm=None,
     if isinstance(space, binoculars.space.Space):
         if space.dimension == 3:
             from mpl_toolkits.mplot3d import Axes3D  # noqa
-            ax = pyplot.gcf().gca(projection='3d')
-            return binoculars.plot.plot(space, pyplot.gcf(), ax, log=log,
-                                        clipping=clipping, fit=None, norm=norm,
-                                        colorbar=colorbar, labels=labels,
-                                        **plotopts)
+
+            ax = pyplot.gcf().gca(projection="3d")
+            return binoculars.plot.plot(
+                space,
+                pyplot.gcf(),
+                ax,
+                log=log,
+                clipping=clipping,
+                fit=None,
+                norm=norm,
+                colorbar=colorbar,
+                labels=labels,
+                **plotopts
+            )
         if fit is not None and space.dimension == 2:
             ax = pyplot.gcf().add_subplot(121)
-            binoculars.plot.plot(space, pyplot.gcf(), ax, log=log,
-                                 clipping=clipping, fit=None, norm=norm,
-                                 colorbar=colorbar, labels=labels, **plotopts)
+            binoculars.plot.plot(
+                space,
+                pyplot.gcf(),
+                ax,
+                log=log,
+                clipping=clipping,
+                fit=None,
+                norm=norm,
+                colorbar=colorbar,
+                labels=labels,
+                **plotopts
+            )
             ax = pyplot.gcf().add_subplot(122)
-            return binoculars.plot.plot(space, pyplot.gcf(), ax, log=log,
-                                        clipping=clipping, fit=fit, norm=norm,
-                                        colorbar=colorbar, labels=labels,
-                                        **plotopts)
+            return binoculars.plot.plot(
+                space,
+                pyplot.gcf(),
+                ax,
+                log=log,
+                clipping=clipping,
+                fit=fit,
+                norm=norm,
+                colorbar=colorbar,
+                labels=labels,
+                **plotopts
+            )
         else:
-            return binoculars.plot.plot(space, pyplot.gcf(), pyplot.gca(),
-                                        log=log, clipping=clipping, fit=fit,
-                                        norm=norm, colorbar=colorbar,
-                                        labels=labels, **plotopts)
+            return binoculars.plot.plot(
+                space,
+                pyplot.gcf(),
+                pyplot.gca(),
+                log=log,
+                clipping=clipping,
+                fit=fit,
+                norm=norm,
+                colorbar=colorbar,
+                labels=labels,
+                **plotopts
+            )
     else:
         raise TypeError("'{0!r}' is not a binoculars space".format(space))
 
 
 def transform(space, labels, resolutions, exprs):
-    '''transformation of the coordinates.
+    """transformation of the coordinates.
 
         Parameters
         space: binoculars space
@@ -192,21 +237,20 @@ def transform(space, labels, resolutions, exprs):
             Axis twotheta (min=0.066, max=0.519, res=0.003, count=152)
         }
 
-    '''
+    """
     import binoculars.util
     import binoculars.space
+
     if isinstance(space, binoculars.space.Space):
-        transformation = binoculars.util.transformation_from_expressions(
-            space, exprs)
-        newspace = space.transform_coordinates(resolutions, labels,
-                                               transformation)
+        transformation = binoculars.util.transformation_from_expressions(space, exprs)
+        newspace = space.transform_coordinates(resolutions, labels, transformation)
     else:
         raise TypeError("'{0!r}' is not a binoculars space".format(space))
     return newspace
 
 
 def fitspace(space, function, guess=None):
-    '''
+    """
         fit the space data.
 
         Parameters
@@ -231,9 +275,10 @@ def fitspace(space, function, guess=None):
         >>> parameters = fit.parameters
         >>> data = fit.fitdata
         >>> binoculars.plotspace(space, fit = data)
-    '''
+    """
 
     import binoculars.fit
+
     if isinstance(space, binoculars.space.Space):
         fitclass = binoculars.fit.get_class_by_name(function)
         return fitclass(space, guess)
@@ -242,7 +287,7 @@ def fitspace(space, function, guess=None):
 
 
 def info(filename):
-    '''
+    """
         Explore the file without loading the file, or after loading the file
 
         Parameters
@@ -275,24 +320,29 @@ def info(filename):
         }
         origin = test.hdf5
 
-    '''
+    """
 
     import binoculars.space
-    ret = ''
+
+    ret = ""
     if isinstance(filename, binoculars.space.Space):
-        ret += '{!r}\n{!r}'.format(filename, filename.config)
+        ret += "{!r}\n{!r}".format(filename, filename.config)
     elif type(filename) == str:
         if os.path.exists(filename):
             try:
                 axes = binoculars.space.Axes.fromfile(filename)
             except Exception as e:
-                raise IOError('{0}: unable to load Space: {1!r}'.format(filename, e))  # noqa
-            ret += '{!r}\n'.format(axes)
+                raise IOError(
+                    "{0}: unable to load Space: {1!r}".format(filename, e)
+                )  # noqa
+            ret += "{!r}\n".format(axes)
             try:
                 config = binoculars.util.ConfigFile.fromfile(filename)
             except Exception as e:
-                raise IOError('{0}: unable to load util.ConfigFile: {1!r}'.format(filename, e))  # noqa
-            ret += '{!r}'.format(config)
+                raise IOError(
+                    "{0}: unable to load util.ConfigFile: {1!r}".format(filename, e)
+                )  # noqa
+            ret += "{!r}".format(config)
         else:
             raise IOError("File '{0}' does not exist".format(filename))
     return ret
