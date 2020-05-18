@@ -14,7 +14,7 @@ Build-Depends: debhelper-compat (= 12),
                python3-setuptools,
                python3-sphinx,
                python3-vtk7
-Standards-Version: 4.3.0
+Standards-Version: 4.5.0
 Vcs-Browser: https://salsa.debian.org/science-team/binoculars
 Vcs-Git: https://salsa.debian.org/science-team/binoculars.git
 Homepage: https://github.com/picca/binoculars
