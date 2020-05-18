@@ -8,6 +8,7 @@ binoculars (0.0.5~dev-1) UNRELEASED; urgency=medium
     - Removed: python3-tables
     - Added: python3-h5py, python3-pymca5, python3-vtk7
   * Upgrade to newer source format 3.0 (quilt).
+  * Set debhelper-compat version in Build-Depends.
 
  -- Picca Frédéric-Emmanuel <picca@debian.org>  Thu, 14 Mar 2019 10:12:40 +0100
 
