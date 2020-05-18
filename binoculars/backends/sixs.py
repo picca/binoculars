@@ -25,7 +25,7 @@
            Picca Frédéric-Emmanuel <picca@synchrotron-soleil.fr>
 
 """
-from typing import Dict, NamedTuple, Optional, Tuple
+from typing import Any, Dict, NamedTuple, Optional, Tuple
 
 import numpy
 import math
@@ -35,7 +35,11 @@ import sys
 from enum import Enum
 from math import cos, sin
 
+from gi.repository import GLib
+import gi
+gi.require_version("Hkl", "5.0")
 from gi.repository import Hkl
+
 from h5py import Dataset, File
 from numpy import ndarray
 from numpy.linalg import inv
@@ -60,6 +64,211 @@ from .. import backend, errors, util
 # - travailler en qx qy qz, il faut rajouter un paramètre optionnel
 # - qui permet de choisir une rotation azimuthal de Qx Qy.
 
+###################
+# Common methodes #
+###################
+
+WRONG_ATTENUATION = -100
+
+
+class Diffractometer(NamedTuple):
+    name: str  # name of the hkl diffractometer
+    ub: ndarray  # the UB matrix
+    geometry: Hkl.Geometry  # the HklGeometry
+
+
+def get_diffractometer(hfile: File):
+    """ Construct a Diffractometer from a NeXus file """
+    node = get_nxclass(hfile, "NXdiffractometer")
+
+    name = node_as_string(node["type"][()])
+    if name.endswith("\n"):
+        # remove the last "\n" char
+        name = name[:-1]
+
+    try:
+        ub = node["UB"][:]
+    except AttributeError:
+        ub = None
+
+    factory = Hkl.factories()[name]
+    geometry = factory.create_new_geometry()
+
+    # wavelength = get_nxclass(hfile, 'NXmonochromator').wavelength[0]
+    # geometry.wavelength_set(wavelength)
+
+    return Diffractometer(name, ub, geometry)
+
+
+class Sample(NamedTuple):
+    a: float
+    b: float
+    c: float
+    alpha: float
+    beta: float
+    gamma: float
+    ux: float
+    uy: float
+    uz: float
+    ub: ndarray
+    sample: Hkl.Sample
+
+
+def get_sample(hfile, config):
+    """ Construct a Diffractometer from a NeXus file """
+    node = get_nxclass(hfile, "NXdiffractometer")
+
+    def get_value(node, name, default, overwrite):
+        if overwrite is not None:
+            v = overwrite
+        else:
+            v = default
+            try:
+                v = node[name][()][0]
+            except AttributeError:
+                pass
+        return v
+
+    # hkl default sample
+    a = get_value(node, "A", 1.54, config.a)
+    b = get_value(node, "B", 1.54, config.b)
+    c = get_value(node, "C", 1.54, config.c)
+    alpha = get_value(node, "alpha", 90, config.alpha)
+    beta = get_value(node, "beta", 90, config.beta)
+    gamma = get_value(node, "gamma", 90, config.gamma)
+    ux = get_value(node, "Ux", 0, config.ux)
+    uy = get_value(node, "Uy", 0, config.uy)
+    uz = get_value(node, "Uz", 0, config.uz)
+
+    sample = Hkl.Sample.new("test")
+    lattice = Hkl.Lattice.new(
+        a, b, c, math.radians(alpha), math.radians(beta), math.radians(gamma)
+    )
+    sample.lattice_set(lattice)
+
+    parameter = sample.ux_get()
+    parameter.value_set(ux, Hkl.UnitEnum.USER)
+    sample.ux_set(parameter)
+
+    parameter = sample.uy_get()
+    parameter.value_set(uy, Hkl.UnitEnum.USER)
+    sample.uy_set(parameter)
+
+    parameter = sample.uz_get()
+    parameter.value_set(uz, Hkl.UnitEnum.USER)
+    sample.uz_set(parameter)
+
+    ub = hkl_matrix_to_numpy(sample.UB_get())
+
+    return Sample(a, b, c, alpha, beta, gamma, ux, uy, uz, ub, sample)
+
+
+class Detector(NamedTuple):
+    name: str
+    detector: Hkl.Detector
+
+
+def get_detector(hfile, h5_nodes):
+    detector = Hkl.Detector.factory_new(Hkl.DetectorType(0))
+    images = h5_nodes["image"]
+    s = images.shape[-2:]
+    if s == (960, 560) or s == (560, 960):
+        det = Detector("xpad_flat", detector)
+    else:
+        det = Detector("imxpads140", detector)
+    return det
+
+
+class Source(NamedTuple):
+    wavelength: float
+
+
+def get_source(hfile):
+    wavelength = None
+    node = get_nxclass(hfile, "NXmonochromator")
+    for attr in ["wavelength", "lambda"]:
+        try:
+            wavelength = node[attr][0]
+        except KeyError:
+            pass
+        except IndexError:
+            pass
+
+    return Source(wavelength)
+
+
+class DataFrame(NamedTuple):
+    diffractometer: Diffractometer
+    sample: Sample
+    detector: Detector
+    source: Source
+    h5_nodes: Dict[str, Dataset]
+
+
+def dataframes(hfile, data_path, config):
+    h5_nodes = {k: get_dataset(hfile, v) for k, v in data_path.items()}
+    diffractometer = get_diffractometer(hfile)
+    sample = get_sample(hfile, config)
+    detector = get_detector(hfile, h5_nodes)
+    source = get_source(hfile)
+
+    yield DataFrame(diffractometer, sample, detector, source, h5_nodes)
+
+
+def get_ki(wavelength):
+    """
+    for now the direction is always along x
+    """
+    TAU = 2 * math.pi
+    return numpy.array([TAU / wavelength, 0, 0])
+
+
+def normalized(a, axis=-1, order=2):
+    l2 = numpy.atleast_1d(numpy.linalg.norm(a, order, axis))
+    l2[l2 == 0] = 1
+    return a / numpy.expand_dims(l2, axis)
+
+
+def hkl_matrix_to_numpy(m):
+    M = numpy.empty((3, 3))
+    for i in range(3):
+        for j in range(3):
+            M[i, j] = m.get(i, j)
+    return M
+
+
+def M(theta, u):
+    """
+    :param theta: the axis value in radian
+    :type theta: float
+    :param u: the axis vector [x, y, z]
+    :type u: [float, float, float]
+    :return: the rotation matrix
+    :rtype: numpy.ndarray (3, 3)
+    """
+    c = cos(theta)
+    one_minus_c = 1 - c
+    s = sin(theta)
+    return numpy.array(
+        [
+            [
+                c + u[0] ** 2 * one_minus_c,
+                u[0] * u[1] * one_minus_c - u[2] * s,
+                u[0] * u[2] * one_minus_c + u[1] * s,
+            ],
+            [
+                u[0] * u[1] * one_minus_c + u[2] * s,
+                c + u[1] ** 2 * one_minus_c,
+                u[1] * u[2] * one_minus_c - u[0] * s,
+            ],
+            [
+                u[0] * u[2] * one_minus_c - u[1] * s,
+                u[1] * u[2] * one_minus_c + u[0] * s,
+                c + u[2] ** 2 * one_minus_c,
+            ],
+        ]
+    )
+
 ###############
 # Projections #
 ###############
@@ -79,6 +288,8 @@ class PDataFrame(NamedTuple):
     index: int
     timestamp: int
     surface_orientation: SurfaceOrientation
+    dataframe: DataFrame
+    input_config: Any
 
 
 class RealSpace(backend.ProjectionBase):
@@ -291,250 +502,83 @@ class QIndex(Stereo):
         return "Q", "Index"
 
 
-# class AnglesProjection(backend.ProjectionBase):
-#     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
-#         # put the detector at the right position
+class AnglesProjection(backend.ProjectionBase):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
+        # put the detector at the right position
 
-#         pixels, k, UB, R, P, idx, timestamp, _surface_orientation = pdataframe
+        pixels = pdataframe.pixels
+        dataframe = pdataframe.dataframe
+        input_config = pdataframe.input_config
 
-#         # on calcule le vecteur de l'axes de rotation de l'angle qui
-#         # nous interesse. (ici delta et gamma). example delta (0, 1,
-#         # 0) (dans le repere du detecteur). Il faut donc calculer la
-#         # matrice de transformation pour un axe donnée. C'est la liste
-#         # de transformations qui sont entre cet axe et le detecteur.
-#         axis_delta = None
-#         axis_gamma = None
+        pixels, k, UB, R, P, idx, timestamp, _surface_orientation = pdataframe
 
-#         # il nous faut ensuite calculer la normale du plan dans lequel
-#         # nous allons projeter les pixels. (C'est le produit vectoriel
-#         # de k0, axis_xxx).
-#         n_delta = None
-#         n_gamma = None
-
-#         # On calcule la projection sur la normale des plans en
-#         # question.
-#         p_delta = None
-#         p_gamma = None
-
-#         # On calcule la norme de chaque pixel. (qui pourra etre
-#         # calcule une seule fois pour toutes les images).
-#         l2 = numpy.linalg.norm(pixels, order=2, axis=-1)
-
-#         # xxx0 is the angles of the diffractometer for the given
-#         # image.
-#         delta = numpy.arcsin(p_delta / l2) + delta0
-#         gamma = numpy.arcsin(p_gamma / l2) + gamma0
-#         omega = numpy.ones_like(delta) * omega0
-
-#         return (omega, delta, gamma)
-
-#     def get_axis_labels(self) -> Tuple[str]:
-#         return 'omega', 'delta', 'gamma'
-
-###################
-# Common methodes #
-###################
-
-WRONG_ATTENUATION = -100
-
-
-class Diffractometer(NamedTuple):
-    name: str  # name of the hkl diffractometer
-    ub: ndarray  # the UB matrix
-    geometry: Hkl.Geometry  # the HklGeometry
-
-
-def get_diffractometer(hfile: File):
-    """ Construct a Diffractometer from a NeXus file """
-    node = get_nxclass(hfile, "NXdiffractometer")
-
-    name = node_as_string(node["type"][()])
-    if name.endswith("\n"):
-        # remove the last "\n" char
-        name = name[:-1]
-
-    try:
-        ub = node["UB"][:]
-    except AttributeError:
-        ub = None
-
-    factory = Hkl.factories()[name]
-    geometry = factory.create_new_geometry()
-
-    # wavelength = get_nxclass(hfile, 'NXmonochromator').wavelength[0]
-    # geometry.wavelength_set(wavelength)
-
-    return Diffractometer(name, ub, geometry)
-
-
-class Sample(NamedTuple):
-    a: float
-    b: float
-    c: float
-    alpha: float
-    beta: float
-    gamma: float
-    ux: float
-    uy: float
-    uz: float
-    ub: ndarray
-    sample: Hkl.Sample
-
-
-def get_sample(hfile, config):
-    """ Construct a Diffractometer from a NeXus file """
-    node = get_nxclass(hfile, "NXdiffractometer")
-
-    def get_value(node, name, default, overwrite):
-        if overwrite is not None:
-            v = overwrite
-        else:
-            v = default
-            try:
-                v = node[name][()][0]
-            except AttributeError:
-                pass
-        return v
-
-    # hkl default sample
-    a = get_value(node, "A", 1.54, config.a)
-    b = get_value(node, "B", 1.54, config.b)
-    c = get_value(node, "C", 1.54, config.c)
-    alpha = get_value(node, "alpha", 90, config.alpha)
-    beta = get_value(node, "beta", 90, config.beta)
-    gamma = get_value(node, "gamma", 90, config.gamma)
-    ux = get_value(node, "Ux", 0, config.ux)
-    uy = get_value(node, "Uy", 0, config.uy)
-    uz = get_value(node, "Uz", 0, config.uz)
-
-    sample = Hkl.Sample.new("test")
-    lattice = Hkl.Lattice.new(
-        a, b, c, math.radians(alpha), math.radians(beta), math.radians(gamma)
-    )
-    sample.lattice_set(lattice)
-
-    parameter = sample.ux_get()
-    parameter.value_set(ux, Hkl.UnitEnum.USER)
-    sample.ux_set(parameter)
-
-    parameter = sample.uy_get()
-    parameter.value_set(uy, Hkl.UnitEnum.USER)
-    sample.uy_set(parameter)
-
-    parameter = sample.uz_get()
-    parameter.value_set(uz, Hkl.UnitEnum.USER)
-    sample.uz_set(parameter)
-
-    ub = hkl_matrix_to_numpy(sample.UB_get())
-
-    return Sample(a, b, c, alpha, beta, gamma, ux, uy, uz, ub, sample)
-
-
-class Detector(NamedTuple):
-    name: str
-    detector: Hkl.Detector
-
-
-def get_detector(hfile, h5_nodes):
-    detector = Hkl.Detector.factory_new(Hkl.DetectorType(0))
-    images = h5_nodes["image"]
-    s = images.shape[-2:]
-    if s == (960, 560) or s == (560, 960):
-        det = Detector("xpad_flat", detector)
-    else:
-        det = Detector("imxpads140", detector)
-    return det
-
-
-class Source(NamedTuple):
-    wavelength: float
-
-
-def get_source(hfile):
-    wavelength = None
-    node = get_nxclass(hfile, "NXmonochromator")
-    for attr in ["wavelength", "lambda"]:
+        geometry = dataframe.diffractometer.geometry
         try:
-            wavelength = node[attr][0]
-        except KeyError:
-            pass
-        except IndexError:
-            pass
+            axis = geometry.axis_get("eta_a")
+            eta_a = axis.value_get(Hkl.UnitEnum.USER)
+        except GLib.GError as err:
+            eta_a = 0
+        try:
+            axis = geometry.axis_get("omega")
+            omega0 = axis.value_get(Hkl.UnitEnum.USER)
+        except GLib.GError as err:
+            omega0 = 0
+        try:
+            axis = geometry.axis_get("delta")
+            delta0 = axis.value_get(Hkl.UnitEnum.USER)
+        except GLib.GError as err:
+            delta0 = 0
+        try:
+            axis = geometry.axis_get("gamma")
+            gamma0 = axis.value_get(Hkl.UnitEnum.USER)
+        except GLib.GError as err:
+            gamma0 = 0
 
-    return Source(wavelength)
+        P = M(math.radians(eta_a), [1, 0, 0])
+        if input_config.detrot is not None:
+            P = numpy.dot(P, M(math.radians(self.config.detrot), [1, 0, 0]))
 
+        x, y, z = numpy.tensordot(P, pixels, axes=1)
 
-class DataFrame(NamedTuple):
-    diffractometer: Diffractometer
-    sample: Sample
-    detector: Detector
-    source: Source
-    h5_nodes: Dict[str, Dataset]
+        delta = numpy.rad2deg(numpy.arcsin(y / z)) + delta0
+        gamma = numpy.rad2deg(numpy.arcsin(x / z)) + gamma0
+        omega = numpy.ones_like(delta) * omega0
 
+        return (omega, delta, gamma)
 
-def dataframes(hfile, data_path, config):
-    h5_nodes = {k: get_dataset(hfile, v) for k, v in data_path.items()}
-    diffractometer = get_diffractometer(hfile)
-    sample = get_sample(hfile, config)
-    detector = get_detector(hfile, h5_nodes)
-    source = get_source(hfile)
+        # # on calcule le vecteur de l'axes de rotation de l'angle qui
+        # # nous interesse. (ici delta et gamma). example delta (0, 1,
+        # # 0) (dans le repere du detecteur). Il faut donc calculer la
+        # # matrice de transformation pour un axe donnée. C'est la liste
+        # # de transformations qui sont entre cet axe et le detecteur.
+        # axis_delta = None
+        # axis_gamma = None
 
-    yield DataFrame(diffractometer, sample, detector, source, h5_nodes)
+        # # il nous faut ensuite calculer la normale du plan dans lequel
+        # # nous allons projeter les pixels. (C'est le produit vectoriel
+        # # de k0, axis_xxx).
+        # n_delta = None
+        # n_gamma = None
 
+        # # On calcule la projection sur la normale des plans en
+        # # question.
+        # p_delta = None
+        # p_gamma = None
 
-def get_ki(wavelength):
-    """
-    for now the direction is always along x
-    """
-    TAU = 2 * math.pi
-    return numpy.array([TAU / wavelength, 0, 0])
+        # # On calcule la norme de chaque pixel. (qui pourra etre
+        # # calcule une seule fois pour toutes les images).
+        # l2 = numpy.linalg.norm(pixels, order=2, axis=-1)
 
+        # # xxx0 is the angles of the diffractometer for the given
+        # # image.
+        # delta = numpy.arcsin(p_delta / l2) + delta0
+        # gamma = numpy.arcsin(p_gamma / l2) + gamma0
+        # omega = numpy.ones_like(delta) * omega0
 
-def normalized(a, axis=-1, order=2):
-    l2 = numpy.atleast_1d(numpy.linalg.norm(a, order, axis))
-    l2[l2 == 0] = 1
-    return a / numpy.expand_dims(l2, axis)
+        # return (omega, delta, gamma)
 
-
-def hkl_matrix_to_numpy(m):
-    M = numpy.empty((3, 3))
-    for i in range(3):
-        for j in range(3):
-            M[i, j] = m.get(i, j)
-    return M
-
-
-def M(theta, u):
-    """
-    :param theta: the axis value in radian
-    :type theta: float
-    :param u: the axis vector [x, y, z]
-    :type u: [float, float, float]
-    :return: the rotation matrix
-    :rtype: numpy.ndarray (3, 3)
-    """
-    c = cos(theta)
-    one_minus_c = 1 - c
-    s = sin(theta)
-    return numpy.array(
-        [
-            [
-                c + u[0] ** 2 * one_minus_c,
-                u[0] * u[1] * one_minus_c - u[2] * s,
-                u[0] * u[2] * one_minus_c + u[1] * s,
-            ],
-            [
-                u[0] * u[1] * one_minus_c + u[2] * s,
-                c + u[1] ** 2 * one_minus_c,
-                u[1] * u[2] * one_minus_c - u[0] * s,
-            ],
-            [
-                u[0] * u[2] * one_minus_c - u[1] * s,
-                u[1] * u[2] * one_minus_c + u[0] * s,
-                c + u[2] ** 2 * one_minus_c,
-            ],
-        ]
-    )
+    def get_axis_labels(self) -> Tuple[str]:
+        return 'omega', 'delta', 'gamma'
 
 
 ##################
@@ -837,7 +881,7 @@ class FlyScanUHV(SIXS):
         surface_orientation = self.config.surface_orientation
 
         pdataframe = PDataFrame(
-            pixels, k, dataframe.sample.ub, R, P, index, timestamp, surface_orientation
+            pixels, k, dataframe.sample.ub, R, P, index, timestamp, surface_orientation, dataframe, self.config
         )
 
         return intensity, weights, (index, pdataframe)
@@ -984,7 +1028,7 @@ class SBSFixedDetector(FlyScanUHV):
         if self.config.detrot is not None:
             P = M(math.radians(self.config.detrot), [1, 0, 0])
 
-        pdataframe = PDataFrame(pixels, k, I, I, P, index, timestamp)
+        pdataframe = PDataFrame(pixels, k, I, I, P, index, timestamp, dataframe, self.config)
 
         return intensity, weights, (index, pdataframe)
 
