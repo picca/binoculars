@@ -54,6 +54,7 @@ from .soleil import (
     node_as_string,
 )
 from .. import backend, errors, util
+from ..util import ConfigSection
 
 # TODO
 # - Angles delta gamma. nom de 2 ou 3 moteurs. omega puis delta
@@ -174,6 +175,8 @@ def get_detector(hfile, h5_nodes):
     s = images.shape[-2:]
     if s == (960, 560) or s == (560, 960):
         det = Detector("xpad_flat", detector)
+    elif s == (1065, 1030):
+        det = Detector("eiger1m", detector)
     else:
         det = Detector("imxpads140", detector)
     return det
@@ -289,7 +292,7 @@ class PDataFrame(NamedTuple):
     timestamp: int
     surface_orientation: SurfaceOrientation
     dataframe: DataFrame
-    input_config: Any
+    input_config: ConfigSection
 
 
 class RealSpace(backend.ProjectionBase):
@@ -471,24 +474,46 @@ class Stereo(QxQyQzProjection):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         qx, qy, qz = super(Stereo, self).project(index, pdataframe)
         q = numpy.sqrt(qx * qx + qy * qy + qz * qz)
-        # ratio = qz + q
-        # x = qx / ratio
-        # y = qy / ratio
-        return q, qx, qy
+        ratio = qz + q
+        xp = qx / ratio
+        yp = qy / ratio
+        return q, xp, yp
 
     def get_axis_labels(self) -> Tuple[str]:
-        return "Q", "Qx", "Qy"
+        return "Q", "xp", "yp"
 
 
-class QPolarProjection(QxQyQzProjection):
+class QzPolarProjection(QxQyQzProjection):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
-        qx, qy, qz = super(QPolarProjection, self).project(index, pdataframe)
+        qx, qy, qz = super(QzPolarProjection, self).project(index, pdataframe)
         phi = numpy.rad2deg(numpy.arctan2(qx, qy))
         q = numpy.sqrt(qx * qx + qy * qy + qz * qz)
         return phi, q, qz
 
     def get_axis_labels(self) -> Tuple[str]:
         return "Phi", "Q", "Qz"
+
+
+class QyPolarProjection(QxQyQzProjection):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
+        qx, qy, qz = super(QyPolarProjection, self).project(index, pdataframe)
+        phi = numpy.rad2deg(numpy.arctan2(qz, qx))
+        q = numpy.sqrt(qx * qx + qy * qy + qz * qz)
+        return phi, q, qy
+
+    def get_axis_labels(self) -> Tuple[str]:
+        return "Phi", "Q", "Qy"
+
+
+class QxPolarProjection(QxQyQzProjection):
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
+        qx, qy, qz = super(QxPolarProjection, self).project(index, pdataframe)
+        phi = numpy.rad2deg(numpy.arctan2(qz, -qy))
+        q = numpy.sqrt(qx * qx + qy * qy + qz * qz)
+        return phi, q, qx
+
+    def get_axis_labels(self) -> Tuple[str]:
+        return "Phi", "Q", "Qx"
 
 
 class QIndex(Stereo):
@@ -501,18 +526,15 @@ class QIndex(Stereo):
     def get_axis_labels(self) -> Tuple[str]:
         return "Q", "Index"
 
-
 class AnglesProjection(backend.ProjectionBase):
     def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
         # put the detector at the right position
 
         pixels = pdataframe.pixels
-        dataframe = pdataframe.dataframe
-        input_config = pdataframe.input_config
+        geometry = pdataframe.dataframe.diffractometer.geometry
+        detrot = pdataframe.input_config.detrot
+        sdd = pdataframe.input_config.sdd
 
-        pixels, k, UB, R, P, idx, timestamp, _surface_orientation = pdataframe
-
-        geometry = dataframe.diffractometer.geometry
         try:
             axis = geometry.axis_get("eta_a")
             eta_a = axis.value_get(Hkl.UnitEnum.USER)
@@ -535,16 +557,16 @@ class AnglesProjection(backend.ProjectionBase):
             gamma0 = 0
 
         P = M(math.radians(eta_a), [1, 0, 0])
-        if input_config.detrot is not None:
-            P = numpy.dot(P, M(math.radians(self.config.detrot), [1, 0, 0]))
+        if detrot is not None:
+            P = numpy.dot(P, M(math.radians(detrot), [1, 0, 0]))
 
         x, y, z = numpy.tensordot(P, pixels, axes=1)
 
-        delta = numpy.rad2deg(numpy.arcsin(y / z)) + delta0
-        gamma = numpy.rad2deg(numpy.arcsin(x / z)) + gamma0
+        delta = numpy.rad2deg(numpy.arctan(z / sdd)) + delta0
+        gamma = numpy.rad2deg(numpy.arctan(y / sdd)) + gamma0
         omega = numpy.ones_like(delta) * omega0
 
-        return (omega, delta, gamma)
+        return (delta, gamma, omega)
 
         # # on calcule le vecteur de l'axes de rotation de l'angle qui
         # # nous interesse. (ici delta et gamma). example delta (0, 1,
@@ -578,8 +600,53 @@ class AnglesProjection(backend.ProjectionBase):
         # return (omega, delta, gamma)
 
     def get_axis_labels(self) -> Tuple[str]:
-        return 'omega', 'delta', 'gamma'
+        return 'delta', 'gamma', 'omega'
 
+
+class AnglesProjection2(backend.ProjectionBase):    # omega <> mu
+    def project(self, index: int, pdataframe: PDataFrame) -> Tuple[ndarray]:
+        # put the detector at the right position
+
+        pixels = pdataframe.pixels
+        geometry = pdataframe.dataframe.diffractometer.geometry
+        detrot = pdataframe.input_config.detrot
+        sdd = pdataframe.input_config.sdd
+
+        try:
+            axis = geometry.axis_get("eta_a")
+            eta_a = axis.value_get(Hkl.UnitEnum.USER)
+        except GLib.GError as err:
+            eta_a = 0
+        try:
+            axis = geometry.axis_get("mu")
+            mu0 = axis.value_get(Hkl.UnitEnum.USER)
+        except GLib.GError as err:
+            mu0 = 0
+        try:
+            axis = geometry.axis_get("delta")
+            delta0 = axis.value_get(Hkl.UnitEnum.USER)
+        except GLib.GError as err:
+            delta0 = 0
+        try:
+            axis = geometry.axis_get("gamma")
+            gamma0 = axis.value_get(Hkl.UnitEnum.USER)
+        except GLib.GError as err:
+            gamma0 = 0
+
+        P = M(math.radians(eta_a), [1, 0, 0])
+        if detrot is not None:
+            P = numpy.dot(P, M(math.radians(detrot), [1, 0, 0]))
+
+        x, y, z = numpy.tensordot(P, pixels, axes=1)
+
+        delta = numpy.rad2deg(numpy.arctan(z / sdd)) + delta0
+        gamma = numpy.rad2deg(numpy.arctan(y / sdd)) + gamma0
+        mu = numpy.ones_like(delta) * mu0
+
+        return (delta, gamma, mu)
+
+    def get_axis_labels(self) -> Tuple[str]:
+        return 'delta', 'gamma', 'mu'
 
 ##################
 # Input Backends #
@@ -1102,6 +1169,41 @@ class SBSMedV(FlyScanUHV):
 
         return (image, attenuation, timestamp, (beta, mu, omega, gamma, delta, etaa))
 
+class SBSMedVFixDetector(SBSMedV):
+    HPATH = {
+        "image": DatasetPathWithAttribute("long_name", b"i14-c-c00/dt/eiger.1/image"),
+        "beta": DatasetPathContains("i14-c-cx1-ex-diff-med-tpp/TPP/Orientation/pitch"),
+        "mu": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-v-dif-group.1/mu"
+        ),
+        "omega": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-v-dif-group.1/omega"
+        ),
+        "gamma": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-v-dif-group.1/gamma"
+        ),
+        "delta": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-v-dif-group.1/delta"
+        ),
+        "etaa": DatasetPathWithAttribute(
+            "long_name", b"i14-c-cx1/ex/med-v-dif-group.1/etaa"
+        ),
+        "attenuation": DatasetPathWithAttribute("long_name", b"i14-c-c00/ex/roic/att"),
+        "timestamp": HItem("sensors_timestamps", True),
+    }
+
+    def get_values(self, index, h5_nodes):
+        image = h5_nodes["image"][index]
+        beta = h5_nodes["beta"][0]
+        mu = h5_nodes["mu"][index]
+        omega = h5_nodes["omega"][index]
+        gamma = 0
+        delta = 0
+        etaa = 0
+        attenuation = self.get_attenuation(index, h5_nodes, 2)
+        timestamp = self.get_timestamp(index, h5_nodes)
+
+        return (image, attenuation, timestamp, (beta, mu, omega, gamma, delta, etaa))
 
 def load_matrix(filename):
     if filename is None:
