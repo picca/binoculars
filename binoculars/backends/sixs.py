@@ -871,11 +871,11 @@ class FlyScanUHV(SIXS):
         return attenuation
 
     def get_timestamp(self, index, h5_nodes):
-        timestamp = None
-        try:
-            timestamp = h5_nodes["timestamp"][index]
-        except KeyError:
-            timestamp = index
+        timestamp = index
+        if "timestamp" in h5_nodes:
+            node = h5_nodes["timestamp"]
+            if node is not None:
+                timestamp = node[index]
         return timestamp
 
     def get_values(self, index, h5_nodes):
