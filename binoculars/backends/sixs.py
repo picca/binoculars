@@ -1001,7 +1001,6 @@ class FlyMedH(FlyScanUHV):
 
         return (image, attenuation, timestamp, (pitch, mu, gamma, delta))
 
-
 class SBSMedH(FlyScanUHV):
     HPATH = {
         "image": DatasetPathWithAttribute("long_name", b"i14-c-c00/dt/xpad.1/image"),
@@ -1125,6 +1124,20 @@ class FlyMedV(FlyScanUHV):
         timestamp = self.get_timestamp(index, h5_nodes)
 
         return (image, attenuation, timestamp, (beta, mu, omega, gamma, delta, etaa))
+
+
+class FLYMedVFixDetector(FlyMedV):
+    HPATH = {
+        "image": HItem("eiger_image", False),
+        "beta": HItem("beta", True),
+        "mu": HItem("mu", False),
+        "omega": HItem("omega", False),
+        "gamma": HItem("gamma", False),
+        "delta": HItem("delta", False),
+        "etaa": HItem("etaa", True),
+        "attenuation": HItem("attenuation", True),
+        "timestamp": HItem("epoch", True),
+    }
 
 
 class SBSMedV(FlyScanUHV):
