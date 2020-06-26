@@ -47,6 +47,7 @@ from pyFAI.detectors import ALL_DETECTORS
 
 from .soleil import (
     DatasetPathContains,
+    DatasetPathOr,
     DatasetPathWithAttribute,
     HItem,
     get_dataset,
@@ -1126,7 +1127,7 @@ class FlyMedV(FlyScanUHV):
         return (image, attenuation, timestamp, (beta, mu, omega, gamma, delta, etaa))
 
 
-class FLYMedVFixDetector(FlyMedV):
+class FLYMedVEiger(FlyMedV):
     HPATH = {
         "image": HItem("eiger_image", False),
         "beta": HItem("beta", True),
@@ -1137,7 +1138,105 @@ class FLYMedVFixDetector(FlyMedV):
         "etaa": HItem("etaa", True),
         "attenuation": HItem("attenuation", True),
         "timestamp": HItem("epoch", True),
+        "eix": DatasetPathOr( HItem("eix", True),
+                              DatasetPathContains("i14-c-cx1-dt-det_tx.1/position_pre")),
+        "eiz": DatasetPathOr( HItem("eiz", True),
+                              DatasetPathContains("i14-c-cx1-dt-det_tz.1/position_pre"))
     }
+
+    def get_translation(self, node, index, default):
+        res = default
+        if node:
+            if node.shape[0] == 1:
+                res = node[0]
+            else:
+                res = node[index]
+        return res
+
+    def get_values(self, index, h5_nodes):
+        image = h5_nodes["image"][index]
+        beta = h5_nodes["beta"][index] if h5_nodes["beta"] else 0.0  # degrees
+        mu = h5_nodes["mu"][index]  # degrees
+        omega = h5_nodes["omega"][index]  # degrees
+        gamma = 0  # degrees
+        delta = 0  # degrees
+        etaa = 0  # degrees
+        eix = self.get_translation(h5_nodes["eix"], index, 0.0)  # mm
+        eiz = self.get_translation(h5_nodes["eiz"], index, 0.0)  # mm
+        attenuation = self.get_attenuation(index, h5_nodes, 2)
+        timestamp = self.get_timestamp(index, h5_nodes)
+
+        return (image, attenuation, timestamp, eix, eiz, (beta, mu, omega, gamma, delta, etaa))
+
+    def process_image(
+        self, index, dataframe, pixels, mask
+    ) -> Optional[Tuple[ndarray, ndarray, Tuple[int, PDataFrame]]]:
+        util.status(str(index))
+
+        # extract the data from the h5 nodes
+
+        h5_nodes = dataframe.h5_nodes
+        intensity, attenuation, timestamp, eix, eiz, values = self.get_values(index, h5_nodes)
+
+        # TODO translate the detector, must be done after the detrot.
+        if eix != 0.0:
+            pixels[2] += eix * 1e-3
+        if eiz != 0.0:
+            pixels[1] += eiz * 1e-3
+
+        # the next version of the Hkl library will raise an exception
+        # if at least one of the values is Nan/-Inf or +Inf. Emulate
+        # this until we backported the right hkl library.
+        if not all([math.isfinite(v) for v in values]):
+            return None
+
+        if attenuation is not None:
+            if not math.isfinite(attenuation):
+                return None
+
+        # BEWARE in order to avoid precision problem we convert the
+        # uint16 -> float32. (the size of the mantis is on 23 bits)
+        # enought to contain the uint16. If one day we use uint32, it
+        # should be necessary to convert into float64.
+        intensity = intensity.astype("float32")
+
+        weights = None
+        if self.config.attenuation_coefficient is not None:
+            if attenuation != WRONG_ATTENUATION:
+                intensity *= self.config.attenuation_coefficient ** attenuation
+                weights = numpy.ones_like(intensity)
+                weights *= ~mask
+            else:
+                weights = numpy.zeros_like(intensity)
+        else:
+            weights = numpy.ones_like(intensity)
+            weights *= ~mask
+
+        k = 2 * math.pi / dataframe.source.wavelength
+
+        hkl_geometry = dataframe.diffractometer.geometry
+        hkl_geometry.axis_values_set(values, Hkl.UnitEnum.USER)
+
+        # sample
+        hkl_sample = dataframe.sample.sample
+        q_sample = hkl_geometry.sample_rotation_get(hkl_sample)
+        R = hkl_matrix_to_numpy(q_sample.to_matrix())
+
+        # detector
+        hkl_detector = dataframe.detector.detector
+        q_detector = hkl_geometry.detector_rotation_get(hkl_detector)
+        P = hkl_matrix_to_numpy(q_detector.to_matrix())
+
+        if self.config.detrot is not None:
+            P = numpy.dot(P, M(math.radians(self.config.detrot), [1, 0, 0]))
+
+        surface_orientation = self.config.surface_orientation
+
+        pdataframe = PDataFrame(
+            pixels, k, dataframe.sample.ub, R, P, index, timestamp, surface_orientation, dataframe, self.config
+        )
+
+        return intensity, weights, (index, pdataframe)
 
 
 class SBSMedV(FlyScanUHV):

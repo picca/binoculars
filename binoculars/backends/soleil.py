@@ -8,7 +8,6 @@ from ..util import as_string
 
 # Generic hdf5 access types.
 
-
 class DatasetPathContains(NamedTuple):
     path: Text
 
@@ -24,6 +23,10 @@ class HItem(NamedTuple):
 
 
 DatasetPath = Union[DatasetPathContains, DatasetPathWithAttribute, HItem]
+
+class DatasetPathOr(NamedTuple):
+    path1: DatasetPath
+    path2: DatasetPath
 
 
 def _v_attrs(attribute: Text, value: Text, _name: Text, obj) -> Dataset:
@@ -49,6 +52,10 @@ def get_dataset(h5file: File, path: DatasetPath) -> Optional[Dataset]:
         res = h5file.visititems(partial(_v_item, join("scan_data", path.name)))
         if not path.optional and res is None:
             raise Exception("Can not find : {}".format(path))
+    elif isinstance(path, DatasetPathOr):
+        res = get_dataset(h5file, path.path1)
+        if res is None:
+            res = get_dataset(h5file, path.path2)
     return res
 
 
