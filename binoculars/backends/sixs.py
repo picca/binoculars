@@ -1169,7 +1169,7 @@ class FLYMedVEiger(FlyMedV):
         return (image, attenuation, timestamp, eix, eiz, (beta, mu, omega, gamma, delta, etaa))
 
     def process_image(
-        self, index, dataframe, pixels, mask
+        self, index, dataframe, pixels0, mask
     ) -> Optional[Tuple[ndarray, ndarray, Tuple[int, PDataFrame]]]:
         util.status(str(index))
 
@@ -1179,6 +1179,7 @@ class FLYMedVEiger(FlyMedV):
         intensity, attenuation, timestamp, eix, eiz, values = self.get_values(index, h5_nodes)
 
         # TODO translate the detector, must be done after the detrot.
+        pixels = pixels0.copy()
         if eix != 0.0:
             pixels[2] += eix * 1e-3
         if eiz != 0.0:
