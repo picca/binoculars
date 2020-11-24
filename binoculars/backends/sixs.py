@@ -178,6 +178,8 @@ def get_detector(hfile, h5_nodes):
         det = Detector("xpad_flat", detector)
     elif s == (1065, 1030):
         det = Detector("eiger1m", detector)
+    elif s == (120, 560):
+        det = Detector("imxpads70", detector)
     else:
         det = Detector("imxpads140", detector)
     return det
