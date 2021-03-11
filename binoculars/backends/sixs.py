@@ -14,7 +14,7 @@
   along with the hkl library.  If not, see
   <http://www.gnu.org/licenses/>.
 
-  Copyright (C) 2015-2020 Synchrotron SOLEIL
+  Copyright (C) 2015-2021 Synchrotron SOLEIL
                           L'Orme des Merisiers Saint-Aubin
                           BP 48 91192 GIF-sur-YVETTE CEDEX
 
@@ -853,7 +853,7 @@ class FlyScanUHV(SIXS):
     def get_pointcount(self, scanno):
         # just open the file in order to extract the number of step
         with File(self.get_filename(scanno), "r") as scan:
-            return get_nxclass(scan, "NXdata")["xpad_image"].shape[0]
+            return get_dataset(self.HPATH["image"]).shape[0]
 
     def get_attenuation(self, index, h5_nodes, offset):
         attenuation = None
@@ -1128,6 +1128,18 @@ class FlyMedV(FlyScanUHV):
 
         return (image, attenuation, timestamp, (beta, mu, omega, gamma, delta, etaa))
 
+class FlyMedVS70(FlyMedV):
+    HPATH = {
+        "image": HItem("xpad_s70_image", False),
+        "beta": HItem("beta", True),
+        "mu": HItem("mu", False),
+        "omega": HItem("omega", False),
+        "gamma": HItem("gamma", False),
+        "delta": HItem("delta", False),
+        "etaa": HItem("etaa", True),
+        "attenuation": HItem("attenuation", True),
+        "timestamp": HItem("epoch", True),
+    }
 
 class FLYMedVEiger(FlyMedV):
     HPATH = {
