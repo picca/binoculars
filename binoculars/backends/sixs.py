@@ -853,7 +853,7 @@ class FlyScanUHV(SIXS):
     def get_pointcount(self, scanno):
         # just open the file in order to extract the number of step
         with File(self.get_filename(scanno), "r") as scan:
-            return get_dataset(self.HPATH["image"]).shape[0]
+            return get_dataset(scan, self.HPATH["image"]).shape[0]
 
     def get_attenuation(self, index, h5_nodes, offset):
         attenuation = None
