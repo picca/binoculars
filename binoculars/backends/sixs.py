@@ -180,8 +180,11 @@ def get_detector(hfile, h5_nodes):
         det = Detector("eiger1m", detector)
     elif s == (120, 560):
         det = Detector("imxpads70", detector)
+    elif s == (256, 257):
+        det = Detector("ufxc", detector)
     else:
         det = Detector("imxpads140", detector)
+
     return det
 
 
@@ -697,11 +700,7 @@ class SIXS(backend.InputBase):
             try:
                 for dataframe in dataframes(scan, self.HPATH, self.config):
                     pixels = self.get_pixels(dataframe.detector)
-                    detector = ALL_DETECTORS[dataframe.detector.name]()
-                    mask = detector.mask.astype(numpy.bool)
-                    maskmatrix = load_matrix(self.config.maskmatrix)
-                    if maskmatrix is not None:
-                        mask = numpy.bitwise_or(mask, maskmatrix)
+                    mask = self.get_mask(dataframe.detector, self.config.maskmatrix)
 
                     for index in range(job.firstpoint, job.lastpoint + 1):
                         res = self.process_image(index, dataframe, pixels, mask)
@@ -958,7 +957,12 @@ class FlyScanUHV(SIXS):
 
     def get_pixels(self, detector):
         # works only for flat detector.
-        detector = ALL_DETECTORS[detector.name]()
+        if detector.name == "ufxc":
+            mask_shape = (256, 257)
+            detector = PyFAI.detectors.Detector(75e-6, 75e-6, splineFile=None, max_shape=max_shape)
+        else:
+            detector = ALL_DETECTORS[detector.name]()
+
         y, x, _ = detector.calc_cartesian_positions()
         y0 = y[self.config.centralpixel[1], self.config.centralpixel[0]]
         x0 = x[self.config.centralpixel[1], self.config.centralpixel[0]]
@@ -969,10 +973,33 @@ class FlyScanUHV(SIXS):
         # z -> -x
         return numpy.array([-z, -(x - x0), (y - y0)])
 
+    def get_mask(self, detector: Detector, fnmask: Optional[str]=None) -> ndarray:
+        if detector.name == "ufxc":
+            mask = zeros((256, 257)).astype(bool)
+        else:
+            detector = ALL_DETECTORS[detector.name]()
+            mask = detector.mask.astype(numpy.bool)
+        maskmatrix = load_matrix(fnmask)
+        if maskmatrix is not None:
+            mask = numpy.bitwise_or(mask, maskmatrix)
+
+        return mask
+
 
 class FlyScanUHV2(FlyScanUHV):
     HPATH = {
         "image": HItem("xpad_image", False),
+        "mu": HItem("mu", False),
+        "omega": HItem("omega", False),
+        "delta": HItem("delta", False),
+        "gamma": HItem("gamma", False),
+        "attenuation": HItem("attenuation", True),
+        "timestamp": HItem("epoch", True),
+    }
+
+class FlyScanUHVUfxc(FlyScanUHV):
+    HPATH = {
+        "image": HItem("ufxc_sixs_image", False),
         "mu": HItem("mu", False),
         "omega": HItem("omega", False),
         "delta": HItem("delta", False),
