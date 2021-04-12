@@ -32,6 +32,8 @@ import math
 import os
 import sys
 
+import pyFAI
+
 from enum import Enum
 from math import cos, sin
 
@@ -958,8 +960,8 @@ class FlyScanUHV(SIXS):
     def get_pixels(self, detector):
         # works only for flat detector.
         if detector.name == "ufxc":
-            mask_shape = (256, 257)
-            detector = PyFAI.detectors.Detector(75e-6, 75e-6, splineFile=None, max_shape=max_shape)
+            max_shape = (256, 257)
+            detector = pyFAI.detectors.Detector(75e-6, 75e-6, splineFile=None, max_shape=max_shape)
         else:
             detector = ALL_DETECTORS[detector.name]()
 
@@ -975,7 +977,7 @@ class FlyScanUHV(SIXS):
 
     def get_mask(self, detector: Detector, fnmask: Optional[str]=None) -> ndarray:
         if detector.name == "ufxc":
-            mask = zeros((256, 257)).astype(bool)
+            mask = numpy.zeros((256, 257)).astype(bool)
         else:
             detector = ALL_DETECTORS[detector.name]()
             mask = detector.mask.astype(numpy.bool)
