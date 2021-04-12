@@ -30,13 +30,13 @@ scripts = [
     ]
 ]
 
-install_requires = ["h5py", "numpy", "matplotlib", "pyFAI", "PyMca5", "PyQt5"]
+install_requires = ["h5py", "numpy", "matplotlib", "pyFAI", "PyGObject", "PyMca5", "PyQt5", "xrayutilities"]
 # for now there is not egg info for vtk
 #                    'vtk'
 
 setup(
     name="binoculars",
-    version="0.0.5-dev",
+    version="0.0.5",
     description=description,
     long_description=long_description,
     packages=find_packages(exclude=["*.test", "*.test.*", "test.*", "test", "grafit"]),
