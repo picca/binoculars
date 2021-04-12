@@ -15,7 +15,13 @@ class DraggableColorbar(object):
         self.cycle = sorted(
             [i for i in dir(matplotlib.cm) if hasattr(getattr(matplotlib.cm, i), "N")]
         )
-        self.index = self.cycle.index(cbar.get_cmap().name)
+
+        try:  # matploltib 2.x
+            cmap_name = cbar.get_cmap().name
+        except AttributeError:  # matplotlib 3.x
+            cmap_name = mappable.get_cmap().name
+
+        self.index = self.cycle.index(cmap_name)
         self.canvas = self.cbar.patch.figure.canvas
 
     def connect(self):
