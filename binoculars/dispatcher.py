@@ -1,3 +1,5 @@
+from typing import Any, Dict, Tuple
+
 import os
 import time
 import itertools
@@ -9,7 +11,7 @@ from . import util, errors, space
 
 class Destination(object):
     type = filename = overwrite = value = config = limits = None
-    opts = {}
+    opts = {}  # type: Dict[Any, Any]
 
     def set_final_filename(self, filename, overwrite):
         self.type = "final"
@@ -149,7 +151,7 @@ class SingleCore(DispatcherBase):
 
 # Base class for Dispatchers using subprocesses to do some work.
 class ReentrantBase(DispatcherBase):
-    actions = ("user",)
+    actions = ("user",)  # type: Tuple[str, ...]
 
     def parse_config(self, config):
         super(ReentrantBase, self).parse_config(config)

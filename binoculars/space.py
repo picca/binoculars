@@ -1,13 +1,14 @@
-from typing import Iterable, List
+from typing import Generator, Iterable, List, Optional, Union
 
 import math
-import numbers
 
 import numpy
 
 from functools import reduce
 from itertools import chain
+from numbers import Number
 
+from numpy import ndarray
 from vtk import vtkImageData, vtkXMLImageDataWriter
 from vtk.util import numpy_support
 
@@ -99,7 +100,7 @@ class Axis(object):
             raise IndexError("unknown key {0!r}".format(key))
 
     def get_index(self, value):
-        if isinstance(value, numbers.Number):
+        if isinstance(value, Number):
             intvalue = int(round(value / self.res))
             if self.imin <= intvalue <= self.imax:
                 return intvalue - self.imin
@@ -160,7 +161,7 @@ class Axis(object):
         return self.res == other.res and self.label == other.label
 
     def __contains__(self, other):
-        if isinstance(other, numbers.Number):
+        if isinstance(other, Number):
             return self.min <= other <= self.max
         elif isinstance(other, Axis):
             return (
@@ -184,30 +185,41 @@ class Axis(object):
             self, len(self)
         )
 
-    def restrict(self, value):  # Useful for plotting
-        if isinstance(value, numbers.Number):
-            if value < self.min:
-                return self.min
-            elif value > self.max:
-                return self.max
-            else:
-                return value
+    def restrict_float(self, value: float) -> float:
+        if value < self.min:
+            return self.min
+        elif value > self.max:
+            return self.max
+        else:
+            return value
+
+    def restrict_slice(self, value: slice) -> slice:
+        if value.step is not None:
+            raise IndexError("stride not supported")
+
+        v = value.start # type: Optional[float]
+        if value.start is None:
+            start = None
+        else:
+            start = self.restrict_float(value.start)
+
+        if value.stop is None:
+            stop = None
+        else:
+            stop = self.restrict_float(value.stop)
+
+        if value.stop == self.max:
+            stop = None
+
+        if start is not None and stop is not None and start > stop:
+            start, stop = stop, start
+        return slice(start, stop)
+
+    def restrict(self, value: Union[float, slice]) -> Union[float, slice]:
+        if isinstance(value, float):
+            return self.restrict_float(value)
         elif isinstance(value, slice):
-            if value.step is not None:
-                raise IndexError("stride not supported")
-            if value.start is None:
-                start = None
-            else:
-                start = self.restrict(value.start)
-            if value.stop is None:
-                stop = None
-            if value.stop == self.max:
-                stop = None
-            else:
-                stop = self.restrict(value.stop)
-            if start is not None and stop is not None and start > stop:
-                start, stop = stop, start
-            return slice(start, stop)
+            return self.restrict_slice(value)
 
 
 class Axes(object):
@@ -508,7 +520,7 @@ class Space(object):
         self, key
     ):  # needed in the fitaid for visualising the interpolated data
         """Convert the n-dimensional interval described by key (as used by e.g. __getitem__()) from data coordinates to indices."""
-        if isinstance(key, numbers.Number) or isinstance(key, slice):
+        if isinstance(key, Number) or isinstance(key, slice):
             if not len(self.axes) == 1:
                 raise IndexError("dimension mismatch")
             else:
@@ -580,7 +592,7 @@ class Space(object):
         )
 
     def __add__(self, other):
-        if isinstance(other, numbers.Number):
+        if isinstance(other, Number):
             new = self.copy()
             new.photons += other * self.contributions
             return new
@@ -599,7 +611,7 @@ class Space(object):
         return new
 
     def __iadd__(self, other):
-        if isinstance(other, numbers.Number):
+        if isinstance(other, Number):
             self.photons += other * self.contributions
             return self
         if not isinstance(other, Space):
@@ -635,7 +647,7 @@ class Space(object):
         return self.__iadd__(other * -1)
 
     def __mul__(self, other):
-        if isinstance(other, numbers.Number):
+        if isinstance(other, Number):
             new = self.__class__(self.axes, self.config, self.metadata)
             # we would like to keep 1/contributions as the variance
             # var(aX) = a**2var(X)
@@ -1004,7 +1016,7 @@ def sum(spaces):
     return newspace
 
 
-def verse_sum(verses: List[Multiverse]) -> Multiverse:
+def verse_sum(verses: Generator[Multiverse, None, None]) -> Multiverse:
     i = iter(M.spaces for M in verses)
     return Multiverse(sum(spaces) for spaces in zip(*i))
 
@@ -1012,7 +1024,7 @@ def verse_sum(verses: List[Multiverse]) -> Multiverse:
 # hybrid sum() / __iadd__()
 
 
-def chunked_sum(verses: Iterable[Multiverse], chunksize=10) -> Multiverse:
+def chunked_sum(verses: Iterable[Multiverse], chunksize=10) -> Union[EmptyVerse, Multiverse]:
     """Calculate sum of iterable of Multiverse instances. Creates intermediate sums to avoid growing a large space at every summation.
 
     verses     iterable of Multiverse instances
@@ -1034,7 +1046,7 @@ def iterate_over_axis(space, axis, resolution=None):
             yield space.slice(axis, value)
 
 
-def get_axis_values(axes, axis, resolution=None):
+def get_axis_values(axes, axis, resolution=None) -> ndarray:
     ax = axes[axes.index(axis)]
     if resolution:
         bins = get_bins(ax, resolution)
