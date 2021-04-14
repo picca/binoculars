@@ -1,5 +1,6 @@
 from typing import Iterable, List
 
+import math
 import numbers
 
 import numpy
@@ -46,11 +47,11 @@ class Axis(object):
         if isinstance(min, int):
             self.imin = min
         else:
-            self.imin = int(numpy.floor(min / self.res))
+            self.imin = math.floor(min / self.res)
         if isinstance(max, int):
             self.imax = max
         else:
-            self.imax = int(numpy.ceil(max / self.res))
+            self.imax = math.ceil(max / self.res)
         self.label = label
 
     @property
@@ -1064,7 +1065,7 @@ def get_bins(ax, resolution):
         )
 
     mi, ma = ax.min, ax.max
-    return numpy.linspace(mi, ma, numpy.ceil(1 / numpy.float(resolution) * (ma - mi)))
+    return numpy.linspace(mi, ma, math.ceil(1.0 / resolution * (ma - mi)))
 
 
 def dstack(spaces, dindices, dlabel, dresolution):
