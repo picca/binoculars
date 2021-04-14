@@ -1,3 +1,9 @@
+binoculars (0.0.6-1) unstable; urgency=medium
+
+  * New upstream version 0.0.6
+
+ -- Picca Frédéric-Emmanuel <picca@debian.org>  Wed, 14 Apr 2021 14:06:06 +0200
+
 binoculars (0.0.5-1) unstable; urgency=medium
 
   * New upstream version 0.0.5 (Closes: #923859, #924024, #986785)
