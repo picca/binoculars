@@ -218,7 +218,7 @@ class Lorentzian1DNoBkg(PeakFitBase):
     @staticmethod
     def func(grid, params):
         (x,) = grid
-        (I, loc, gamma) = xxx_todo_changeme3
+        (I, loc, gamma) = undefined  # TODO
         return I / ((x - loc) ** 2 + gamma ** 2)
 
     def set_guess(self, maximum, argmax, linparams):

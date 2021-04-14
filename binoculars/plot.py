@@ -59,7 +59,7 @@ class DraggableColorbar(object):
         if self.press is None or event.inaxes != self.cbar.ax:
             return
         xprev, yprev = self.press
-        dx = event.x - xprev
+        # dx = event.x - xprev  # unused for now
         dy = event.y - yprev
         self.press = event.x, event.y
 
