@@ -1,15 +1,12 @@
 from typing import Iterable, List
 
 import numbers
-import sys
 
-import h5py
 import numpy
 
 from functools import reduce
 from itertools import chain
 
-from numpy import ndarray
 from vtk import vtkImageData, vtkXMLImageDataWriter
 from vtk.util import numpy_support
 
@@ -457,7 +454,7 @@ class Space(object):
         elif not conf:
             self._config = util.ConfigFile()
         else:
-            raise TypeError("'{0!r}' is not a util.ConfigFile".format(space))
+            raise TypeError("'{0!r}' is not a util.ConfigFile".format(conf))
 
     @property
     def metadata(self):
@@ -471,7 +468,7 @@ class Space(object):
         elif not metadata:
             self._metadata = util.MetaData()
         else:
-            raise TypeError("'{0!r}' is not a util.MetaData".format(space))
+            raise TypeError("'{0!r}' is not a util.MetaData".format(metadata))
 
     def copy(self):
         """Returns a copy of self. Numpy data is not shared, but the Axes object is."""
@@ -672,6 +669,7 @@ class Space(object):
             return self
 
         # gather data and transform
+        labels = list(ax.label for ax in self.axes)
         coords = self.get_grid()
         intensity = self.get()
         weights = self.contributions
@@ -778,7 +776,6 @@ class Space(object):
 
         spacing = tuple(a.res for a in self.axes.axes)
         origin = tuple(a.min for a in self.axes.axes)
-        dimensions = data.shape
         name = str(tuple(a.label for a in self.axes.axes))
 
         image_data = vtkImageData()
