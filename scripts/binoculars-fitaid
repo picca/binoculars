@@ -16,7 +16,6 @@ import numpy
 from matplotlib.backends.backend_qt5agg import (
     FigureCanvasQTAgg, NavigationToolbar2QT)
 from matplotlib.pyplot import Rectangle
-
 from PyQt5.Qt import (Qt)
 from PyQt5.QtCore import (pyqtSignal)
 from PyQt5.QtWidgets import (
@@ -26,32 +25,14 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QSplitter, QTableWidgetItem, QTableWidget,
     QLabel, QLineEdit, QMainWindow, QWidget, QComboBox,
     QProgressDialog, QDoubleSpinBox)
-
 from scipy.interpolate import griddata
 from scipy.spatial.qhull import QhullError
 
-
-def set_src():
-    import sys
-    import os.path as osp
-    dirpath = osp.join(osp.dirname(osp.abspath(__file__)), osp.pardir)
-    sys.path.insert(0, osp.abspath(dirpath))
-
-
-try:
-    import binoculars.main
-    import binoculars.space
-    import binoculars.plot
-    import binoculars.fit
-    import binoculars.util
-except ImportError:
-    # try to use code from src distribution
-    set_src()
-    import binoculars.main
-    import binoculars.space
-    import binoculars.plot
-    import binoculars.fit
-    import binoculars.util
+import binoculars.main
+import binoculars.space
+import binoculars.plot
+import binoculars.fit
+import binoculars.util
 
 
 class Window(QMainWindow):
