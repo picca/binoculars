@@ -767,10 +767,10 @@ class HiddenToolbar(NavigationToolbar2QT):
             limits.append([a.get_xlim(), a.get_ylim()])
         return limits
 
-    def press(self, event):
+    def press_zoom(self, event):
         self._corner_preclick = self._generate_key()
 
-    def release(self, event):
+    def release_zoom(self, event):
         if self._corner_preclick == self._generate_key():
             self._corner_callback(event.xdata, event.ydata)
         self._corner_preclick = None
