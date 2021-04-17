@@ -870,14 +870,17 @@ class FitWidget(QWidget):
             return self.database.load_loc(self.currentindex())
         return None
 
-    def currentindex(self) -> int:
+    def currentindex(self) -> Optional[int]:
         if self.database is not None:
             index = self.database.load('', 'index')
             if index is None:
                 return 0
             else:
-                return index
-        return 0
+                if index < 0:  # deal with wrong values
+                    return None
+                else:
+                    return index
+        return None
 
 
 class IntegrateWidget(QWidget):
