@@ -746,12 +746,13 @@ class TableWidget(QWidget):
         print('removed: {0}'.format(rodkey))
 
     def setlength(self, y: int, x: int=1) -> None:
-        if x == 1:
-            self.activeindex = y
-            rodkey, axis, resolution = self.currentkey()
-            self.database.save(rodkey, 'axis', axis)
-            self.database.save(rodkey, 'resolution', resolution)
-            self.trigger.emit()
+        if self.database is not None:
+            if x == 1:
+                self.activeindex = y
+                rodkey, axis, resolution = self.database.currentkey()
+                self.database.save(rodkey, 'axis', axis)
+                self.database.save(rodkey, 'resolution', resolution)
+                self.trigger.emit()
 
     def currentkey(self) -> Tuple[Any, str, float]:
         rodkey = self.table.cellWidget(self.activeindex, 0).rodkey
@@ -816,7 +817,8 @@ class FitWidget(QWidget):
 
     def loc_callback(self, x: int, y: int) -> None:
         if self.database is not None and self.ax:
-            self.database.save_loc(self.currentindex(), numpy.array([x, y]))
+            self.database.save_loc(self.currentindex(),
+                                   numpy.array([x, y]))
 
     def plot(self, index: Optional[int]=None) -> None:
         if self.database is not None:
@@ -1133,7 +1135,7 @@ class IntegrateWidget(QWidget):
 
     def get_loc(self):
         if self.database is not None:
-            index = self.currentindex()
+            index = self.database.currentindex()
             if self.fromfit.isChecked():
                 return self.database.load_loc(index)
             else:
@@ -1143,10 +1145,10 @@ class IntegrateWidget(QWidget):
     def loc_callback(self, x: int, y: int) -> None:
         if self.ax and self.database is not None:
             if self.fromfit.isChecked():
-                self.database.save_loc(
-                    self.currentindex(), numpy.array([x, y]))
+                self.database.save_loc(self.database.currentindex(),
+                                       numpy.array([x, y]))
             else:
-                index = self.currentindex()
+                index = self.database.currentindex()
                 indexvalue = self.database.get_index_value(index)
                 self.parent().peakwidget.add_row(numpy.array([indexvalue, x, y]))
             self.plot_box()
@@ -1154,7 +1156,7 @@ class IntegrateWidget(QWidget):
     def plot(self, index: Optional[int]=None):
         if self.database is not None:
             if index is None:
-                index = self.currentindex()
+                index = self.database.currentindex()
             space = self.database.space_from_index(index)
             interdata = self.database.load_data(index, 'inter')
             info = self.database.get_index_value(index)
@@ -1204,15 +1206,6 @@ class IntegrateWidget(QWidget):
                                 alpha=0.2, color='r')
                 ax.add_patch(bkg)
             self.canvas.draw()
-
-    def currentindex(self) -> int:
-        if self.database is not None:
-            index = self.database.load('', 'index')
-            if index is None:
-                return 0
-            else:
-                return index
-        return 0
 
 
 class ButtonedSlider(QWidget):
