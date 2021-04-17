@@ -155,9 +155,8 @@ class RodData(FitData):
 
     def get_key(self, index: int) -> List[slice]:
         axes = self.axdict[self.rodkey]
-        print(self.axis)
         bins, ax, axindex = self.get_bins()
-        assert len(bins) < index, (bins, index)
+        assert len(bins) > index, (bins, index)
         start, stop = bins[index], bins[index + 1]
         k = [slice(None) for i in axes]
         k[axindex] = slice(start, stop)
@@ -329,7 +328,7 @@ class RodData(FitData):
     def currentindex(self) -> Optional[int]:
         index = self.load_int('index')
         if index is not None:
-            if index < 0:  # deal with no selection
+            if index < 0 or index >= self.rodlength():  # deal with no selection
                 index = None
         return index
 
