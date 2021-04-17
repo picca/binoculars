@@ -98,7 +98,7 @@ class FitData(object):
         with h5py.File(self.filename, 'a') as db:
             db[rodkey].attrs[str(key)] = value
 
-    def load(self, rodkey: str, key: Any) -> Optional[int]:
+    def load(self, rodkey: str, key: Any) -> Optional[Any]:
         with h5py.File(self.filename, 'a') as db:
             if rodkey in db:
                 if key in db[rodkey].attrs:
@@ -294,7 +294,7 @@ class RodData(FitData):
     def save(self, _rodkey: str, key: Any, value: Any) -> None:
         return super(RodData, self).save(self.rodkey, key, value)
 
-    def load(self, _rodkey: str, key: Any) -> Optional[int]:
+    def load(self, _rodkey: str, key: Any) -> Optional[Any]:
         return super(RodData, self).load(self.rodkey, key)
 
     def __iter__(self) -> Generator[Space, None, None]:
@@ -1000,7 +1000,7 @@ class IntegrateWidget(QWidget):
 
             aroundroi = self.database.load('', 'aroundroi')
             if aroundroi is not None:
-                self.aroundroi.setChecked(aroundroi)
+                self.aroundroi.setChecked(aroundroi != 0)
             else:
                 self.aroundroi.setChecked(True)
             self.refresh_aroundroi()
@@ -1020,7 +1020,7 @@ class IntegrateWidget(QWidget):
             self.bottom.setSingleStep(axes[0].res)
             self.bottom.setDecimals(len(str(axes[0].res)) - 2)
 
-            tracker = self.database.load('fromfit')
+            tracker = self.database.load('', 'fromfit')
             if tracker is not None:
                 if tracker:
                     self.fromfit.setChecked(True)
@@ -1036,65 +1036,67 @@ class IntegrateWidget(QWidget):
         if self.database is not None:
             roi = [self.hsize.value(), self.vsize.value(), self.left.value(),
                    self.right.value(), self.top.value(), self.bottom.value()]
-            self.database.save('roi', roi)
+            self.database.save('', 'roi', roi)
             self.plot_box()
 
     def integrate(self, index: int, space: Space) -> None:
         loc = self.get_loc()
+
         if loc is not None:
             axes = space.axes
 
             key = space.get_key(self.intkey(loc, axes))
 
-            fitdata = self.database.load_data(index, 'fit')
-            if fitdata is not None:
-                fitintensity = fitdata[key].data.flatten()
-                fitbkg = numpy.hstack([fitdata[space.get_key(bkgkey)].data.flatten()  # noqa
-                                       for bkgkey in self.bkgkeys(loc, axes)])
-                if numpy.alen(fitbkg) == 0:
-                    fitstructurefactor = fitintensity.sum()
-                elif numpy.alen(fitintensity) == 0:
-                    fitstructurefactor = numpy.nan
+            if self.database is not None:
+                fitdata = self.database.load_data(index, 'fit')
+                if fitdata is not None:
+                    fitintensity = fitdata[key].data.flatten()
+                    fitbkg = numpy.hstack([fitdata[space.get_key(bkgkey)].data.flatten()  # noqa
+                                           for bkgkey in self.bkgkeys(loc, axes)])
+                    if numpy.alen(fitbkg) == 0:
+                        fitstructurefactor = fitintensity.sum()
+                    elif numpy.alen(fitintensity) == 0:
+                        fitstructurefactor = numpy.nan
+                    else:
+                        fitstructurefactor = numpy.sqrt(fitintensity.sum() - numpy.alen(fitintensity) * 1.0 / numpy.alen(fitbkg) * fitbkg.sum())  # noqa
+                    self.database.save_sliceattr(
+                        index, 'fitsf', fitstructurefactor)
+
+                niintensity = space[
+                    self.intkey(loc, axes)].get_masked().compressed()
+
+                try:
+                    intensity = interpolate(
+                        space[self.intkey(loc, axes)]).flatten()
+                    bkg = numpy.hstack([space[bkgkey].get_masked().compressed()
+                                        for bkgkey in self.bkgkeys(loc, axes)])
+                    interdata = space.get_masked()
+                    interdata[key] = intensity.reshape(interdata[key].shape)
+                    interdata[key].mask = numpy.zeros_like(interdata[key])
+                    self.database.save_data(index, 'inter',  interdata)
+                except ValueError as e:
+                    print('Warning error interpolating silce {0}: {1}'.format(index, e))  # noqa
+                    intensity = numpy.array([])
+                    bkg = numpy.array([])
+                except QhullError as e:
+                    print('Warning error interpolating silce {0}: {1}'.format(index, e))  # noqa
+                    intensity = numpy.array([])
+                    bkg = numpy.array([])
+
+                if numpy.alen(intensity) == 0:
+                    structurefactor = numpy.nan
+                    nistructurefactor = numpy.nan
+                elif numpy.alen(bkg) == 0:
+                    structurefactor = numpy.sqrt(intensity.sum())
+                    nistructurefactor = numpy.sqrt(niintensity.sum())
                 else:
-                    fitstructurefactor = numpy.sqrt(fitintensity.sum() - numpy.alen(fitintensity) * 1.0 / numpy.alen(fitbkg) * fitbkg.sum())  # noqa
-                self.database.save_sliceattr(
-                    index, 'fitsf', fitstructurefactor)
+                    structurefactor = numpy.sqrt(intensity.sum() - numpy.alen(intensity) * 1.0 / numpy.alen(bkg) * bkg.sum())  # noqa
+                    nistructurefactor = numpy.sqrt(niintensity.sum() - numpy.alen(niintensity) * 1.0 / numpy.alen(bkg) * bkg.sum())  # noqa
 
-            niintensity = space[
-                self.intkey(loc, axes)].get_masked().compressed()
+                self.database.save_sliceattr(index, 'sf', structurefactor)
+                self.database.save_sliceattr(index, 'nisf', nistructurefactor)
 
-            try:
-                intensity = interpolate(
-                    space[self.intkey(loc, axes)]).flatten()
-                bkg = numpy.hstack([space[bkgkey].get_masked().compressed()
-                                    for bkgkey in self.bkgkeys(loc, axes)])
-                interdata = space.get_masked()
-                interdata[key] = intensity.reshape(interdata[key].shape)
-                interdata[key].mask = numpy.zeros_like(interdata[key])
-                self.database.save_data(index, 'inter',  interdata)
-            except ValueError as e:
-                print('Warning error interpolating silce {0}: {1}'.format(index, e))  # noqa
-                intensity = numpy.array([])
-                bkg = numpy.array([])
-            except QhullError as e:
-                print('Warning error interpolating silce {0}: {1}'.format(index, e))  # noqa
-                intensity = numpy.array([])
-                bkg = numpy.array([])
-
-            if numpy.alen(intensity) == 0:
-                structurefactor = numpy.nan
-                nistructurefactor = numpy.nan
-            elif numpy.alen(bkg) == 0:
-                structurefactor = numpy.sqrt(intensity.sum())
-                nistructurefactor = numpy.sqrt(niintensity.sum())
-            else:
-                structurefactor = numpy.sqrt(intensity.sum() - numpy.alen(intensity) * 1.0 / numpy.alen(bkg) * bkg.sum())  # noqa
-                nistructurefactor = numpy.sqrt(niintensity.sum() - numpy.alen(niintensity) * 1.0 / numpy.alen(bkg) * bkg.sum())  # noqa
-
-            self.database.save_sliceattr(index, 'sf', structurefactor)
-            self.database.save_sliceattr(index, 'nisf', nistructurefactor)
-
-            print('Structurefactor {0}: {1}'.format(index, structurefactor))
+                print('Structurefactor {0}: {1}'.format(index, structurefactor))
 
     def intkey(self, coords: List[float], axes: List[Axis]) -> Tuple[slice, ...]:
         vsize = self.vsize.value() / 2
@@ -1103,41 +1105,43 @@ class IntegrateWidget(QWidget):
                      for ax, coord, size in zip(axes, coords, [vsize, hsize]))
 
     def bkgkeys(self, coords: List[Any], axes: List[Axis]):
-        aroundroi = self.database.load('aroundroi')
-        if aroundroi:
-            key = self.intkey(coords, axes)
+        if self.database is not None:
+            aroundroi = self.database.load('', 'aroundroi')
+            if aroundroi:
+                key = self.intkey(coords, axes)
 
-            vsize = self.vsize.value() / 2
-            hsize = self.hsize.value() / 2
+                vsize = self.vsize.value() / 2
+                hsize = self.hsize.value() / 2
 
-            leftkey = (key[0], axes[1].restrict(slice(coords[1] - hsize - self.left.value(),
-                                                      coords[1] - hsize)))
-            rightkey = (key[0], axes[1].restrict(slice(coords[1] + hsize,
-                                                       coords[1] + hsize + self.right.value())))
-            topkey = (axes[0].restrict(slice(coords[0] - vsize - self.top.value(),
-                                             coords[0] - vsize)),
-                      key[1])
-            bottomkey = (axes[0].restrict(slice(coords[0] + vsize,
-                                                coords[0] + vsize + self.bottom.value())),
-                         key[1])
+                leftkey = (key[0], axes[1].restrict(slice(coords[1] - hsize - self.left.value(),
+                                                          coords[1] - hsize)))
+                rightkey = (key[0], axes[1].restrict(slice(coords[1] + hsize,
+                                                           coords[1] + hsize + self.right.value())))
+                topkey = (axes[0].restrict(slice(coords[0] - vsize - self.top.value(),
+                                                 coords[0] - vsize)),
+                          key[1])
+                bottomkey = (axes[0].restrict(slice(coords[0] + vsize,
+                                                    coords[0] + vsize + self.bottom.value())),
+                             key[1])
 
-            return leftkey, rightkey, topkey, bottomkey
-        else:
-            return [(axes[0].restrict(slice(self.left.value(),
-                                            self.right.value())),
-                     axes[1].restrict(slice(self.top.value(),
-                                            self.bottom.value())))]
+                return leftkey, rightkey, topkey, bottomkey
+            else:
+                return [(axes[0].restrict(slice(self.left.value(),
+                                                self.right.value())),
+                         axes[1].restrict(slice(self.top.value(),
+                                                self.bottom.value())))]
 
-    def get_loc(self) -> Any:
-        index = self.currentindex()
-        if self.fromfit.isChecked():
-            return self.database.load_loc(index)
-        else:
-            indexvalue = self.database.get_index_value(index)
-            return self.parent().peakwidget.get_coords(indexvalue)
+    def get_loc(self):
+        if self.database is not None:
+            index = self.currentindex()
+            if self.fromfit.isChecked():
+                return self.database.load_loc(index)
+            else:
+                indexvalue = self.database.get_index_value(index)
+                return self.parent().peakwidget.get_coords(indexvalue)
 
     def loc_callback(self, x: int, y: int) -> None:
-        if self.ax:
+        if self.ax and self.database is not None:
             if self.fromfit.isChecked():
                 self.database.save_loc(
                     self.currentindex(), numpy.array([x, y]))
@@ -1148,36 +1152,37 @@ class IntegrateWidget(QWidget):
             self.plot_box()
 
     def plot(self, index: Optional[int]=None):
-        if index is None:
-            index = self.currentindex()
-        space = self.database.space_from_index(index)
-        interdata = self.database.load_data(index, 'inter')
-        info = self.database.get_index_value(index)
-        label = self.database.axis
+        if self.database is not None:
+            if index is None:
+                index = self.currentindex()
+            space = self.database.space_from_index(index)
+            interdata = self.database.load_data(index, 'inter')
+            info = self.database.get_index_value(index)
+            label = self.database.axis
 
-        self.figure.clear()
-        self.figure.space_axes = space.axes
+            self.figure.clear()
+            self.figure.space_axes = space.axes
 
-        if interdata is not None:
-            if space.dimension == 1:
+            if interdata is not None:
+                if space.dimension == 1:
+                    self.ax = self.figure.add_subplot(111)
+                    binoculars.plot.plot(
+                        space, self.figure, self.ax, fit=interdata)
+                elif space.dimension == 2:
+                    self.ax = self.figure.add_subplot(121)
+                    binoculars.plot.plot(space, self.figure, self.ax, fit=None)
+                    self.ax = self.figure.add_subplot(122)
+                    binoculars.plot.plot(
+                        space, self.figure, self.ax, fit=interdata)
+            else:
                 self.ax = self.figure.add_subplot(111)
-                binoculars.plot.plot(
-                    space, self.figure, self.ax, fit=interdata)
-            elif space.dimension == 2:
-                self.ax = self.figure.add_subplot(121)
-                binoculars.plot.plot(space, self.figure, self.ax, fit=None)
-                self.ax = self.figure.add_subplot(122)
-                binoculars.plot.plot(
-                    space, self.figure, self.ax, fit=interdata)
-        else:
-            self.ax = self.figure.add_subplot(111)
-            binoculars.plot.plot(space, self.figure, self.ax)
+                binoculars.plot.plot(space, self.figure, self.ax)
 
-        self.figure.suptitle('{0}, res = {1}, {2} = {3}'.format(
-            self.database.rodkey, self.database.resolution, label, info))
+            self.figure.suptitle('{0}, res = {1}, {2} = {3}'.format(
+                self.database.rodkey, self.database.resolution, label, info))
 
-        self.plot_box()
-        self.canvas.draw()
+            self.plot_box()
+            self.canvas.draw()
 
     def plot_box(self) -> None:
         loc = self.get_loc()
@@ -1201,11 +1206,13 @@ class IntegrateWidget(QWidget):
             self.canvas.draw()
 
     def currentindex(self) -> int:
-        index = self.database.load('index')
-        if index is None:
-            return 0
-        else:
-            return index
+        if self.database is not None:
+            index = self.database.load('', 'index')
+            if index is None:
+                return 0
+            else:
+                return index
+        return 0
 
 
 class ButtonedSlider(QWidget):
@@ -1478,18 +1485,19 @@ class PeakWidget(QWidget):
         self.setLayout(vbox)
 
     def set_axis(self) -> None:
-        self.axes = self.database.paxes()
-        while self.table.rowCount() > 0:
-            self.table.removeRow(0)
-        segments = self.database.load_segments()
-        if segments is not None:
-            for index in range(segments.shape[0]):
-                self.add_row(segments[index, :])
-        self.table.setHorizontalHeaderLabels(
-            ['{0}'.format(self.database.axis),
-             '{0}'.format(self.axes[0].label),
-             '{0}'.format(self.axes[1].label)]
-        )
+        if self.database is not None:
+            self.axes = self.database.paxes()
+            while self.table.rowCount() > 0:
+                self.table.removeRow(0)
+            segments = self.database.load_segments()
+            if segments is not None:
+                for index in range(segments.shape[0]):
+                    self.add_row(segments[index, :])
+            self.table.setHorizontalHeaderLabels(
+                ['{0}'.format(self.database.axis),
+                 '{0}'.format(self.axes[0].label),
+                 '{0}'.format(self.axes[1].label)]
+            )
 
     def add_row(self, row: Optional[Any]=None) -> None:
         rowindex = self.table.rowCount()
@@ -1513,7 +1521,8 @@ class PeakWidget(QWidget):
         return a
 
     def save(self) -> None:
-        self.database.save_segments(self.axis_coords())
+        if self.database is not None:
+            self.database.save_segments(self.axis_coords())
 
     def get_coords(self, x: int) -> Optional[ndarray]:
         return get_coords(x, self.axis_coords())

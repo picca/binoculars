@@ -561,7 +561,7 @@ class MetaData(object):  # a collection of metadata objects
                 for section in list(metadata[label].keys()):
                     group = metadata[label][section]
                     setattr(
-                        meta, section, dict((key, group[key].value) for key in group)
+                        meta, section, dict((key, group[key][()]) for key in group)
                     )
                     meta.sections.append(section)
                 metadataobj.metas.append(meta)
@@ -632,7 +632,7 @@ class ConfigFile(MetaBase):
                             configobj,
                             section,
                             dict(
-                                (key, config[section][key].value)
+                                (key, config[section][key][()])
                                 for key in config[section]
                             ),
                         )
