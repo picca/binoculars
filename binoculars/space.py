@@ -578,7 +578,7 @@ class Space(object):
             data=1 / self.contributions, mask=(self.contributions == 0)
         )
 
-    def get_grid(self):
+    def get_grid(self) -> Tuple[ndarray]:
         """Returns the data coordinates of each grid point, as n-tuple of n-dimensinonal arrays.
         Basically numpy.mgrid() in data coordinates."""
         igrid = numpy.mgrid[tuple(slice(0, len(ax)) for ax in self.axes)]

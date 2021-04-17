@@ -155,7 +155,9 @@ class RodData(FitData):
 
     def get_key(self, index: int) -> List[slice]:
         axes = self.axdict[self.rodkey]
+        print(self.axis)
         bins, ax, axindex = self.get_bins()
+        assert len(bins) < index, (bins, index)
         start, stop = bins[index], bins[index + 1]
         k = [slice(None) for i in axes]
         k[axindex] = slice(start, stop)
@@ -1133,35 +1135,46 @@ class IntegrateWidget(QWidget):
                 print('Structurefactor {0}: {1}'.format(index, structurefactor))
 
     def intkey(self,
-               coords :Optional[Union[List[Optional[MaskedArray]],
+               coords: Optional[Union[List[Optional[MaskedArray]],
                                       ndarray]],
                axes: Axes) -> Tuple[slice, ...]:
-        print(coords)
-        print(axes)
-        vsize = self.vsize.value() / 2
-        hsize = self.hsize.value() / 2
-        return tuple(ax.restrict_slice(slice(coord - size, coord + size))
-                     for ax, coord, size in zip(axes, coords, [vsize, hsize])
-                     if coord is not None)
+        if coords is not None:
+            print(coords)
+            print(axes)
+            vsize = self.vsize.value() / 2
+            hsize = self.hsize.value() / 2
+            return tuple(ax.restrict_slice(slice(coord - size, coord + size))
+                         for ax, coord, size in zip(axes, coords, [vsize, hsize])
+                         if coord is not None)
+        return ()
 
-    def bkgkeys(self, coords: List[Any], axes: Axes):
+    def bkgkeys(self,
+                coords: Optional[Union[List[Optional[MaskedArray]],
+                                       ndarray]],
+                axes: Axes) -> Union[Tuple[Tuple[slice, slice],
+                                           Tuple[slice, slice],
+                                           Tuple[slice, slice],
+                                           Tuple[slice, slice]],
+                                     List[Tuple[slice, slice]]]:
         if self.database is not None:
             aroundroi = self.database.load('', 'aroundroi')
-            if aroundroi:
+            if aroundroi and coords is not None and coords[0] is not None and coords[1] is not None:
                 key = self.intkey(coords, axes)
 
                 vsize = self.vsize.value() / 2
                 hsize = self.hsize.value() / 2
 
-                leftkey = (key[0], axes[1].restrict(slice(coords[1] - hsize - self.left.value(),
-                                                          coords[1] - hsize)))
-                rightkey = (key[0], axes[1].restrict(slice(coords[1] + hsize,
-                                                           coords[1] + hsize + self.right.value())))
-                topkey = (axes[0].restrict(slice(coords[0] - vsize - self.top.value(),
-                                                 coords[0] - vsize)),
+                leftkey = (key[0],
+                           axes[1].restrict_slice(slice(coords[1] - hsize - self.left.value(),
+                                                        coords[1] - hsize)))
+                rightkey = (key[0],
+                            axes[1].restrict_slice(slice(coords[1] + hsize,
+                                                         coords[1] + hsize + self.right.value())))
+                topkey = (axes[0].restrict_slice(slice(coords[0] - vsize - self.top.value(),
+                                                       coords[0] - vsize)),
                           key[1])
-                bottomkey = (axes[0].restrict(slice(coords[0] + vsize,
-                                                    coords[0] + vsize + self.bottom.value())),
+                bottomkey = (axes[0].restrict_slice(slice(coords[0] + vsize,
+                                                          coords[0] + vsize + self.bottom.value())),
                              key[1])
 
                 return leftkey, rightkey, topkey, bottomkey
@@ -1170,16 +1183,18 @@ class IntegrateWidget(QWidget):
                                                 self.right.value())),
                          axes[1].restrict(slice(self.top.value(),
                                                 self.bottom.value())))]
+        return []
 
     def get_loc(self) -> Optional[Union[List[Optional[MaskedArray]],
                                         ndarray]]:
         if self.database is not None:
             index = self.database.currentindex()
-            if self.fromfit.isChecked():
-                return self.database.load_loc(index)
-            else:
-                indexvalue = self.database.get_index_value(index)
-                return self.parent().peakwidget.get_coords(indexvalue)
+            if index is not None:
+                if self.fromfit.isChecked():
+                    return self.database.load_loc(index)
+                else:
+                    indexvalue = self.database.get_index_value(index)
+                    return self.parent().peakwidget.get_coords(indexvalue)
         return None
 
     def loc_callback(self, x: int, y: int) -> None:
@@ -1194,7 +1209,7 @@ class IntegrateWidget(QWidget):
                     self.parent().peakwidget.add_row(numpy.array([indexvalue, x, y]))
                 self.plot_box()
 
-    def plot(self, index: Optional[int]=None):
+    def plot(self, index: Optional[int]=None) -> None:
         if self.database is not None:
             if index is None:
                 index = self.database.currentindex()
