@@ -2,7 +2,7 @@
 
 # TODO: export des fit en ascii should be versionned.
 
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Callable, Dict, Generator, List, Optional, Sequence, Tuple, Type, Union
 
 import sys
 import os.path
@@ -15,7 +15,6 @@ import numpy
 
 import binoculars.main
 import binoculars.plot
-import binoculars.fit
 import binoculars.util
 
 from matplotlib.backends.backend_qt5agg import (
@@ -35,8 +34,8 @@ from PyQt5.QtWidgets import (
 from scipy.interpolate import griddata
 from scipy.spatial.qhull import QhullError
 
+from binoculars.fit import PeakFitBase
 from binoculars.space import Axes, Axis, Space, get_axis_values, get_bins
-
 
 class FitData(object):
 
@@ -94,17 +93,22 @@ class FitData(object):
                 filelist.append(db[key].attrs['filename'])
         return filelist
 
-    def save(self, rodkey: str, key: Any, value: Any) -> None:
+    def save_axis(self, rodkey: str, axis: str) -> None:
+        return self.save(rodkey, 'axis', axis)
+
+    def save_resolution(self, rodkey: str, resolution: float) -> None:
+        return self.save(rodkey, 'resolution', resolution)
+
+    def save(self, rodkey: str, key: str, value: ndarray) -> None:
         with h5py.File(self.filename, 'a') as db:
             db[rodkey].attrs[str(key)] = value
 
-    def load(self, rodkey: str, key: Any) -> Optional[Any]:
+    def load(self, rodkey: str, key: str) -> Optional[ndarray]:
         with h5py.File(self.filename, 'a') as db:
             if rodkey in db:
                 if key in db[rodkey].attrs:
                     return db[rodkey].attrs[str(key)]
         return None
-
 
 class RodData(FitData):
 
@@ -131,7 +135,7 @@ class RodData(FitData):
         projected.pop(axindex)
         return projected
 
-    def get_bins(self) -> Tuple[Any, Axis, int]:
+    def get_bins(self) -> Tuple[ndarray, Axis, int]:
         axes = self.axdict[self.rodkey]
         axindex = axes.index(self.axis)
         ax = axes[axindex]
@@ -143,7 +147,7 @@ class RodData(FitData):
         bins, ax, axindex = self.get_bins()
         return numpy.alen(bins) - 1
 
-    def get_index_value(self, index) -> ndarray:
+    def get_index_value(self, index: int) -> ndarray:
         values = get_axis_values(self.axdict[self.rodkey],
                                  self.axis,
                                  self.resolution)
@@ -223,8 +227,16 @@ class RodData(FitData):
                 db[self.rodkey][self.slicekey].create_group('attrs')
                 group = db[self.rodkey][self.slicekey]['attrs']
             if key in list(group.keys()):
-                return numpy.ma.array(group[key][index],
-                                      mask=group[mkey][index])
+                g = group[key]
+                if g.shape == (0,):
+                    return None
+                else:
+                    mg = group[mkey]
+                    if mg.shape == (0,):
+                        return None
+                    else:
+                        return numpy.ma.array(group[key][index],
+                                              mask=group[mkey][index])
             else:
                 return None
 
@@ -245,29 +257,32 @@ class RodData(FitData):
                                        mask=numpy.array(group[mkey])))
         return None
 
-    def load_loc(self, index: int) -> Optional[List[Optional[MaskedArray]]]:
-        loc = list()
-        count = itertools.count()
-        key = 'guessloc{0}'.format(next(count))
-        while self.load_sliceattr(index, key) is not None:
-            loc.append(self.load_sliceattr(index, key))
-            key = 'guessloc{0}'.format(next(count))
-        if len(loc) > 0:
-            return loc
-        else:
+    def load_loc(self, index: Optional[int]) -> Optional[List[Optional[MaskedArray]]]:
+        if index is not None:
+            loc = list()
             count = itertools.count()
-            key = 'loc{0}'.format(next(count))
+            key = 'guessloc{0}'.format(next(count))
             while self.load_sliceattr(index, key) is not None:
                 loc.append(self.load_sliceattr(index, key))
-                key = 'loc{0}'.format(next(count))
+                key = 'guessloc{0}'.format(next(count))
             if len(loc) > 0:
                 return loc
             else:
-                return None
+                count = itertools.count()
+                key = 'loc{0}'.format(next(count))
+                while self.load_sliceattr(index, key) is not None:
+                    loc.append(self.load_sliceattr(index, key))
+                    key = 'loc{0}'.format(next(count))
+                if len(loc) > 0:
+                    return loc
+        return None
 
-    def save_loc(self, index: int, loc: List[Optional[MaskedArray]]):
-        for i, value in enumerate(loc):
-            self.save_sliceattr(index, 'guessloc{0}'.format(i), value)
+    def save_loc(self,
+                 index: Optional[int],
+                 loc: Sequence[Optional[MaskedArray]]) -> None:
+        if index is not None:
+            for i, value in enumerate(loc):
+                self.save_sliceattr(index, 'guessloc{0}'.format(i), value)
 
     def save_segments(self, segments: ndarray) -> None:
         with h5py.File(self.filename, 'a') as db:
@@ -291,10 +306,32 @@ class RodData(FitData):
             except KeyError:
                 return None
 
-    def save(self, _rodkey: str, key: Any, value: Any) -> None:
-        return super(RodData, self).save(self.rodkey, key, value)
+    def load_int(self, key: str) -> Optional[int]:
+        v = self.load('', key)
+        if v is not None:
+            return int(v)
+        return None
 
-    def load(self, _rodkey: str, key: Any) -> Optional[Any]:
+    def save_aroundroi(self, aroundroi: bool) -> None:
+        return super(RodData, self).save(self.rodkey, 'aroundroi', aroundroi)
+
+    def save_fromfit(self, fromfit: bool) -> None:
+        return super(RodData, self).save(self.rodkey, 'fromfit', fromfit)
+
+    def save_index(self, index: int) -> None:
+        return super(RodData, self).save(self.rodkey, 'index', index)
+
+    def save_roi(self, roi: List[float]) -> None:
+        return super(RodData, self).save(self.rodkey, 'roi', roi)
+
+    def currentindex(self) -> Optional[int]:
+        index = self.load_int('index')
+        if index is not None:
+            if index < 0:  # deal with no selection
+                index = None
+        return index
+
+    def load(self, _rodkey: str, key: str) -> Optional[ndarray]:
         return super(RodData, self).load(self.rodkey, key)
 
     def __iter__(self) -> Generator[Space, None, None]:
@@ -445,12 +482,12 @@ class TopWidget(QWidget):
         vbox.addWidget(self.table)
         vbox.addWidget(self.nav)
 
-        self.functions = list()
+        self.functions = list() # type: List[Type[PeakFitBase]]
         self.function_box = QComboBox()
         for function in dir(binoculars.fit):
             cls = getattr(binoculars.fit, function)
             if isinstance(cls, type)\
-               and issubclass(cls, binoculars.fit.PeakFitBase):
+               and issubclass(cls, PeakFitBase):
                 self.functions.append(cls)
                 self.function_box.addItem(function)
         self.function_box.setCurrentIndex(
@@ -494,7 +531,7 @@ class TopWidget(QWidget):
         hbox.addWidget(splitter)
         self.setLayout(hbox)
 
-    def tab_change(self, index: int):
+    def tab_change(self, index: int) -> None:
         if index == 2:
             self.refresh_plot()
 
@@ -510,19 +547,18 @@ class TopWidget(QWidget):
         self.peakwidget.set_axis()
         self.fitwidget.database = newdatabase
         self.nav.set_length(newdatabase.rodlength())
-        index = newdatabase.load(rodkey, 'index')
-        if index is None:
-            index = 0
-        self.nav.set_index(index)
-        self.index_change(index)
+        index = newdatabase.currentindex()
+        if index is not None:
+            self.nav.set_index(index)
+            self.index_change(index)
 
     def index_change(self, index: int) -> None:
-        if index is None:
-            index = 0
-        if self.fitwidget.database is not None:
-            self.fitwidget.database.save('', 'index', self.nav.index())
-            self.fitwidget.plot(index)
-            self.integratewidget.plot(index)
+        # deal with no index
+        if index != -1:
+            if self.fitwidget.database is not None:
+                self.fitwidget.database.save_index(index)
+                self.fitwidget.plot(index)
+                self.integratewidget.plot(index)
 
     def refresh_plot(self) -> None:
         self.plotwidget.refresh(
@@ -531,7 +567,7 @@ class TopWidget(QWidget):
         )
 
     @property
-    def fitclass(self):
+    def fitclass(self) -> Type[PeakFitBase]:
         return self.functions[self.function_box.currentIndex()]
 
     def fit_slice(self) -> None:
@@ -543,7 +579,7 @@ class TopWidget(QWidget):
             self.fitwidget.plot(index)
 
     def fit_rod(self) -> None:
-        def function(index: int, space):
+        def function(index: int, space: Space) -> None:
             self.fitwidget.fit(index, space, self.fitclass)
 
         if self.fitwidget.database is not None:
@@ -553,7 +589,7 @@ class TopWidget(QWidget):
             self.fitwidget.plot()
 
     def fit_all(self) -> None:
-        def function(index: int, space):
+        def function(index: int, space: Space) -> None:
             self.fitwidget.fit(index, space, self.fitclass)
 
         for rodkey, axis, resolution in self.table.checked():
@@ -598,7 +634,7 @@ class TopWidget(QWidget):
             )
         self.integratewidget.plot()
 
-    def fit_loc(self, database: RodData):
+    def fit_loc(self, database: RodData) -> None:
         deg = 2
         for param in database.all_attrkeys():
             if param.startswith('loc'):
@@ -679,10 +715,10 @@ class TableWidget(QWidget):
         self.setLayout(hbox)
 
     def addspace(self, filename: str, rodkey: Optional[str]=None) -> None:
-        def remove_callback(rodkey: str):
+        def remove_callback(rodkey: str) -> Callable[[], None]:
             return lambda: self.remove(rodkey)
 
-        def activechange_callback(index: int):
+        def activechange_callback(index: int) -> Callable[[], None]:
             return lambda: self.setlength(index, 1)
 
         if rodkey is None:
@@ -719,6 +755,7 @@ class TableWidget(QWidget):
         elif index > 0:
             self.table.cellWidget(0, 2).setCurrentIndex(
                 self.table.cellWidget(0, 2).currentIndex())
+        axis.currentIndexChanged.connect(self.trigger)
 
         resolution = QLineEdit()
         if old_resolution is not None:
@@ -749,9 +786,9 @@ class TableWidget(QWidget):
         if self.database is not None:
             if x == 1:
                 self.activeindex = y
-                rodkey, axis, resolution = self.database.currentkey()
-                self.database.save(rodkey, 'axis', axis)
-                self.database.save(rodkey, 'resolution', resolution)
+                rodkey, axis, resolution = self.currentkey()
+                self.database.save_axis(rodkey, axis)
+                self.database.save_resolution(rodkey, resolution)
                 self.trigger.emit()
 
     def currentkey(self) -> Tuple[Any, str, float]:
@@ -817,37 +854,38 @@ class FitWidget(QWidget):
 
     def loc_callback(self, x: int, y: int) -> None:
         if self.database is not None and self.ax:
-            self.database.save_loc(self.currentindex(),
+            self.database.save_loc(self.database.currentindex(),
                                    numpy.array([x, y]))
 
     def plot(self, index: Optional[int]=None) -> None:
         if self.database is not None:
             if index is None:
-                index = self.currentindex()
-            space = self.database.space_from_index(index)
-            fitdata = self.database.load_data(index, 'fit')
-            self.figure.clear()
-            self.figure.space_axes = space.axes
-            info = self.database.get_index_value(index)
-            label = self.database.axis
+                index = self.database.currentindex()
+            if index is not None:
+                space = self.database.space_from_index(index)
+                fitdata = self.database.load_data(index, 'fit')
+                self.figure.clear()
+                self.figure.space_axes = space.axes
+                info = self.database.get_index_value(index)
+                label = self.database.axis
 
-            if fitdata is not None:
-                if space.dimension == 1:
+                if fitdata is not None:
+                    if space.dimension == 1:
+                        self.ax = self.figure.add_subplot(111)
+                        binoculars.plot.plot(
+                            space, self.figure, self.ax, fit=fitdata)
+                    elif space.dimension == 2:
+                        self.ax = self.figure.add_subplot(121)
+                        binoculars.plot.plot(space, self.figure, self.ax, fit=None)
+                        self.ax = self.figure.add_subplot(122)
+                        binoculars.plot.plot(
+                            space, self.figure, self.ax, fit=fitdata)
+                else:
                     self.ax = self.figure.add_subplot(111)
-                    binoculars.plot.plot(
-                        space, self.figure, self.ax, fit=fitdata)
-                elif space.dimension == 2:
-                    self.ax = self.figure.add_subplot(121)
-                    binoculars.plot.plot(space, self.figure, self.ax, fit=None)
-                    self.ax = self.figure.add_subplot(122)
-                    binoculars.plot.plot(
-                        space, self.figure, self.ax, fit=fitdata)
-            else:
-                self.ax = self.figure.add_subplot(111)
-                binoculars.plot.plot(space, self.figure, self.ax)
-            self.figure.suptitle('{0}, res = {1}, {2} = {3}'.format(
-                self.database.rodkey, self.database.resolution, label, info))
-            self.canvas.draw()
+                    binoculars.plot.plot(space, self.figure, self.ax)
+                self.figure.suptitle('{0}, res = {1}, {2} = {3}'.format(
+                    self.database.rodkey, self.database.resolution, label, info))
+                self.canvas.draw()
 
     def fit(self, index: int, space: Space, function: Any) -> None:
         if self.database is not None:
@@ -867,21 +905,8 @@ class FitWidget(QWidget):
 
     def get_loc(self) -> Optional[MaskedArray]:
         if self.database is not None:
-            return self.database.load_loc(self.currentindex())
+            return self.database.load_loc(self.database.currentindex())
         return None
-
-    def currentindex(self) -> Optional[int]:
-        if self.database is not None:
-            index = self.database.load('', 'index')
-            if index is None:
-                return 0
-            else:
-                if index < 0:  # deal with wrong values
-                    return None
-                else:
-                    return index
-        return None
-
 
 class IntegrateWidget(QWidget):
 
@@ -973,7 +998,7 @@ class IntegrateWidget(QWidget):
 
     def refresh_aroundroi(self) -> None:
         if self.database is not None:
-            self.database.save('', 'aroundroi', self.aroundroi.isChecked())
+            self.database.save_aroundroi(self.aroundroi.isChecked())
             axes = self.database.paxes()
             if not self.aroundroi.isChecked():
                 self.left.setMinimum(axes[0].min)
@@ -996,8 +1021,10 @@ class IntegrateWidget(QWidget):
 
     def refresh_tracker(self) -> None:
         if self.database is not None:
-            self.database.save('', 'fromfit', self.fromfit.isChecked())
-            self.plot_box()
+            index = self.database.currentindex()
+            if index is not None:
+                self.database.save_fromfit(self.fromfit.isChecked())
+                self.plot_box()
 
     def set_axis(self) -> None:
         if self.database is not None:
@@ -1039,10 +1066,12 @@ class IntegrateWidget(QWidget):
 
     def send(self) -> None:
         if self.database is not None:
-            roi = [self.hsize.value(), self.vsize.value(), self.left.value(),
-                   self.right.value(), self.top.value(), self.bottom.value()]
-            self.database.save('', 'roi', roi)
-            self.plot_box()
+            index = self.database.currentindex()
+            if index is not None:
+                roi = [self.hsize.value(), self.vsize.value(), self.left.value(),
+                       self.right.value(), self.top.value(), self.bottom.value()]
+                self.database.save_roi(roi)
+                self.plot_box()
 
     def integrate(self, index: int, space: Space) -> None:
         loc = self.get_loc()
@@ -1103,13 +1132,19 @@ class IntegrateWidget(QWidget):
 
                 print('Structurefactor {0}: {1}'.format(index, structurefactor))
 
-    def intkey(self, coords: List[float], axes: List[Axis]) -> Tuple[slice, ...]:
+    def intkey(self,
+               coords :Optional[Union[List[Optional[MaskedArray]],
+                                      ndarray]],
+               axes: Axes) -> Tuple[slice, ...]:
+        print(coords)
+        print(axes)
         vsize = self.vsize.value() / 2
         hsize = self.hsize.value() / 2
         return tuple(ax.restrict_slice(slice(coord - size, coord + size))
-                     for ax, coord, size in zip(axes, coords, [vsize, hsize]))
+                     for ax, coord, size in zip(axes, coords, [vsize, hsize])
+                     if coord is not None)
 
-    def bkgkeys(self, coords: List[Any], axes: List[Axis]):
+    def bkgkeys(self, coords: List[Any], axes: Axes):
         if self.database is not None:
             aroundroi = self.database.load('', 'aroundroi')
             if aroundroi:
@@ -1136,7 +1171,8 @@ class IntegrateWidget(QWidget):
                          axes[1].restrict(slice(self.top.value(),
                                                 self.bottom.value())))]
 
-    def get_loc(self):
+    def get_loc(self) -> Optional[Union[List[Optional[MaskedArray]],
+                                        ndarray]]:
         if self.database is not None:
             index = self.database.currentindex()
             if self.fromfit.isChecked():
@@ -1144,71 +1180,77 @@ class IntegrateWidget(QWidget):
             else:
                 indexvalue = self.database.get_index_value(index)
                 return self.parent().peakwidget.get_coords(indexvalue)
+        return None
 
     def loc_callback(self, x: int, y: int) -> None:
         if self.ax and self.database is not None:
-            if self.fromfit.isChecked():
-                self.database.save_loc(self.database.currentindex(),
-                                       numpy.array([x, y]))
-            else:
-                index = self.database.currentindex()
-                indexvalue = self.database.get_index_value(index)
-                self.parent().peakwidget.add_row(numpy.array([indexvalue, x, y]))
-            self.plot_box()
+            index = self.database.currentindex()
+            if index is not None:
+                if self.fromfit.isChecked():
+                    self.database.save_loc(index,
+                                           numpy.array([x, y]))
+                else:
+                    indexvalue = self.database.get_index_value(index)
+                    self.parent().peakwidget.add_row(numpy.array([indexvalue, x, y]))
+                self.plot_box()
 
     def plot(self, index: Optional[int]=None):
         if self.database is not None:
             if index is None:
                 index = self.database.currentindex()
-            space = self.database.space_from_index(index)
-            interdata = self.database.load_data(index, 'inter')
-            info = self.database.get_index_value(index)
-            label = self.database.axis
+            if index is not None:
+                space = self.database.space_from_index(index)
+                interdata = self.database.load_data(index, 'inter')
+                info = self.database.get_index_value(index)
+                label = self.database.axis
 
-            self.figure.clear()
-            self.figure.space_axes = space.axes
+                self.figure.clear()
+                self.figure.space_axes = space.axes
 
-            if interdata is not None:
-                if space.dimension == 1:
+                if interdata is not None:
+                    if space.dimension == 1:
+                        self.ax = self.figure.add_subplot(111)
+                        binoculars.plot.plot(
+                            space, self.figure, self.ax, fit=interdata)
+                    elif space.dimension == 2:
+                        self.ax = self.figure.add_subplot(121)
+                        binoculars.plot.plot(space, self.figure, self.ax, fit=None)
+                        self.ax = self.figure.add_subplot(122)
+                        binoculars.plot.plot(
+                            space, self.figure, self.ax, fit=interdata)
+                else:
                     self.ax = self.figure.add_subplot(111)
-                    binoculars.plot.plot(
-                        space, self.figure, self.ax, fit=interdata)
-                elif space.dimension == 2:
-                    self.ax = self.figure.add_subplot(121)
-                    binoculars.plot.plot(space, self.figure, self.ax, fit=None)
-                    self.ax = self.figure.add_subplot(122)
-                    binoculars.plot.plot(
-                        space, self.figure, self.ax, fit=interdata)
-            else:
-                self.ax = self.figure.add_subplot(111)
-                binoculars.plot.plot(space, self.figure, self.ax)
+                    binoculars.plot.plot(space, self.figure, self.ax)
 
-            self.figure.suptitle('{0}, res = {1}, {2} = {3}'.format(
-                self.database.rodkey, self.database.resolution, label, info))
+                self.figure.suptitle('{0}, res = {1}, {2} = {3}'.format(
+                    self.database.rodkey, self.database.resolution, label, info))
 
-            self.plot_box()
-            self.canvas.draw()
+                self.plot_box()
+                self.canvas.draw()
 
     def plot_box(self) -> None:
-        loc = self.get_loc()
-        if len(self.figure.get_axes()) != 0 and loc is not None:
-            ax = self.figure.get_axes()[0]
-            axes = self.figure.space_axes
-            key = self.intkey(loc, axes)
-            bkgkey = self.bkgkeys(loc, axes)
-            ax.patches = []
-            rect = Rectangle((key[0].start, key[1].start),
-                             key[0].stop - key[0].start,
-                             key[1].stop - key[1].start,
-                             alpha=0.2, color='k')
-            ax.add_patch(rect)
-            for k in bkgkey:
-                bkg = Rectangle((k[0].start, k[1].start),
-                                k[0].stop - k[0].start,
-                                k[1].stop - k[1].start,
-                                alpha=0.2, color='r')
-                ax.add_patch(bkg)
-            self.canvas.draw()
+        if self.database is not None:
+            index = self.database.currentindex()
+            if index is not None:
+                loc = self.get_loc()
+                if len(self.figure.get_axes()) != 0 and loc is not None:
+                    ax = self.figure.get_axes()[0]
+                    axes = self.figure.space_axes
+                    key = self.intkey(loc, axes)
+                    bkgkey = self.bkgkeys(loc, axes)
+                    ax.patches = []
+                    rect = Rectangle((key[0].start, key[1].start),
+                                     key[0].stop - key[0].start,
+                                     key[1].stop - key[1].start,
+                                     alpha=0.2, color='k')
+                    ax.add_patch(rect)
+                    for k in bkgkey:
+                        bkg = Rectangle((k[0].start, k[1].start),
+                                        k[0].stop - k[0].start,
+                                        k[1].stop - k[1].start,
+                                        alpha=0.2, color='r')
+                        ax.add_patch(bkg)
+                    self.canvas.draw()
 
 
 class ButtonedSlider(QWidget):

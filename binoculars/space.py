@@ -1,4 +1,4 @@
-from typing import Generator, Iterable, List, Optional, Union
+from typing import Generator, Iterable, List, Optional, Sequence, Tuple, Union
 
 import math
 
@@ -9,6 +9,7 @@ from itertools import chain
 from numbers import Number
 
 from numpy import ndarray
+from numpy.ma import MaskedArray
 from vtk import vtkImageData, vtkXMLImageDataWriter
 from vtk.util import numpy_support
 
@@ -99,27 +100,31 @@ class Axis(object):
         else:
             raise IndexError("unknown key {0!r}".format(key))
 
-    def get_index(self, value):
-        if isinstance(value, Number):
-            intvalue = int(round(value / self.res))
-            if self.imin <= intvalue <= self.imax:
-                return intvalue - self.imin
-            raise ValueError(
-                "cannot get index: value {0} not in range [{1}, {2}]".format(
-                    value, self.min, self.max
-                )
+    def _get_index_float(self, value: float) -> int:
+        intvalue = int(round(value / self.res))
+        if self.imin <= intvalue <= self.imax:
+            return intvalue - self.imin
+        raise ValueError(
+            "cannot get index: value {0} not in range [{1}, {2}]".format(
+                value, self.min, self.max
             )
+        )
+
+    def get_index(self,
+                  value: Union[float, slice, ndarray]) -> Union[int, slice, ndarray]:
+        if isinstance(value, (int, float)):  # nice mypy accept int as float but not isinstance
+            return self._get_index_float(value)
         elif isinstance(value, slice):
             if value.step is not None:
                 raise IndexError("stride not supported")
             if value.start is None:
                 start = None
             else:
-                start = self.get_index(value.start)
+                start = self._get_index_float(value.start)
             if value.stop is None:
                 stop = None
             else:
-                stop = self.get_index(value.stop)
+                stop = self._get_index_float(value.stop)
             if start is not None and stop is not None and start > stop:
                 start, stop = stop, start
             return slice(start, stop)
@@ -247,7 +252,7 @@ class Axes(object):
         return (8 + 4) * self.npoints
 
     @classmethod
-    def fromfile(cls, filename):
+    def fromfile(cls, filename: str) -> 'Axes':
         with util.open_h5py(filename, "r") as fp:
             try:
                 if "axes" in fp and "axes_labels" in fp:
@@ -322,7 +327,7 @@ class Axes(object):
             )
         )
 
-    def index(self, obj):
+    def index(self, obj: Union[Axis, int, str]) -> int:
         if isinstance(obj, Axis):
             return self.axes.index(obj)
         elif isinstance(obj, int) and 0 <= obj < len(self.axes):
@@ -516,11 +521,15 @@ class Space(object):
         newspace.contributions = self.contributions[newkey].copy()
         return newspace
 
-    def get_key(
-        self, key
-    ):  # needed in the fitaid for visualising the interpolated data
+    def get_key(self,
+        key: Union[float,
+                   slice,
+                   Tuple[Union[float, slice, ndarray], ...],
+                   List[Union[float, slice, ndarray]]]
+        ) -> Tuple[Union[int, slice, ndarray], ...]:
+        # needed in the fitaid for visualising the interpolated data
         """Convert the n-dimensional interval described by key (as used by e.g. __getitem__()) from data coordinates to indices."""
-        if isinstance(key, Number) or isinstance(key, slice):
+        if isinstance(key, (int, float)) or isinstance(key, slice):
             if not len(self.axes) == 1:
                 raise IndexError("dimension mismatch")
             else:
@@ -531,7 +540,8 @@ class Space(object):
             raise IndexError("dimension mismatch")
         return tuple(ax.get_index(k) for k, ax in zip(key, self.axes))
 
-    def project(self, axis, *more_axes):
+    def project(self, axis: Union[str, int],
+                *more_axes) -> 'Space':
         """Reduce dimensionality of Space by projecting onto 'axis'.
         All data (photons, contributions) is summed along this axis.
 
@@ -559,7 +569,7 @@ class Space(object):
         newkey[axindex] = key
         return self.__getitem__(tuple(newkey))
 
-    def get_masked(self):
+    def get_masked(self) -> MaskedArray:
         """Returns photons/contributions, but with divide-by-zero's masked out."""
         return numpy.ma.array(data=self.get(), mask=(self.contributions == 0))
 
@@ -831,7 +841,7 @@ class Space(object):
                 ).write_direct(self.contributions)
 
     @classmethod
-    def fromfile(cls, file, key=None):
+    def fromfile(cls, file: str, key: Optional[Sequence[slice]]=None) -> 'Space':
         """Load Space from HDF5 file.
 
         file      filename string or h5py.Group instance
@@ -1070,14 +1080,17 @@ def iterate_over_axis_keys(axes, axis, resolution=None):
             yield k
 
 
-def get_bins(ax, resolution):
+def get_bins(ax: Axis, resolution: float) -> ndarray:
     if float(resolution) < ax.res:
         raise ValueError(
             "interval {0} to low, minimum interval is {1}".format(resolution, ax.res)
         )
 
     mi, ma = ax.min, ax.max
-    return numpy.linspace(mi, ma, math.ceil(1.0 / resolution * (ma - mi)))
+    if(resolution >= (ma - mi)):
+        return numpy.array([mi, ma])
+    else:
+        return numpy.linspace(mi, ma, math.ceil(1.0 / resolution * (ma - mi)))
 
 
 def dstack(spaces, dindices, dlabel, dresolution):

@@ -1,7 +1,15 @@
+from typing import List, Optional, Union
+
 import numpy
 import matplotlib.colors
 import matplotlib.cm
 import mpl_toolkits.mplot3d
+
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
+
+from binoculars.space import Space
 
 # Adapted from http://www.ster.kuleuven.be/~pieterd/python/html/plotting/interactive_colorbar.html
 # which in turn is based on an example from http://matplotlib.org/users/event_handling.html
@@ -115,19 +123,19 @@ def get_clipped_norm(data, clipping=0.0, log=True):
 
 
 def plot(
-    space,
-    fig,
-    ax,
-    log=True,
-    loglog=False,
-    clipping=0.0,
-    fit=None,
-    norm=None,
-    colorbar=True,
-    labels=True,
-    interpolation="nearest",
+    space : Space,
+    fig: Figure,
+    ax : Axes,
+    log: bool=True,
+    loglog: bool=False,
+    clipping: float=0.0,
+    fit: Optional[bool]=None,
+    norm: Optional[float]=None,
+    colorbar: bool=True,
+    labels: bool=True,
+    interpolation: str="nearest",
     **plotopts
-):
+) -> Union[List[Line2D]]:
     if space.dimension == 1:
         data = space.get_masked()
         xrange = numpy.ma.array(space.axes[0][:], mask=data.mask)
