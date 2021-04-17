@@ -763,7 +763,7 @@ class TableWidget(QWidget):
         selection = []
         for index in range(self.table.rowCount()):
             checkbox = self.table.cellWidget(index, 0)
-            if checkbox.checkState():
+            if checkbox.isChecked():
                 rodkey = self.table.cellWidget(index, 0).rodkey
                 axis = str(self.table.cellWidget(index, 2).currentText())
                 resolution = float(self.table.cellWidget(index, 3).text())
@@ -968,9 +968,9 @@ class IntegrateWidget(QWidget):
 
     def refresh_aroundroi(self) -> None:
         if self.database is not None:
-            self.database.save('', 'aroundroi', self.aroundroi.checkState())
+            self.database.save('', 'aroundroi', self.aroundroi.isChecked())
             axes = self.database.paxes()
-            if not self.aroundroi.checkState():
+            if not self.aroundroi.isChecked():
                 self.left.setMinimum(axes[0].min)
                 self.left.setMaximum(axes[0].max)
                 self.right.setMinimum(axes[0].min)
@@ -1328,7 +1328,7 @@ class OverviewWidget(QWidget):
         selection = []
         for index in range(self.table.rowCount()):
             checkbox = self.table.cellWidget(index, 0)
-            if checkbox.checkState():
+            if checkbox.isChecked():
                 selection.append(str(self.table.cellWidget(index, 1).text()))
         return selection
 
@@ -1449,7 +1449,7 @@ class OverviewWidget(QWidget):
                         )
 
         self.ax.legend()
-        if self.log.checkState():
+        if self.log.isChecked():
             self.ax.semilogy()
         self.canvas.draw()
 
