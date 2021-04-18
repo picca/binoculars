@@ -468,7 +468,7 @@ class TopWidget(QWidget):
         self.tab_widget = QTabWidget()
 
         self.fitwidget = FitWidget(None, self)
-        self.integratewidget = IntegrateWidget(None, self)
+        self.integratewidget = IntegrateWidget(None, self, self)
         self.plotwidget = OverviewWidget(None, self)
         self.peakwidget = PeakWidget(None, self)
 
@@ -913,9 +913,11 @@ class IntegrateWidget(QWidget):
 
     def __init__(self,
                  database: Optional[RodData],
+                 topwidget: TopWidget,
                  parent: Optional[QWidget] = None):
         super(IntegrateWidget, self).__init__(parent)
         self.database = database
+        self.topwidget = topwidget
 
         self.figure = matplotlib.figure.Figure()
         self.canvas = FigureCanvasQTAgg(self.figure)
@@ -1194,7 +1196,7 @@ class IntegrateWidget(QWidget):
                     return self.database.load_loc(index)
                 else:
                     indexvalue = self.database.get_index_value(index)
-                    return self.parent().peakwidget.get_coords(indexvalue)
+                    return self.topwidget.peakwidget.get_coords(indexvalue)
         return None
 
     def loc_callback(self, x: int, y: int) -> None:
@@ -1206,7 +1208,7 @@ class IntegrateWidget(QWidget):
                                            numpy.array([x, y]))
                 else:
                     indexvalue = self.database.get_index_value(index)
-                    self.parent().peakwidget.add_row(numpy.array([indexvalue, x, y]))
+                    self.topwidget.peakwidget.add_row(numpy.array([indexvalue, x, y]))
                 self.plot_box()
 
     def plot(self, index: Optional[int]=None) -> None:
