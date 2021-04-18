@@ -190,15 +190,8 @@ class Axis(object):
             self, len(self)
         )
 
-    def restrict_float(self, value: float) -> float:
-        if value < self.min:
-            return self.min
-        elif value > self.max:
-            return self.max
-        else:
-            return value
-
     def restrict_slice(self, value: slice) -> slice:
+        # TODO rename into clip_slice
         if value.step is not None:
             raise IndexError("stride not supported")
 
@@ -206,23 +199,30 @@ class Axis(object):
         if value.start is None:
             start = None
         else:
-            start = self.restrict_float(value.start)
+            start = numpy.clip(value.start, self.min, self.max)
 
         if value.stop is None:
             stop = None
         else:
-            stop = self.restrict_float(value.stop)
+            stop = numpy.clip(value.stop, self.min, self.max)
 
-        if value.stop == self.max:
-            stop = None
+        # TODO this produce a wrong slice sementic, the stop value can not be None.
+        # if value.stop == self.max:
+        #     stop = None
 
         if start is not None and stop is not None and start > stop:
             start, stop = stop, start
+
+        # TODO par of the code necessite that start and stop are not None.
+        # this is not the usual slice semantic
+        assert start is not None, f"1-{start}"
+        assert stop is not None, f"2-{stop}"
+
         return slice(start, stop)
 
     def restrict(self, value: Union[float, slice]) -> Union[float, slice]:
         if isinstance(value, float):
-            return self.restrict_float(value)
+            return numpy.clip(value, self.min, self.max)
         elif isinstance(value, slice):
             return self.restrict_slice(value)
 

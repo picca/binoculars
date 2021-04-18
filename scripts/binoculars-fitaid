@@ -1138,8 +1138,6 @@ class IntegrateWidget(QWidget):
                                       ndarray]],
                axes: Axes) -> Tuple[slice, ...]:
         if coords is not None:
-            print(coords)
-            print(axes)
             vsize = self.vsize.value() / 2
             hsize = self.hsize.value() / 2
             return tuple(ax.restrict_slice(slice(coord - size, coord + size))
@@ -1163,25 +1161,28 @@ class IntegrateWidget(QWidget):
                 vsize = self.vsize.value() / 2
                 hsize = self.hsize.value() / 2
 
-                leftkey = (key[0],
-                           axes[1].restrict_slice(slice(coords[1] - hsize - self.left.value(),
-                                                        coords[1] - hsize)))
-                rightkey = (key[0],
-                            axes[1].restrict_slice(slice(coords[1] + hsize,
-                                                         coords[1] + hsize + self.right.value())))
-                topkey = (axes[0].restrict_slice(slice(coords[0] - vsize - self.top.value(),
-                                                       coords[0] - vsize)),
-                          key[1])
-                bottomkey = (axes[0].restrict_slice(slice(coords[0] + vsize,
-                                                          coords[0] + vsize + self.bottom.value())),
-                             key[1])
+                leftkey_slice = slice(coords[1] - hsize - self.left.value(),
+                                      coords[1] - hsize)
+                leftkey = (key[0], axes[1].restrict_slice(leftkey_slice))
+
+                rightkey_slice = slice(coords[1] + hsize,
+                                       coords[1] + hsize + self.right.value())
+                rightkey = (key[0], axes[1].restrict_slice(rightkey_slice))
+
+                topkey_slice = slice(coords[0] - vsize - self.top.value(),
+                                     coords[0] - vsize)
+                topkey = (axes[0].restrict_slice(topkey_slice), key[1])
+
+                bottomkey_slice = slice(coords[0] + vsize,
+                                        coords[0] + vsize + self.bottom.value())
+                bottomkey = (axes[0].restrict_slice(bottomkey_slice), key[1])
 
                 return leftkey, rightkey, topkey, bottomkey
             else:
-                return [(axes[0].restrict(slice(self.left.value(),
-                                                self.right.value())),
-                         axes[1].restrict(slice(self.top.value(),
-                                                self.bottom.value())))]
+                slice0 = slice(self.left.value(), self.right.value())
+                slice1 = slice(self.top.value(), self.bottom.value())
+                return [(axes[0].restrict_slice(slice0),
+                         axes[1].restrict_slice(slice1))]
         return []
 
     def get_loc(self) -> Optional[Union[List[Optional[MaskedArray]],
@@ -1521,7 +1522,7 @@ class PeakWidget(QWidget):
         self.table.itemChanged.connect(self.save)
 
         self.btn_add_row = QPushButton('+', self)
-        self.btn_add_row.clicked.connect(self.add_row)
+        self.btn_add_row.clicked.connect(self.add_row)  # TODO this cause an issu by passing a boool instead of a nunpy array.
 
         self.buttonRemove = QPushButton('-', self)
         self.buttonRemove.clicked.connect(self.remove)
@@ -1551,7 +1552,7 @@ class PeakWidget(QWidget):
                  '{0}'.format(self.axes[1].label)]
             )
 
-    def add_row(self, row: Optional[Any]=None) -> None:
+    def add_row(self, row: Optional[ndarray]=None) -> None:
         rowindex = self.table.rowCount()
         self.table.insertRow(rowindex)
         if row is not None:
