@@ -168,36 +168,31 @@ class RodData(FitData):
         space = Space.fromfile(filename, self.get_key(index))
         return space.project(self.axis)
 
+    def replace_dataset(self, grp: h5py.Group, dataset_name: str, arr: ndarray) -> None:
+        if dataset_name in grp:
+            del grp[dataset_name]
+
+        dataset = grp.require_dataset(dataset_name,
+                                      arr.shape, dtype=arr.dtype,
+                                      exact=False, compression='gzip')
+        dataset.write_direct(arr)
+
     def save_data(self, index: int, key: str, data: MaskedArray) -> None:
         with h5py.File(self.filename, 'a') as db:
-            id = '{0}_{1}_data'.format(int(index), key)
-            mid = '{0}_{1}_mask'.format(int(index), key)
             grp = db[self.rodkey][self.slicekey]
-            try:  # TODO check instead of waiting for exception...
-                dataset = grp.create_dataset(id, data.shape, dtype=data.dtype, compression='gzip')  # noqa
-                dataset.write_direct(data)
 
-                dataset = grp.create_dataset(mid, data.shape, dtype=data.mask.dtype, compression='gzip')  # noqa
-                dataset.write_direct(data.mask)
-            except RuntimeError:
-                del grp[id]
-                del grp[mid]
-
-                dataset = grp.create_dataset(id, data.shape, dtype=data.dtype, compression='gzip')  # noqa
-                dataset.write_direct(data)
-
-                dataset = grp.create_dataset(mid, data.shape, dtype=data.mask.dtype, compression='gzip')  # noqa
-                dataset.write_direct(data.mask)
+            self.replace_dataset(grp, f"{index}_{key}", data)
+            self.replace_dataset(grp, f"{index}_{key}_mask", data.mask)
 
     def load_data(self, index: int, key: str) -> Optional[MaskedArray]:
         with h5py.File(self.filename, 'a') as db:
-            id = '{0}_{1}_data'.format(int(index), key)
-            mid = '{0}_{1}_mask'.format(int(index), key)
             try:
-                return numpy.ma.array(
-                    db[self.rodkey][self.slicekey][id][...],
-                    mask=db[self.rodkey][self.slicekey][mid][...]
-                )
+                grp = db[self.rodkey][self.slicekey]
+
+                data = grp[f"{index}_{key}"]
+                mask = grp[f"{index}_{key}_mask"]
+
+                return numpy.ma.array(data, mask=mask)
             except KeyError:
                 return None
 
@@ -288,22 +283,15 @@ class RodData(FitData):
     def save_segments(self, segments: ndarray) -> None:
         with h5py.File(self.filename, 'a') as db:
             grp = db[self.rodkey][self.slicekey]
-            try:  # TODO check instead of exception.
-                dataset = grp.create_dataset('segment', segments.shape,
-                                             dtype=segments.dtype,
-                                             compression='gzip')
-                dataset.write_direct(segments)
-            except RuntimeError:
-                del grp['segment']
-                dataset = grp.create_dataset('segment', segments.shape,
-                                             dtype=segments.dtype,
-                                             compression='gzip')
-                dataset.write_direct(segments)
+
+            self.replace_dataset(grp, 'segment', segments)
 
     def load_segments(self) -> Optional[ndarray]:
         with h5py.File(self.filename, 'a') as db:
             try:
-                return numpy.array(db[self.rodkey][self.slicekey]['segment'][:])  # noqa
+                grp = db[self.rodkey][self.slicekey]
+
+                return grp['segment'][()]
             except KeyError:
                 return None
 
