@@ -128,6 +128,7 @@ class Axis(object):
             if start is not None and stop is not None and start > stop:
                 start, stop = stop, start
             return slice(start, stop)
+        else:  # TODO it seems that we have maskedarray here...
         else:
             intvalue = numpy.around(value / self.res).astype(int)
             if ((self.imin <= intvalue) & (intvalue <= self.imax)).all():
