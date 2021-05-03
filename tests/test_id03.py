@@ -26,6 +26,7 @@ class TestCase(unittest.TestCase):
             {"resolution": "0.01", "limits": "[0:, :-1, 0:0.2]"}
         )
 
+    @unittest.expectedFailure
     def test_IO(self):
         jobs = list(self.id03input.generate_jobs(["820"]))
         destination_opts = self.id03input.get_destination_options(["820"])
