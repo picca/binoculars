@@ -1,0 +1,9 @@
+Test-Command: set -efu
+ ; cp -r tests examples "$AUTOPKGTEST_TMP"
+ ; for py in $(py3versions -r 2>/dev/null)
+ ; do cd "$AUTOPKGTEST_TMP"
+ ; echo "Testing with $py:"
+ ; $py -m unittest discover -s tests -v
+ ; done
+Depends: python3-all, python3-binoculars
+Restrictions: allow-stderr, skip-not-installable

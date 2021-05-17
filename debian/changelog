@@ -1,8 +1,9 @@
-binoculars (0.0.6-1) unstable; urgency=medium
+binoculars (0.0.6-1) UNRELEASED; urgency=medium
 
   * New upstream version 0.0.6
+  * Added autopkgtests
 
- -- Picca Frédéric-Emmanuel <picca@debian.org>  Wed, 14 Apr 2021 14:06:06 +0200
+ -- Picca Frédéric-Emmanuel <picca@debian.org>  Mon, 17 May 2021 15:19:52 +0200
 
 binoculars (0.0.5-1) unstable; urgency=medium
 
