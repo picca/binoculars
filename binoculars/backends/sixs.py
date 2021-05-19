@@ -309,10 +309,16 @@ class RealSpace(backend.ProjectionBase):
         P = pdataframe.P
         timestamp = pdataframe.timestamp
 
-        pixels_ = numpy.tensordot(P, pixels, axes=1)
+        if P is not None:
+            pixels_ = numpy.tensordot(P, pixels, axes=1)
+        else:
+            pixels_ = pixels
         x = pixels_[1]
         y = pixels_[2]
-        z = numpy.ones_like(x) * timestamp
+        if timestamp is not None:
+            z = numpy.ones_like(x) * timestamp
+        else:
+            z = pixels_[0]
 
         return (x, y, z)
 
@@ -1010,6 +1016,84 @@ class FlyScanUHVUfxc(FlyScanUHV):
         "timestamp": HItem("epoch", True),
     }
 
+
+class GisaxUhvEiger(FlyScanUHV):
+    HPATH = {
+        "image": HItem("eiger_image", False),
+        "attenuation": HItem("attenuation", True),
+        "eix": DatasetPathOr( HItem("eix", True),
+                              DatasetPathContains("i14-c-cx1-dt-det_tx.1/position_pre")),
+        "eiz": DatasetPathOr( HItem("eiz", True),
+                              DatasetPathContains("i14-c-cx1-dt-det_tz.1/position_pre"))
+    }
+
+    def get_translation(self, node, index, default):
+        res = default
+        if node:
+            if node.shape[0] == 1:
+                res = node[0]
+            else:
+                res = node[index]
+        return res
+
+    def get_values(self, index, h5_nodes):
+        image = h5_nodes["image"][index]
+        eix = self.get_translation(h5_nodes["eix"], index, 0.0)  # mm
+        eiz = self.get_translation(h5_nodes["eiz"], index, 0.0)  # mm
+        attenuation = self.get_attenuation(index, h5_nodes, 2)
+
+        return (image, attenuation, eix, eiz)
+
+    def process_image(
+        self, index, dataframe, pixels0, mask
+    ) -> Optional[Tuple[ndarray, ndarray, Tuple[int, PDataFrame]]]:
+        util.status(str(index))
+
+        # extract the data from the h5 nodes
+
+        h5_nodes = dataframe.h5_nodes
+        intensity, attenuation, eix, eiz = self.get_values(index, h5_nodes)
+
+        if attenuation is not None:
+            if not math.isfinite(attenuation):
+                return None
+
+        # BEWARE in order to avoid precision problem we convert the
+        # uint16 -> float32. (the size of the mantis is on 23 bits)
+        # enought to contain the uint16. If one day we use uint32, it
+        # should be necessary to convert into float64.
+        intensity = intensity.astype("float32")
+
+        weights = None
+        if self.config.attenuation_coefficient is not None:
+            if attenuation != WRONG_ATTENUATION:
+                intensity *= self.config.attenuation_coefficient ** attenuation
+                weights = numpy.ones_like(intensity)
+                weights *= ~mask
+            else:
+                weights = numpy.zeros_like(intensity)
+        else:
+            weights = numpy.ones_like(intensity)
+            weights *= ~mask
+
+        if self.config.detrot is not None:
+            P = M(math.radians(self.config.detrot), [1, 0, 0])
+            pixels = numpy.tensordot(P, pixels0, axes=1)
+        else:
+            pixels = pixels0.copy()
+
+
+        # TODO translate the detector, must be done after the detrot.
+        if eix != 0.0:
+            pixels[2] += eix * 1e-3
+        if eiz != 0.0:
+            pixels[1] += eiz * 1e-3
+
+        pdataframe = PDataFrame(
+            pixels, None, None, None, None, None, None, None, dataframe, self.config
+        )
+
+        return intensity, weights, (index, pdataframe)
 
 class FlyMedH(FlyScanUHV):
     HPATH = {
