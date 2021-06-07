@@ -806,6 +806,9 @@ class SIXS(backend.InputBase):
         self.config.uy = util.parse_float(config, "uy", None)
         self.config.uz = util.parse_float(config, "uz", None)
 
+        # overrided_axes_values
+        self.config.overrided_axes_values = util.parse_dict(config, "overrided_axes_values", None)
+
     def get_destination_options(self, command):
         if not command:
             return False
@@ -888,12 +891,20 @@ class FlyScanUHV(SIXS):
                 timestamp = node[index]
         return timestamp
 
-    def get_values(self, index, h5_nodes):
+    def get_value(key, index, h5_nodes, overrided_axes_values):
+        if overrided_axes_values is not None:
+            if key in overrided_axes_values:
+                return overrided_axes_values[key]
+        return h5_nodes[key][index]
+
+    def get_values(self, index, h5_nodes, overrided_axes_values=None):
         image = h5_nodes["image"][index]
-        mu = h5_nodes["mu"][index]
-        omega = h5_nodes["omega"][index]
-        delta = h5_nodes["delta"][index]
-        gamma = h5_nodes["gamma"][index]
+
+        mu = self.get_value("mu", h5_nodes, overrided_axes_values)
+        omega = self.get_value("omega", h5_nodes, overrided_axes_values)
+        delta = self.get_value("delta", h5_nodes, overrided_axes_values)
+        gamma = self.get_value("gamma", h5_nodes, overrided_axes_values)
+
         attenuation = self.get_attenuation(index, h5_nodes, 2)
         timestamp = self.get_timestamp(index, h5_nodes)
 
@@ -907,7 +918,8 @@ class FlyScanUHV(SIXS):
         # extract the data from the h5 nodes
 
         h5_nodes = dataframe.h5_nodes
-        intensity, attenuation, timestamp, values = self.get_values(index, h5_nodes)
+        overrided_axes_values = self.config.overrided_axes_values
+        intensity, attenuation, timestamp, values = self.get_values(index, h5_nodes, overrided_axes_values)
 
         # the next version of the Hkl library will raise an exception
         # if at least one of the values is Nan/-Inf or +Inf. Emulate
@@ -1017,6 +1029,15 @@ class FlyScanUHVS70(FlyScanUHV):
         "timestamp": HItem("epoch", True),
     }
 
+
+class FlyScanUHVS70Andreazza(FlyScanUHV):
+    HPATH = {
+        "image": HItem("xpad_s70_image", False),
+        # omega, mu et gamma dans overrided_axes_values
+        "delta": HItem("delta_xps", False),
+        "attenuation": HItem("attenuation", True),
+        "timestamp": HItem("epoch", True),
+    }
 
 class FlyScanUHVUfxc(FlyScanUHV):
     HPATH = {

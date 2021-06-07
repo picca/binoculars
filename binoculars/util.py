@@ -21,6 +21,8 @@ import time
 import h5py
 import numpy
 
+from ast import literal_eval
+
 from PyMca5.PyMca import EdfFile
 
 from . import errors
@@ -439,6 +441,9 @@ def parse_pairs(s):
         limits.append(parsed)
     return limits
 
+
+def parse_dict(s: str) -> dict:
+    return literal_eval(s)
 
 def limit_to_filelabel(s):
     return tuple(
