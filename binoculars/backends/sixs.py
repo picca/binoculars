@@ -1005,6 +1005,19 @@ class FlyScanUHV2(FlyScanUHV):
         "timestamp": HItem("epoch", True),
     }
 
+
+class FlyScanUHVS70(FlyScanUHV):
+    HPATH = {
+        "image": HItem("xpad_s70_image", False),
+        "mu": HItem("mu", False),
+        "omega": HItem("omega", False),
+        "delta": HItem("delta", False),
+        "gamma": HItem("gamma", False),
+        "attenuation": HItem("attenuation", True),
+        "timestamp": HItem("epoch", True),
+    }
+
+
 class FlyScanUHVUfxc(FlyScanUHV):
     HPATH = {
         "image": HItem("ufxc_sixs_image", False),
