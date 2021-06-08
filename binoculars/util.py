@@ -442,8 +442,16 @@ def parse_pairs(s):
     return limits
 
 
-def parse_dict(s: str) -> dict:
-    return literal_eval(s)
+def parse_dict(config, option, default=None) -> dict:
+    value = default
+    value_as_string = config.pop(option, None)
+    if value_as_string is not None:
+        try:
+            value = literal_eval(value_as_string)  # noqa
+        except ValueError:
+            pass
+    return value
+
 
 def limit_to_filelabel(s):
     return tuple(
