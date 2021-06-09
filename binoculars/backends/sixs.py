@@ -891,7 +891,7 @@ class FlyScanUHV(SIXS):
                 timestamp = node[index]
         return timestamp
 
-    def get_value(key, index, h5_nodes, overrided_axes_values):
+    def get_value(self, key, index, h5_nodes, overrided_axes_values):
         if overrided_axes_values is not None:
             if key in overrided_axes_values:
                 return overrided_axes_values[key]
