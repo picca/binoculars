@@ -900,10 +900,10 @@ class FlyScanUHV(SIXS):
     def get_values(self, index, h5_nodes, overrided_axes_values=None):
         image = h5_nodes["image"][index]
 
-        mu = self.get_value("mu", h5_nodes, overrided_axes_values)
-        omega = self.get_value("omega", h5_nodes, overrided_axes_values)
-        delta = self.get_value("delta", h5_nodes, overrided_axes_values)
-        gamma = self.get_value("gamma", h5_nodes, overrided_axes_values)
+        mu = self.get_value("mu", index, h5_nodes, overrided_axes_values)
+        omega = self.get_value("omega", index, h5_nodes, overrided_axes_values)
+        delta = self.get_value("delta", index, h5_nodes, overrided_axes_values)
+        gamma = self.get_value("gamma", index, h5_nodes, overrided_axes_values)
 
         attenuation = self.get_attenuation(index, h5_nodes, 2)
         timestamp = self.get_timestamp(index, h5_nodes)
