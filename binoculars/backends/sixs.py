@@ -81,27 +81,31 @@ class Diffractometer(NamedTuple):
     geometry: Hkl.Geometry  # the HklGeometry
 
 
-def get_diffractometer(hfile: File):
+def get_diffractometer(hfile: File, config):
     """ Construct a Diffractometer from a NeXus file """
-    node = get_nxclass(hfile, "NXdiffractometer")
+    if config.geometry is not None:
+        name = config.geometry
+        ub =  None
+    else:
+        node = get_nxclass(hfile, "NXdiffractometer")
 
-    name = node_as_string(node["type"][()])
-    if name.endswith("\n"):
-        # remove the last "\n" char
-        name = name[:-1]
+        name = node_as_string(node["type"][()])
+        if name.endswith("\n"):
+            # remove the last "\n" char
+            name = name[:-1]
 
-    try:
-        ub = node["UB"][:]
-    except AttributeError:
-        ub = None
+        try:
+            ub = node["UB"][:]
+        except AttributeError:
+            ub = None
 
     factory = Hkl.factories()[name]
-    geometry = factory.create_new_geometry()
+    hkl_geometry = factory.create_new_geometry()
 
     # wavelength = get_nxclass(hfile, 'NXmonochromator').wavelength[0]
     # geometry.wavelength_set(wavelength)
 
-    return Diffractometer(name, ub, geometry)
+    return Diffractometer(name, ub, hkl_geometry)
 
 
 class Sample(NamedTuple):
@@ -218,7 +222,7 @@ class DataFrame(NamedTuple):
 
 def dataframes(hfile, data_path, config):
     h5_nodes = {k: get_dataset(hfile, v) for k, v in data_path.items()}
-    diffractometer = get_diffractometer(hfile)
+    diffractometer = get_diffractometer(hfile, config)
     sample = get_sample(hfile, config)
     detector = get_detector(hfile, h5_nodes)
     source = get_source(hfile)
@@ -805,6 +809,9 @@ class SIXS(backend.InputBase):
         self.config.ux = util.parse_float(config, "ux", None)
         self.config.uy = util.parse_float(config, "uy", None)
         self.config.uz = util.parse_float(config, "uz", None)
+
+        # geometry
+        self.config.geometry = config.pop("geometry", None)
 
         # overrided_axes_values
         self.config.overrided_axes_values = util.parse_dict(config, "overrided_axes_values", None)
