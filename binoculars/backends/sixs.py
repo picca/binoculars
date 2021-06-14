@@ -1095,6 +1095,10 @@ class GisaxUhvEiger(FlyScanUHV):
         h5_nodes = dataframe.h5_nodes
         intensity, attenuation, eix, eiz = self.get_values(index, h5_nodes)
 
+        # check if the image can be used depending on a method.
+        if eiz < 11:
+            return None
+
         if attenuation is not None:
             if not math.isfinite(attenuation):
                 return None
