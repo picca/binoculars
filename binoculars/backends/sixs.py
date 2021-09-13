@@ -858,7 +858,8 @@ class SIXS(backend.InputBase):
 
 class FlyScanUHV(SIXS):
     HPATH = {
-        "image": HItem("xpad_image", False),
+        "image": DatasetPathOr( HItem("xpad_image", True),
+                                HItem("xpad_S140_image", False)),
         "mu": HItem("UHV_MU", False),
         "omega": HItem("UHV_OMEGA", False),
         "delta": HItem("UHV_DELTA", False),
@@ -1015,7 +1016,8 @@ class FlyScanUHV(SIXS):
 
 class FlyScanUHV2(FlyScanUHV):
     HPATH = {
-        "image": HItem("xpad_image", False),
+        "image": DatasetPathOr( HItem("xpad_image", True),
+                                HItem("xpad_S140_image", False)),
         "mu": HItem("mu", False),
         "omega": HItem("omega", False),
         "delta": HItem("delta", False),
@@ -1140,9 +1142,11 @@ class GisaxUhvEiger(FlyScanUHV):
 
         return intensity, weights, (index, pdataframe)
 
+
 class FlyMedH(FlyScanUHV):
     HPATH = {
-        "image": HItem("xpad_image", False),
+        "image": DatasetPathOr( HItem("xpad_image", True),
+                                HItem("xpad_S140_image", False)),
         "pitch": HItem("beta", True),
         "mu": HItem("mu", False),
         "gamma": HItem("gamma", False),
@@ -1161,6 +1165,19 @@ class FlyMedH(FlyScanUHV):
         timestamp = self.get_timestamp(index, h5_nodes)
 
         return (image, attenuation, timestamp, (pitch, mu, gamma, delta))
+
+
+class FlyMedHS70(FlyMedH):
+    HPATH = {
+        "image": HItem("xpad_s70_image", True),
+        "pitch": HItem("beta", True),
+        "mu": HItem("mu", False),
+        "gamma": HItem("gamma", False),
+        "delta": HItem("delta", False),
+        "attenuation": HItem("attenuation", True),
+        "timestamp": HItem("epoch", True),
+    }
+
 
 class SBSMedH(FlyScanUHV):
     HPATH = {
@@ -1262,7 +1279,8 @@ class SBSFixedDetector(FlyScanUHV):
 
 class FlyMedV(FlyScanUHV):
     HPATH = {
-        "image": HItem("xpad_image", False),
+        "image": DatasetPathOr( HItem("xpad_image", True),
+                                HItem("xpad_S140_image", False)),
         "beta": HItem("beta", True),
         "mu": HItem("mu", False),
         "omega": HItem("omega", False),
@@ -1286,6 +1304,7 @@ class FlyMedV(FlyScanUHV):
 
         return (image, attenuation, timestamp, (beta, mu, omega, gamma, delta, etaa))
 
+
 class FlyMedVS70(FlyMedV):
     HPATH = {
         "image": HItem("xpad_s70_image", False),
@@ -1298,6 +1317,7 @@ class FlyMedVS70(FlyMedV):
         "attenuation": HItem("attenuation", True),
         "timestamp": HItem("epoch", True),
     }
+
 
 class FLYMedVEiger(FlyMedV):
     HPATH = {
