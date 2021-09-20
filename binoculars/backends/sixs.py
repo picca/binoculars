@@ -1079,8 +1079,9 @@ class GisaxUhvEiger(FlyScanUHV):
                 res = node[index]
         return res
 
-    def get_values(self, index, h5_nodes):
+    def get_values(self, index, h5_nodes, overrided_axes_values=None):
         image = h5_nodes["image"][index]
+
         eix = self.get_translation(h5_nodes["eix"], index, 0.0)  # mm
         eiz = self.get_translation(h5_nodes["eiz"], index, 0.0)  # mm
         attenuation = self.get_attenuation(index, h5_nodes, 2)
@@ -1155,8 +1156,9 @@ class FlyMedH(FlyScanUHV):
         "timestamp": HItem("epoch", True),
     }
 
-    def get_values(self, index, h5_nodes):
+    def get_values(self, index, h5_nodes, overrided_axes_values=None):
         image = h5_nodes["image"][index]
+
         pitch = h5_nodes["pitch"][index] if h5_nodes["pitch"] else 0.3
         mu = h5_nodes["mu"][index]
         gamma = h5_nodes["gamma"][index]
@@ -1204,7 +1206,7 @@ class SBSMedH(FlyScanUHV):
             path = self.HPATH["image"]
             return get_dataset(scan, path).shape[0]
 
-    def get_values(self, index, h5_nodes):
+    def get_values(self, index, h5_nodes, overrided_axes_values=None):
         image = h5_nodes["image"][index]
         pitch = h5_nodes["pitch"][index]
         mu = h5_nodes["mu"][index]
@@ -1227,7 +1229,7 @@ class SBSFixedDetector(FlyScanUHV):
         with File(self.get_filename(scanno), "r") as scan:
             return get_nxclass(scan, "NXdata")["data_11"].shape[0]
 
-    def get_values(self, index, h5_nodes):
+    def get_values(self, index, h5_nodes, overrided_axes_values=None):
         image = h5_nodes["image"][index]
         attenuation = self.get_attenuation(index, h5_nodes, 2)
         timestamp = self.get_timestamp(index, h5_nodes)
@@ -1293,7 +1295,7 @@ class FlyMedV(FlyScanUHV):
         "timestamp": HItem("epoch", True),
     }
 
-    def get_values(self, index, h5_nodes):
+    def get_values(self, index, h5_nodes, overrided_axes_values=None):
         image = h5_nodes["image"][index]
         beta = h5_nodes["beta"][index] if h5_nodes["beta"] else 0.0
         mu = h5_nodes["mu"][index]
@@ -1347,7 +1349,7 @@ class FLYMedVEiger(FlyMedV):
                 res = node[index]
         return res
 
-    def get_values(self, index, h5_nodes):
+    def get_values(self, index, h5_nodes, overrided_axes_values=None):
         image = h5_nodes["image"][index]
         beta = h5_nodes["beta"][index] if h5_nodes["beta"] else 0.0  # degrees
         mu = h5_nodes["mu"][index]  # degrees
@@ -1463,7 +1465,7 @@ class SBSMedV(FlyScanUHV):
             path = self.HPATH["image"]
             return get_dataset(scan, path).shape[0]
 
-    def get_values(self, index, h5_nodes):
+    def get_values(self, index, h5_nodes, overrided_axes_values=None):
         image = h5_nodes["image"][index]
         beta = h5_nodes["beta"][0]
         mu = h5_nodes["mu"][index]
@@ -1499,7 +1501,7 @@ class SBSMedVFixDetector(SBSMedV):
         "timestamp": HItem("sensors_timestamps", True),
     }
 
-    def get_values(self, index, h5_nodes):
+    def get_values(self, index, h5_nodes, overrided_axes_values=None):
         image = h5_nodes["image"][index]
         beta = h5_nodes["beta"][0]
         mu = h5_nodes["mu"][index]
