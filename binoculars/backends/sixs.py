@@ -1272,7 +1272,9 @@ class SBSFixedDetector(FlyScanUHV):
         if self.config.detrot is not None:
             P = M(math.radians(self.config.detrot), [1, 0, 0])
 
-        pdataframe = PDataFrame(pixels, k, I, I, P, index, timestamp, dataframe, self.config)
+        surface_orientation = self.config.surface_orientation
+
+        pdataframe = PDataFrame(pixels, k, I, I, P, index, timestamp, surface_orientation, dataframe, self.config)
 
         return intensity, weights, (index, pdataframe)
 
