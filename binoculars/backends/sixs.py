@@ -859,7 +859,8 @@ class SIXS(backend.InputBase):
 class FlyScanUHV(SIXS):
     HPATH = {
         "image": DatasetPathOr( HItem("xpad_image", True),
-                                HItem("xpad_S140_image", False)),
+                                DatasetPathOr( HItem("xpad_s140_image", True),
+                                               HItem("xpad_S140_image", False))),
         "mu": HItem("UHV_MU", False),
         "omega": HItem("UHV_OMEGA", False),
         "delta": HItem("UHV_DELTA", False),
@@ -1017,7 +1018,8 @@ class FlyScanUHV(SIXS):
 class FlyScanUHV2(FlyScanUHV):
     HPATH = {
         "image": DatasetPathOr( HItem("xpad_image", True),
-                                HItem("xpad_S140_image", False)),
+                                DatasetPathOr( HItem("xpad_s140_image", True),
+                                               HItem("xpad_S140_image", False))),
         "mu": HItem("mu", False),
         "omega": HItem("omega", False),
         "delta": HItem("delta", False),
@@ -1147,7 +1149,8 @@ class GisaxUhvEiger(FlyScanUHV):
 class FlyMedH(FlyScanUHV):
     HPATH = {
         "image": DatasetPathOr( HItem("xpad_image", True),
-                                HItem("xpad_S140_image", False)),
+                                DatasetPathOr( HItem("xpad_s140_image", True),
+                                               HItem("xpad_S140_image", False))),
         "pitch": HItem("beta", True),
         "mu": HItem("mu", False),
         "gamma": HItem("gamma", False),
@@ -1284,7 +1287,8 @@ class SBSFixedDetector(FlyScanUHV):
 class FlyMedV(FlyScanUHV):
     HPATH = {
         "image": DatasetPathOr( HItem("xpad_image", True),
-                                HItem("xpad_S140_image", False)),
+                                DatasetPathOr( HItem("xpad_s140_image", True),
+                                               HItem("xpad_S140_image", False))),
         "beta": HItem("beta", True),
         "mu": HItem("mu", False),
         "omega": HItem("omega", False),

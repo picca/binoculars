@@ -36,7 +36,7 @@ install_requires = ["h5py", "numpy", "matplotlib", "pyFAI", "PyGObject", "PyMca5
 
 setup(
     name="binoculars",
-    version="0.0.9-dev",
+    version="0.0.10-dev",
     description=description,
     long_description=long_description,
     packages=find_packages(exclude=["*.test", "*.test.*", "test.*", "test", "grafit"]),
