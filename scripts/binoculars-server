@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 '''Serverqueue where jobs can be submitted. Jobs will be calculated on
 the spot or passed on to the OAR cluster if so specified in the
 configfile. Jobs can be submitted in a json dictionary. The keyword

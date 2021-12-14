@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 from __future__ import unicode_literals
 
 import sys
@@ -1035,7 +1035,7 @@ class TableWidget(QWidget):
 
         self.table = QTableWidget(0, 4)
         self.table.setHorizontalHeaderLabels(['', 'filename','labels', 'remove'])
-        
+
         for index, width in enumerate([25,150,50,70]):
             self.table.setColumnWidth(index, width)
 
@@ -1145,7 +1145,7 @@ class LimitWidget(QWidget):
         self.refreshbutton.clicked.connect(self.refresh)
 
         vbox.addWidget(self.projectionlabel)
-       
+
         self.checkbox = list()
         self.state = list()
 
@@ -1155,16 +1155,16 @@ class LimitWidget(QWidget):
             self.state.append(box.checkState())
             hbox.addWidget(box)
             box.stateChanged.connect(self.update_checkbox)
-        
+
         self.state = numpy.array(self.state, dtype = numpy.bool)
         self.init_checkbox()
 
         vbox.addLayout(hbox)
-        
+
         for label in labels:
             self.qlabels.append(QLabel(self))
             self.leftindicator.append(QLineEdit(self))
-            self.rightindicator.append(QLineEdit(self))             
+            self.rightindicator.append(QLineEdit(self))
             self.sliders.append(RangeSlider(Qt.Horizontal))
 
         for index, label in enumerate(labels):
@@ -1235,7 +1235,7 @@ class LimitWidget(QWidget):
         signal['project'] = project
         signal['key'] = key
         self.keydict.emit(signal)
-            
+
     def update_sliders_left(self):
         for ax, left, right , slider in zip(self.axes, self.leftindicator, self.rightindicator, self.sliders):
             try:

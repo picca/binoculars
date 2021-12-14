@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Created on Wed Dec 07 11:10:28 2016
 
@@ -10,7 +11,7 @@ Created on Wed Dec 07 11:10:28 2016
 
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2009-2011, 2020 CEA
+# Copyright © 2009-2011, 2020, 2021 CEA
 # Pierre Raybaut
 # Licensed under the terms of the CECILL License
 # (see guiqwt/__init__.py for details)
