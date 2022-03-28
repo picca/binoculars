@@ -124,7 +124,7 @@ class Axis(object):
             if value.stop is None:
                 stop = None
             else:
-                stop = self._get_index_float(value.stop)
+                stop = self._get_index_float(value.stop) + 1
             if start is not None and stop is not None and start > stop:
                 start, stop = stop, start
             return slice(start, stop)
