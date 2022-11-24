@@ -48,10 +48,14 @@ class Axis(object):
         self.res = float(res)
         if isinstance(min, int):
             self.imin = min
+        elif isinstance(min, numpy.int64) or isinstance(min, numpy.int32):
+            self.imin = int(min)
         else:
             self.imin = math.floor(min / self.res)
         if isinstance(max, int):
             self.imax = max
+        elif isinstance(max, numpy.int64) or isinstance(max, numpy.int32):
+            self.imax = int(max)
         else:
             self.imax = math.ceil(max / self.res)
         self.label = label
