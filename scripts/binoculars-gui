@@ -1156,7 +1156,7 @@ class LimitWidget(QWidget):
             hbox.addWidget(box)
             box.stateChanged.connect(self.update_checkbox)
 
-        self.state = numpy.array(self.state, dtype = numpy.bool)
+        self.state = numpy.array(self.state, dtype = numpy.bool_)
         self.init_checkbox()
 
         vbox.addLayout(hbox)
@@ -1269,7 +1269,7 @@ class LimitWidget(QWidget):
         self.send_signal()
 
     def init_checkbox(self):
-        while numpy.alen(self.state) - self.state.sum() > 2:
+        while len(self.state) - self.state.sum() > 2:
             _index = numpy.where(self.state == False)[-1]
             self.state[-1] = True
         for box, state in zip(self.checkbox, self.state):

@@ -14,7 +14,7 @@
   along with the hkl library.  If not, see
   <http://www.gnu.org/licenses/>.
 
-  Copyright (C) 2015-2021 Synchrotron SOLEIL
+  Copyright (C) 2015-2021, 2023 Synchrotron SOLEIL
                           L'Orme des Merisiers Saint-Aubin
                           BP 48 91192 GIF-sur-YVETTE CEDEX
 

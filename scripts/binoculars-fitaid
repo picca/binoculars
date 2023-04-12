@@ -145,7 +145,7 @@ class RodData(FitData):
 
     def rodlength(self) -> int:
         bins, ax, axindex = self.get_bins()
-        return numpy.alen(bins) - 1
+        return len(bins) - 1
 
     def get_index_value(self, index: int) -> ndarray:
         values = get_axis_values(self.axdict[self.rodkey],
@@ -207,9 +207,9 @@ class RodData(FitData):
             if key not in group:
                 dataset = group.create_dataset(key, (self.rodlength(),))
                 dataset = group.create_dataset(mkey, (self.rodlength(),),
-                                               dtype=numpy.bool)
+                                               dtype=numpy.bool_)
                 dataset.write_direct(
-                    numpy.ones(self.rodlength(), dtype=numpy.bool)
+                    numpy.ones(self.rodlength(), dtype=numpy.bool_)
                 )
             group[key][index] = value
             group[mkey][index] = 0
@@ -1078,12 +1078,12 @@ class IntegrateWidget(QWidget):
                     fitintensity = fitdata[key].data.flatten()
                     fitbkg = numpy.hstack([fitdata[space.get_key(bkgkey)].data.flatten()  # noqa
                                            for bkgkey in self.bkgkeys(loc, axes)])
-                    if numpy.alen(fitbkg) == 0:
+                    if len(fitbkg) == 0:
                         fitstructurefactor = fitintensity.sum()
-                    elif numpy.alen(fitintensity) == 0:
+                    elif len(fitintensity) == 0:
                         fitstructurefactor = numpy.nan
                     else:
-                        fitstructurefactor = numpy.sqrt(fitintensity.sum() - numpy.alen(fitintensity) * 1.0 / numpy.alen(fitbkg) * fitbkg.sum())  # noqa
+                        fitstructurefactor = numpy.sqrt(fitintensity.sum() - len(fitintensity) * 1.0 / len(fitbkg) * fitbkg.sum())  # noqa
                     self.database.save_sliceattr(
                         index, 'fitsf', fitstructurefactor)
 
@@ -1108,15 +1108,15 @@ class IntegrateWidget(QWidget):
                     intensity = numpy.array([])
                     bkg = numpy.array([])
 
-                if numpy.alen(intensity) == 0:
+                if len(intensity) == 0:
                     structurefactor = numpy.nan
                     nistructurefactor = numpy.nan
-                elif numpy.alen(bkg) == 0:
+                elif len(bkg) == 0:
                     structurefactor = numpy.sqrt(intensity.sum())
                     nistructurefactor = numpy.sqrt(niintensity.sum())
                 else:
-                    structurefactor = numpy.sqrt(intensity.sum() - numpy.alen(intensity) * 1.0 / numpy.alen(bkg) * bkg.sum())  # noqa
-                    nistructurefactor = numpy.sqrt(niintensity.sum() - numpy.alen(niintensity) * 1.0 / numpy.alen(bkg) * bkg.sum())  # noqa
+                    structurefactor = numpy.sqrt(intensity.sum() - len(intensity) * 1.0 / len(bkg) * bkg.sum())  # noqa
+                    nistructurefactor = numpy.sqrt(niintensity.sum() - len(niintensity) * 1.0 / numpy.alen(bkg) * bkg.sum())  # noqa
 
                 self.database.save_sliceattr(index, 'sf', structurefactor)
                 self.database.save_sliceattr(index, 'nisf', nistructurefactor)
