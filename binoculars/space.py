@@ -10,8 +10,6 @@ from numbers import Number
 
 from numpy import ndarray
 from numpy.ma import MaskedArray
-from vtk import vtkImageData, vtkXMLImageDataWriter
-from vtk.util import numpy_support
 
 from . import util, errors
 
@@ -795,33 +793,6 @@ class Space(object):
         newspace = cls(axes)
         newspace.process_image(coordinates, intensity, weights)
         return newspace
-
-    def tovti(self, filename: str) -> None:
-        assert self.dimension == 3, "only array with three dimensions are allowed"
-
-        data = self.photons / self.contributions
-
-        spacing = tuple(a.res for a in self.axes.axes)
-        origin = tuple(a.min for a in self.axes.axes)
-        name = str(tuple(a.label for a in self.axes.axes))
-
-        image_data = vtkImageData()
-        image_data.SetSpacing(spacing)
-        image_data.SetOrigin(origin)
-        image_data.SetDimensions(data.shape)
-
-        temp_array = numpy.transpose(numpy.flip(data, 2)).flatten()
-        temp_array = numpy_support.numpy_to_vtk(temp_array, deep=1)
-
-        pd = image_data.GetPointData()
-        pd.SetScalars(temp_array)
-        pd.GetArray(0).SetName(name)
-
-        # export data to file
-        writer = vtkXMLImageDataWriter()
-        writer.SetFileName(filename)
-        writer.SetInputData(image_data)
-        writer.Write()
 
     def tofile(self, filename):
         """Store Space in HDF5 file."""
