@@ -818,7 +818,7 @@ class ProjectWidget(QWidget):
             filename = self.table.selection[i]
             basename = os.path.splitext(os.path.basename(filename))[0]
             if plotcount > 1:
-                if dimension == 1 and (plotoption == 'stack' or plotoption == None):
+                if dimension == 1 and (plotoption == 'stack' or plotoption is None):
                     self.ax = self.figure.add_subplot(111)
                 if dimension == 2 and plotoption != 'grid':
                     sys.stderr.write('warning: stack display not supported for multi-file-plotting, falling back to grid\n')
@@ -826,8 +826,6 @@ class ProjectWidget(QWidget):
                 elif dimension > 3:
                     sys.stderr.write('error: cannot display 4 or higher dimensional data, use --project or --slice to decrease dimensionality\n')
                     sys.exit(1)
-            else:
-                self.ax = self.figure.add_subplot(111)
 
             if plotoption == 'grid':
                 if dimension == 1 or dimension == 2:
@@ -835,6 +833,8 @@ class ProjectWidget(QWidget):
                 elif self.threed.isChecked():
                     self.ax = self.figure.gca(projection='3d')
                 self.ax.set_title(basename)
+            else:
+                self.ax = self.figure.add_subplot(111)
 
             if dimension == 2 and self.swap_axes.checkState():
                 space = space.reorder(list(ax.label for ax in space.axes)[::-1])
