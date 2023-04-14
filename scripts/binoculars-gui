@@ -1273,7 +1273,7 @@ class LimitWidget(QWidget):
             _index = numpy.where(self.state == False)[-1]
             self.state[-1] = True
         for box, state in zip(self.checkbox, self.state):
-            box.setChecked(state)
+            box.setChecked(bool(state))
 
     def axes_update(self, axes):
         if not set(ax.label for ax in self.axes) == set(ax.label for ax in axes):
