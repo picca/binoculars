@@ -1139,7 +1139,7 @@ def bkgsubtract(space, bkg):
 
 
 def make_compatible(spaces):
-    if not numpy.alen(numpy.unique(len(space.axes) for space in spaces)) == 1:
+    if not len(numpy.unique(len(space.axes) for space in spaces)) == 1:
         raise ValueError("cannot make spaces with different dimensionality compatible")
     ax0 = tuple(ax.label for ax in spaces[0].axes)
     resmax = tuple(
