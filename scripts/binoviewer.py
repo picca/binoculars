@@ -11,7 +11,7 @@ Created on Wed Dec 07 11:10:28 2016
 
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2009-2011, 2020, 2021 CEA
+# Copyright © 2009-2011, 2020, 2021, 2023 CEA
 # Pierre Raybaut
 # Licensed under the terms of the CECILL License
 # (see guiqwt/__init__.py for details)
@@ -184,7 +184,7 @@ def mask_linear_defects(data, threshold=3, length=1):
     temp.mask = lup
     np.ma.apply_along_axis(remove_masked_slices, 1, temp, *(length,))
 
-    mask = np.zeros_like(data, dtype=np.bool)
+    mask = np.zeros_like(data, dtype=np.bool_)
     mask[1:-1] = np.logical_or(ldown, temp.mask)
     return mask
 
@@ -344,7 +344,7 @@ class MaskedImageNan(MaskedImageItem):
         if inside:
             self.data[iy0:iy1, ix0:ix1] = np.ma.masked
         else:
-            indexes = np.ones(self.data.shape, dtype=np.bool)
+            indexes = np.ones(self.data.shape, dtype=np.bool_)
             indexes[iy0:iy1, ix0:ix1] = False
             self.data[indexes] = np.ma.masked
         if trace:
@@ -369,7 +369,7 @@ class MaskedImageNan(MaskedImageItem):
         if inside:
             self.data[iy0:iy1, ix0:ix1] = np.ma.masked
         else:
-            indexes = np.ones(self.data.shape, dtype=np.bool)
+            indexes = np.ones(self.data.shape, dtype=np.bool_)
             indexes[iy0:iy1, ix0:ix1] = False
             self.data[indexes] = np.ma.masked
         if trace:
@@ -474,7 +474,7 @@ class MaskedImageNan(MaskedImageItem):
         if inside:
             self.data.mask[iy0:iy1, ix0:ix1] = False
         else:
-            indexes = np.ones(self.data.shape, dtype=np.bool)
+            indexes = np.ones(self.data.shape, dtype=np.bool_)
             indexes[iy0:iy1, ix0:ix1] = False
             self.data.mask[indexes] = False
         if trace:
@@ -501,7 +501,7 @@ class MaskedImageNan(MaskedImageItem):
         if inside:
             self.data.mask[iy0:iy1, ix0:ix1] = False
         else:
-            indexes = np.ones(self.data.shape, dtype=np.bool)
+            indexes = np.ones(self.data.shape, dtype=np.bool_)
             indexes[iy0:iy1, ix0:ix1] = False
             self.data.mask[indexes] = False
         if trace:
@@ -2780,7 +2780,7 @@ class ImageMaskingWidget(PanelWidget):
         radius = self.sizebox.value()
         L = np.arange(-radius, radius + 1)
         X, Y = np.meshgrid(L, L)
-        struct = np.array((X ** 2 + Y ** 2) <= radius ** 2, dtype=np.bool)
+        struct = np.array((X ** 2 + Y ** 2) <= radius ** 2, dtype=np.bool_)
 
         self.masked_image.data.mask = (
             signal.fftconvolve(self.masked_image.data.mask, struct, "same") > 0.5
@@ -2797,7 +2797,7 @@ class ImageMaskingWidget(PanelWidget):
         radius = self.sizebox.value()
         L = np.arange(-radius, radius + 1)
         X, Y = np.meshgrid(L, L)
-        struct = np.array((X ** 2 + Y ** 2) <= radius ** 2, dtype=np.bool)
+        struct = np.array((X ** 2 + Y ** 2) <= radius ** 2, dtype=np.bool_)
 
         self.masked_image.data.mask = (
             signal.fftconvolve(

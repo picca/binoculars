@@ -14,7 +14,7 @@
   You should have received a copy of the GNU General Public License
   along with the hkl library.  If not, see <http://www.gnu.org/licenses/>.
 
-  Copyright (C) 2012-2015 European Synchrotron Radiation Facility
+  Copyright (C) 2012-2015, 2023 European Synchrotron Radiation Facility
                           Grenoble, France
 
   Authors: Willem Onderwaater <onderwaa@esrf.fr>
@@ -454,9 +454,9 @@ def load_matrix(filename):
     if os.path.exists(filename):
         ext = os.path.splitext(filename)[-1]
         if ext == ".txt":
-            return numpy.array(numpy.loadtxt(filename), dtype=numpy.bool)
+            return numpy.array(numpy.loadtxt(filename), dtype=numpy.bool_)
         elif ext == ".npy":
-            return numpy.array(numpy.load(filename), dtype=numpy.bool)
+            return numpy.array(numpy.load(filename), dtype=numpy.bool_)
         else:
             raise ValueError(
                 "unknown extension {0}, unable to load matrix!\n".format(ext)

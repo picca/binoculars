@@ -1172,11 +1172,11 @@ def load_matrix(filename):
     if os.path.exists(filename):
         ext = os.path.splitext(filename)[-1]
         if ext == ".txt":
-            return numpy.array(numpy.loadtxt(filename), dtype=numpy.bool)
+            return numpy.array(numpy.loadtxt(filename), dtype=numpy.bool_)
         elif ext == ".npy":
-            return numpy.array(numpy.load(filename), dtype=numpy.bool)
+            return numpy.array(numpy.load(filename), dtype=numpy.bool_)
         elif ext == ".edf":
-            return numpy.array(EdfFile.EdfFile(filename).getData(0), dtype=numpy.bool)
+            return numpy.array(EdfFile.EdfFile(filename).getData(0), dtype=numpy.bool_)
         else:
             raise ValueError(
                 "unknown extension {0}, unable to load matrix!\n".format(ext)

@@ -1004,10 +1004,10 @@ class FlyScanUHV(SIXS):
 
     def get_mask(self, detector: Detector, fnmask: Optional[str]=None) -> ndarray:
         if detector.name == "ufxc":
-            mask = numpy.zeros((256, 257)).astype(bool)
+            mask = numpy.zeros((256, 257)).astype(numpy.bool_)
         else:
             detector = ALL_DETECTORS[detector.name]()
-            mask = detector.mask.astype(numpy.bool)
+            mask = detector.mask.astype(numpy.bool_)
         maskmatrix = load_matrix(fnmask)
         if maskmatrix is not None:
             mask = numpy.bitwise_or(mask, maskmatrix)
@@ -1524,9 +1524,9 @@ def load_matrix(filename):
     if os.path.exists(filename):
         ext = os.path.splitext(filename)[-1]
         if ext == ".txt":
-            return numpy.array(numpy.loadtxt(filename), dtype=numpy.bool)
+            return numpy.array(numpy.loadtxt(filename), dtype=numpy.bool_)
         elif ext == ".npy":
-            mask = numpy.array(numpy.load(filename), dtype=numpy.bool)
+            mask = numpy.array(numpy.load(filename), dtype=numpy.bool_)
             print("loaded mask sum: ", numpy.sum(mask))
             return mask
         else:

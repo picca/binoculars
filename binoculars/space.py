@@ -773,7 +773,7 @@ class Space(object):
         intensity     data intensity array"""
 
         if limits is not None:
-            invalid = numpy.zeros(intensity.shape).astype(numpy.bool)
+            invalid = numpy.zeros(intensity.shape).astype(numpy.bool_)
             for coord, sl in zip(coordinates, limits):
                 if sl.start is None and sl.stop is not None:
                     invalid += coord > sl.stop
