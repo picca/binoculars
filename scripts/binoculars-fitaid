@@ -1023,7 +1023,7 @@ class IntegrateWidget(QWidget):
 
             aroundroi = self.database.load('', 'aroundroi')
             if aroundroi is not None:
-                self.aroundroi.setChecked(aroundroi != 0)
+                self.aroundroi.setChecked(bool(aroundroi))
             else:
                 self.aroundroi.setChecked(True)
             self.refresh_aroundroi()
