@@ -1118,7 +1118,7 @@ class IntegrateWidget(QWidget):
                     nistructurefactor = numpy.sqrt(niintensity.sum())
                 else:
                     structurefactor = numpy.sqrt(intensity.sum() - len(intensity) * 1.0 / len(bkg) * bkg.sum())  # noqa
-                    nistructurefactor = numpy.sqrt(niintensity.sum() - len(niintensity) * 1.0 / numpy.alen(bkg) * bkg.sum())  # noqa
+                    nistructurefactor = numpy.sqrt(niintensity.sum() - len(niintensity) * 1.0 / len(bkg) * bkg.sum())  # noqa
 
                 self.database.save_sliceattr(index, 'sf', structurefactor)
                 self.database.save_sliceattr(index, 'nisf', nistructurefactor)
