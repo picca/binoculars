@@ -1245,7 +1245,7 @@ class IntegrateWidget(QWidget):
                     axes = self.figure.space_axes
                     key = self.intkey(loc, axes)
                     bkgkey = self.bkgkeys(loc, axes)
-                    ax.patches = []
+                    ax.patches.clear()
                     rect = Rectangle((key[0].start, key[1].start),
                                      key[0].stop - key[0].start,
                                      key[1].stop - key[1].start,
