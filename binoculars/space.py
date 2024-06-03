@@ -1129,4 +1129,4 @@ def make_compatible(spaces):
                 resmax
             )
         )
-    return tuple(space.reorder(ax0).rebin2(resmax) for space in spaces)
+    return tuple(space.reorder(ax0).rebin(resmax) for space in spaces)

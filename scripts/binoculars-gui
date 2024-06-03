@@ -856,7 +856,7 @@ class ProjectWidget(QWidget):
             newspace = binoculars.space.sum(binoculars.space.make_compatible(spaces))
             newspace.tofile(filename)
             list(map(self.table.remove, self.table.selection))
-            self.table.addspace(filename, True)
+            self.table.add_space(filename, True)
         except Exception as e:
             QMessageBox.critical(self, 'Merge', 'Unable to merge the meshes. {}'.format(e))
 
@@ -869,7 +869,7 @@ class ProjectWidget(QWidget):
                 newfilename = binoculars.util.find_unused_filename(selected_filename)
                 space.tofile(newfilename)
                 self.table.remove(selected_filename)
-                self.table.addspace(newfilename, True)
+                self.table.add_space(newfilename, True)
         except Exception as e:
             QMessageBox.critical(self, 'Subtract', 'Unable to subtract the meshes. {}'.format(e))
 
