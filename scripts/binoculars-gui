@@ -37,6 +37,7 @@ def set_src():
     dirpath = osp.join(osp.dirname(osp.abspath(__file__)), osp.pardir)
     sys.path.insert(0, osp.abspath(dirpath))
 
+
 try:
     import binoculars.main
     import binoculars.space
@@ -50,7 +51,8 @@ except ImportError:
     import binoculars.plot
     import binoculars.util
 
-#RangeSlider is taken from https://www.mail-archive.com/pyqt@riverbankcomputing.com/msg22889.html
+# RangeSlider is taken from
+#    https://www.mail-archive.com/pyqt@riverbankcomputing.com/msg22889.html
 
 
 class RangeSlider(QSlider):
@@ -91,7 +93,8 @@ class RangeSlider(QSlider):
         self.update()
 
     def paintEvent(self, event):
-        # based on http://qt.gitorious.org/qt/qt/blobs/master/src/gui/widgets/qslider.cpp
+        # based on
+        # http://qt.gitorious.org/qt/qt/blobs/master/src/gui/widgets/qslider.cpp
 
         painter = QPainter(self)
         style = QApplication.style()
@@ -100,10 +103,13 @@ class RangeSlider(QSlider):
             opt = QStyleOptionSlider()
             self.initStyleOption(opt)
 
-            # Only draw the groove for the first slider so it doesn't get drawn
-            # on top of the existing ones every time
+            # Only draw the groove for the first slider so it doesn't
+            # get drawn on top of the existing ones every time
             if i == 0:
-                opt.subControls = QStyle.SC_SliderHandle  # QStyle.SC_SliderGroove | QStyle.SC_SliderHandle
+                opt.subControls = QStyle.SC_SliderHandle
+                # QStyle.SC_SliderGroove
+                # |
+                # QStyle.SC_SliderHandle
             else:
                 opt.subControls = QStyle.SC_SliderHandle
 
@@ -140,7 +146,8 @@ class RangeSlider(QSlider):
 
             for i, value in enumerate([self._low, self._high]):
                 opt.sliderPosition = value
-                hit = style.hitTestComplexControl(style.CC_Slider, opt, event.pos(), self)
+                hit = style.hitTestComplexControl(style.CC_Slider,
+                                                  opt, event.pos(), self)
                 if hit == style.SC_SliderHandle:
                     self.active_slider = i
                     self.pressed_control = hit
@@ -152,7 +159,8 @@ class RangeSlider(QSlider):
 
             if self.active_slider < 0:
                 self.pressed_control = QStyle.SC_SliderHandle
-                self.click_offset = self.__pixelPosToRangeValue(self.__pick(event.pos()))
+                self.click_offset = \
+                    self.__pixelPosToRangeValue(self.__pick(event.pos()))
                 self.triggerAction(self.SliderMove)
                 self.setRepeatAction(self.SliderNoAction)
         else:
@@ -209,8 +217,10 @@ class RangeSlider(QSlider):
         self.initStyleOption(opt)
         style = QApplication.style()
 
-        gr = style.subControlRect(style.CC_Slider, opt, style.SC_SliderGroove, self)
-        sr = style.subControlRect(style.CC_Slider, opt, style.SC_SliderHandle, self)
+        gr = style.subControlRect(style.CC_Slider, opt,
+                                  style.SC_SliderGroove, self)
+        sr = style.subControlRect(style.CC_Slider, opt,
+                                  style.SC_SliderHandle, self)
 
         if self.orientation() == Qt.Horizontal:
             slider_length = sr.width()
@@ -221,8 +231,10 @@ class RangeSlider(QSlider):
             slider_min = gr.y()
             slider_max = gr.bottom() - slider_length + 1
 
-        return style.sliderValueFromPosition(self.minimum(), self.maximum(),
-                                             pos-slider_min, slider_max-slider_min,
+        return style.sliderValueFromPosition(self.minimum(),
+                                             self.maximum(),
+                                             pos-slider_min,
+                                             slider_max-slider_min,
                                              opt.upsideDown)
 
 
@@ -316,7 +328,9 @@ class Window(QMainWindow):
                     self.tab_widget.addTab(widget, short_filename(str(name)))
                     self.tab_widget.setCurrentWidget(widget)
                 except Exception as e:
-                    QMessageBox.critical(self, 'Load project', 'Unable to load project from {}: {}'.format(fname, e))
+                    QMessageBox.critical(
+                        self, 'Load project',
+                        f"Unable to load project from {fname}: {e}")
         else:
             widget = ProjectWidget.fromfile(filename, parent=self)
             self.tab_widget.addTab(widget, short_filename(filename))
@@ -338,7 +352,8 @@ class Window(QMainWindow):
             self.tab_widget.setTabText(index, short_filename(fname))
             widget.tofile(fname)
         except Exception as e:
-            QMessageBox.critical(self, 'Save project', 'Unable to save project to {}: {}'.format(fname, e))
+            QMessageBox.critical(self, 'Save project',
+                                 f"Unable to save project to {fname}: {e}")
 
     def add_to_project(self):
         if self.tab_widget.count() == 0:
@@ -354,12 +369,8 @@ class Window(QMainWindow):
         if not fname:
             return
         for name in fname:
-            try:
-                widget = self.tab_widget.currentWidget()
-                widget.addspace(str(name), True)
-            except Exception as _e:
-                raise
-                #QMessageBox.critical(self, 'Import spaces', 'Unable to import space {}: {}'.format(str(name), e))
+            widget = self.tab_widget.currentWidget()
+            widget.addspace(str(name), True)
 
     def exportspace(self):
         widget = self.tab_widget.currentWidget()
@@ -372,10 +383,11 @@ class Window(QMainWindow):
         if not fname:
             return
         try:
-            _index = self.tab_widget.currentIndex()
+            # FP useless ? _index = self.tab_widget.currentIndex()
             widget.space_to_file(str(fname))
         except Exception as e:
-            QMessageBox.critical(self, 'export fitdata', 'Unable to save mesh to {}: {}'.format(fname, e))
+            QMessageBox.critical(self, 'export fitdata',
+                                 f"Unable to save mesh to {fname}: {e}")
 
     def merge(self):
         widget = self.tab_widget.currentWidget()
@@ -390,10 +402,11 @@ class Window(QMainWindow):
         if not fname:
             return
         try:
-            _index = self.tab_widget.currentIndex()
+            # FP useless ? _index = self.tab_widget.currentIndex()
             widget.merge(str(fname))
         except Exception as e:
-            QMessageBox.critical(self, 'merge', 'Unable to save mesh to {}: {}'.format(fname, e))
+            QMessageBox.critical(self, 'merge',
+                                 f"Unable to save mesh to {fname}: {e}")
 
     def subtract(self):
         dialog = QFileDialog(self, "subtract space")
@@ -410,7 +423,8 @@ class Window(QMainWindow):
                 widget = self.tab_widget.currentWidget()
                 widget.subtractspace(str(name))
             except Exception as e:
-                QMessageBox.critical(self, 'Import spaces', 'Unable to import space {}: {}'.format(fname, e))
+                QMessageBox.critical(self, 'Import spaces',
+                                     f"Unable to import space {fname}: {e}")
 
     def open_server(self, startq=True):
         if len(self.threads) != 0:
@@ -425,8 +439,13 @@ class Window(QMainWindow):
             self.ip, self.port = server.server_address
 
             if startq:
-                cmd = ['python', os.path.join(os.path.dirname(__file__), 'binoculars-server.py'), str(self.ip), str(self.port)]
-                self.pro = subprocess.Popen(cmd, stdin=None, stdout=None, stderr=None, preexec_fn=os.setsid)
+                cmd = ['python',
+                       os.path.join(os.path.dirname(__file__),
+                                    'binoculars-server.py'),
+                       str(self.ip), str(self.port)]
+                self.pro = subprocess.Popen(cmd, stdin=None,
+                                            stdout=None, stderr=None,
+                                            preexec_fn=os.setsid)
 
             server_thread = threading.Thread(target=server.serve_forever)
             server_thread.daemon = True
@@ -439,7 +458,8 @@ class Window(QMainWindow):
             updater.start()
 
             if not startq:
-                print(('GUI server started running at ip {0} and port {1}.'.format(self.ip, self.port)))
+                print("GUI server started running at ip "
+                      f"{self.ip} and port {self.port}.")
 
     def kill_server(self):
         if len(self.threads) == 0:
@@ -450,7 +470,7 @@ class Window(QMainWindow):
             self.pro = None
 
     def kill_subprocess(self):
-        if not self.pro == None:
+        if self.pro is not None:
             os.killpg(self.pro.pid, signal.SIGTERM)
 
     def update(self):
@@ -503,7 +523,8 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
 class SpaceTCPHandler(socketserver.BaseRequestHandler):
     def handle(self):
-        command, config, metadata, axes, photons, contributions = binoculars.util.socket_recieve(self)
+        command, config, metadata, axes, photons, contributions = \
+            binoculars.util.socket_recieve(self)
         space = binoculars.space.Space(binoculars.space.Axes.fromarray(axes))
         space.config = binoculars.util.ConfigFile.fromserial(config)
         space.config.command = command
@@ -545,7 +566,8 @@ class ProjectWidget(QWidget):
 
         self.figure = matplotlib.figure.Figure()
         self.canvas = FigureCanvasQTAgg(self.figure)
-        self.toolbar = HiddenToolbar(self.show_coords, self.update_sliders, self.canvas)
+        self.toolbar = HiddenToolbar(self.show_coords,
+                                     self.update_sliders, self.canvas)
 
         self.lin = QRadioButton('lin', self)
         self.lin.setChecked(False)
@@ -661,30 +683,41 @@ class ProjectWidget(QWidget):
         plotaxes = event.inaxes
         if hasattr(plotaxes, 'space'):
             if plotaxes.space.dimension == 2:
-                labels = numpy.array([plotaxes.get_xlabel(), plotaxes.get_ylabel()])
+                labels = numpy.array([plotaxes.get_xlabel(),
+                                      plotaxes.get_ylabel()])
                 order = [plotaxes.space.axes.index(label) for label in labels]
                 labels = labels[order]
                 coords = numpy.array([event.xdata, event.ydata])[order]
                 try:
-                    rounded_coords = [ax[ax.get_index(coord)] for ax, coord in zip(plotaxes.space.axes, coords)]
+                    rounded_coords = \
+                        [ax[ax.get_index(coord)] for ax,
+                         coord in zip(plotaxes.space.axes, coords)]
                     intensity = '{0:.2e}'.format(plotaxes.space[list(coords)])
-                    self.parent.statusbar.showMessage('{0} = {1}, {2} = {3}, Intensity = {4}'.format(labels[0], rounded_coords[0], labels[1], rounded_coords[1], intensity))
+                    self.parent.statusbar.showMessage(
+                        f"{labels[0]} = {rounded_coords[0]}, "
+                        f"{labels[1]} = {rounded_coords[1]}, "
+                        f"Intensity = {intensity}")
                 except ValueError:
                     self.parent.statusbar.showMessage('out of range')
             elif plotaxes.space.dimension == 1:
-                xaxis = plotaxes.space.axes[plotaxes.space.axes.index(plotaxes.get_xlabel())]
+                xlabel = plotaxes.get_xlabel()
+                xaxis = plotaxes.space.axes[plotaxes.space.axes.index(xlabel)]
                 if event.xdata in xaxis:
                     xcoord = xaxis[xaxis.get_index(event.xdata)]
                     intensity = '{0:.2e}'.format(event.ydata)
-                    self.parent.statusbar.showMessage('{0} = {1}, Intensity = {2}'.format(xaxis.label, xcoord, intensity))
+                    self.parent.statusbar.showMessage(
+                        f"{xaxis.label} = {xcoord}, "
+                        f"Intensity = {intensity}")
 
     def update_sliders(self, plotaxes):
-        if not plotaxes == None:
+        if plotaxes is not None:
             if hasattr(plotaxes, 'space'):
                 space = plotaxes.space
                 if space.dimension == 2:
-                    labels = numpy.array([plotaxes.get_xlabel(), plotaxes.get_ylabel()])
-                    limits = list(lim for lim in [plotaxes.get_xlim(), plotaxes.get_ylim()])
+                    labels = numpy.array([plotaxes.get_xlabel(),
+                                          plotaxes.get_ylabel()])
+                    limits = list(lim for lim in [plotaxes.get_xlim(),
+                                                  plotaxes.get_ylim()])
                 elif space.dimension == 1:
                     labels = [plotaxes.get_xlabel()]
                     limits = [plotaxes.get_xlim()]
@@ -737,11 +770,12 @@ class ProjectWidget(QWidget):
             return matplotlib.colors.Normalize(vmin, vmax)
 
     def get_normlist(self):
-        _log = self.log.isChecked()
+        # FP useless ? _log = self.log.isChecked()
         same = self.samerange.checkState()
 
         if same:
-            return [self.get_norm(min(self.datamin), max(self.datamax))] * len(self.datamin)
+            return [self.get_norm(min(self.datamin),
+                                  max(self.datamax))] * len(self.datamin)
         else:
             norm = []
             for i in range(len(self.datamin)):
@@ -770,7 +804,7 @@ class ProjectWidget(QWidget):
         for i, filename in enumerate(self.table.selection):
             axes = self.table.getax(filename)
             rkey = axes.restricted_key(self.key)
-            if rkey == None:
+            if rkey is None:
                 space = self.table.getspace(filename)
             else:
                 try:
@@ -784,7 +818,8 @@ class ProjectWidget(QWidget):
             if dimension == 0:
                 self.errormessage('Choose suitable number of projections')
             if dimension == 3 and not self.threed.isChecked():
-                self.errormessage('Switch on 3D plotting, only works with small spaces')
+                self.errormessage(
+                    'Switch on 3D plotting, only works with small spaces')
             spaces.append(space)
 
         self.datamin = []
@@ -811,18 +846,25 @@ class ProjectWidget(QWidget):
             filename = self.table.selection[i]
             basename = os.path.splitext(os.path.basename(filename))[0]
             if plotcount > 1:
-                if dimension == 1 and (plotoption == 'stack' or plotoption is None):
+                if dimension == 1 and (plotoption == 'stack' or
+                                       plotoption is None):
                     self.ax = self.figure.add_subplot(111)
                 if dimension == 2 and plotoption != 'grid':
-                    sys.stderr.write('warning: stack display not supported for multi-file-plotting, falling back to grid\n')
+                    sys.stderr.write(
+                        'warning: stack display not supported'
+                        ' for multi-file-plotting, falling back to grid\n')
                     plotoption = 'grid'
                 elif dimension > 3:
-                    sys.stderr.write('error: cannot display 4 or higher dimensional data, use --project or --slice to decrease dimensionality\n')
+                    sys.stderr.write(
+                        'error: cannot display 4 or higher dimensional data,'
+                        ' use --project or --slice '
+                        'to decrease dimensionality\n')
                     sys.exit(1)
 
             if plotoption == 'grid':
                 if dimension == 1 or dimension == 2:
-                    self.ax = self.figure.add_subplot(plotrows, plotcolumns, i+1)
+                    self.ax = self.figure.add_subplot(plotrows,
+                                                      plotcolumns, i+1)
                 elif self.threed.isChecked():
                     self.ax = self.figure.gca(projection='3d')
                 self.ax.set_title(basename)
@@ -830,10 +872,13 @@ class ProjectWidget(QWidget):
                 self.ax = self.figure.add_subplot(111)
 
             if dimension == 2 and self.swap_axes.checkState():
-                space = space.reorder(list(ax.label for ax in space.axes)[::-1])
+                space = space.reorder(list(ax.label for ax in
+                                           space.axes)[::-1])
 
             self.ax.space = space
-            im = binoculars.plot.plot(space, self.figure, self.ax, log=log, loglog=loglog, label=basename, norm=norm[i])
+            im = binoculars.plot.plot(space, self.figure, self.ax,
+                                      log=log, loglog=loglog,
+                                      label=basename, norm=norm[i])
 
             self.figure_images.append(im)
 
@@ -845,26 +890,33 @@ class ProjectWidget(QWidget):
 
     def merge(self, filename):
         try:
-            spaces = tuple(self.table.getspace(selected_filename) for selected_filename in self.table.selection)
-            newspace = binoculars.space.sum(binoculars.space.make_compatible(spaces))
+            spaces = tuple(self.table.getspace(selected_filename)
+                           for selected_filename in self.table.selection)
+            newspace = \
+                binoculars.space.sum(binoculars.space.make_compatible(spaces))
             newspace.tofile(filename)
             list(map(self.table.remove, self.table.selection))
             self.table.add_space(filename, True)
         except Exception as e:
-            QMessageBox.critical(self, 'Merge', 'Unable to merge the meshes. {}'.format(e))
+            QMessageBox.critical(self, 'Merge',
+                                 f"Unable to merge the meshes. {e}")
 
     def subtractspace(self, filename):
         try:
             subtractspace = binoculars.space.Space.fromfile(filename)
-            spaces = tuple(self.table.getspace(selected_filename) for selected_filename in self.table.selection)
+            spaces = tuple(self.table.getspace(selected_filename)
+                           for selected_filename in self.table.selection)
             newspaces = tuple(space - subtractspace for space in spaces)
-            for space, selected_filename in zip(newspaces, self.table.selection):
-                newfilename = binoculars.util.find_unused_filename(selected_filename)
+            for space, selected_filename in zip(newspaces,
+                                                self.table.selection):
+                newfilename = \
+                    binoculars.util.find_unused_filename(selected_filename)
                 space.tofile(newfilename)
                 self.table.remove(selected_filename)
                 self.table.add_space(newfilename, True)
         except Exception as e:
-            QMessageBox.critical(self, 'Subtract', 'Unable to subtract the meshes. {}'.format(e))
+            QMessageBox.critical(self, 'Subtract',
+                                 f"Unable to subtract the meshes. {e}")
 
     def errormessage(self, message):
         self.figure.clear()
@@ -905,39 +957,54 @@ class ProjectWidget(QWidget):
         dict['key'] = self.key_to_str(self.key)
         dict['projection'] = self.projection
 
-        if filename == None:
-            filename = str(QFileDialog.getSaveFileName(self, 'Save Project', '.'))
+        if filename is None:
+            filename = str(QFileDialog.getSaveFileName(self,
+                                                       'Save Project', '.'))
 
         with open(filename, 'w') as fp:
             json.dump(dict, fp)
 
     @classmethod
     def fromfile(cls, filename=None, parent=None):
-        if filename == None:
-            filename = str(QFileDialog.getOpenFileName(cls, 'Open Project', '.', '*.proj'))
+        if filename is None:
+            filename = str(QFileDialog.getOpenFileName(cls,
+                                                       'Open Project',
+                                                       '.',
+                                                       '*.proj'))
         try:
             with open(filename, 'r') as fp:
                 dict = json.load(fp)
         except IOError as e:
-            raise cls.error.showMessage("unable to open '{0}' as project file (original error: {1!r})".format(filename, e))
+            raise cls.error.showMessage(
+                f"unable to open '{filename}' as project file "
+                f"(original error: {e:1!r})")
 
         newlist = []
         for fn in dict['filelist']:
             if not os.path.exists(fn):
-                warningbox = QMessageBox(2, 'Warning', 'Cannot find space at path {0}; locate proper space'.format(fn), buttons=QMessageBox.Open)
+                warningbox = \
+                    QMessageBox(2, 'Warning',
+                                f'Cannot find space at path {fn};'
+                                ' locate proper space',
+                                buttons=QMessageBox.Open)
                 warningbox.exec_()
-                newname = str(QFileDialog.getOpenFileName(caption='Open space {0}'.format(fn), directory='.', filter='*.hdf5'))
+                newname = str(QFileDialog.getOpenFileName(
+                    caption='Open space {fn}', directory='.', filter='*.hdf5'))
                 newlist.append(newname)
             else:
                 newlist.append(fn)
 
-        widget = cls(newlist, cls.str_to_key(dict['key']), dict['projection'], parent=parent)
+        widget = cls(newlist, cls.str_to_key(dict['key']),
+                     dict['projection'], parent=parent)
 
         return widget
 
     def addspace(self, filename=None, add=False):
-        if filename == None:
-            filename = str(QFileDialog.getOpenFileName(self, 'Open Project', '.', '*.hdf5'))
+        if filename is None:
+            filename = str(QFileDialog.getOpenFileName(self,
+                                                       'Open Project',
+                                                       '.',
+                                                       '*.hdf5'))
         self.table.add_space(filename, add)
 
     def save(self):
@@ -955,14 +1022,16 @@ class ProjectWidget(QWidget):
         try:
             self.figure.savefig(str(fname))
         except Exception as e:
-            QMessageBox.critical(self, 'Save image', 'Unable to save image to {}: {}'.format(fname, e))
+            QMessageBox.critical(self, 'Save image',
+                                 f"Unable to save image to {fname}: {e}")
 
     def space_to_file(self, fname):
         ext = os.path.splitext(fname)[-1]
 
         for i, filename in enumerate(self.table.selection):
             axes = self.table.getax(filename)
-            space = self.table.getspace(filename, key=axes.restricted_key(self.key))
+            space = self.table.getspace(filename,
+                                        key=axes.restricted_key(self.key))
             projection = [ax for ax in self.projection if ax in space.axes]
             if projection:
                 space = space.project(*projection)
@@ -972,18 +1041,16 @@ class ProjectWidget(QWidget):
 
             if ext == '.edf':
                 binoculars.util.space_to_edf(space, outfile)
-                self.parent.statusbar.showMessage('saved at {0}'.format(outfile))
-
+                self.parent.statusbar.showMessage(f"saved at {outfile}")
             elif ext == '.txt':
                 binoculars.util.space_to_txt(space, outfile)
-                self.parent.statusbar.showMessage('saved at {0}'.format(outfile))
-
+                self.parent.statusbar.showMessage(f"saved at {outfile}")
             elif ext == '.hdf5':
                 space.tofile(outfile)
-                self.parent.statusbar.showMessage('saved at {0}'.format(outfile))
-
+                self.parent.statusbar.showMessage(f"saved at {outfile}")
             else:
-                self.parent.statusbar.showMessage('unknown extension {0}, unable to save!\n'.format(ext))
+                self.parent.statusbar.showMessage(
+                    f"unknown extension {ext}, unable to save!\n")
 
 
 def short_filename(filename):
@@ -997,15 +1064,15 @@ class SpaceContainer(QTableWidgetItem):
         self.space = space
 
     def get_space(self, key=None):
-        if self.space == None:
+        if self.space is None:
             return binoculars.space.Space.fromfile(self.label, key=key)
         else:
-            if key == None:
+            if key is None:
                 key = Ellipsis
             return self.space[key]
 
     def get_ax(self):
-        if self.space == None:
+        if self.space is None:
             return binoculars.space.Axes.fromfile(self.label)
         else:
             return self.space.axes
@@ -1017,19 +1084,22 @@ class SpaceContainer(QTableWidgetItem):
         else:
             self.space += space
 
-class TableWidget(QWidget):
-    selectionError = pyqtSignal(str, name = 'Selection Error')
-    plotaxesChanged = pyqtSignal(binoculars.space.Axes, name = 'plot axes changed')
 
-    def __init__(self, filelist = [],parent=None):
+class TableWidget(QWidget):
+    selectionError = pyqtSignal(str, name='Selection Error')
+    plotaxesChanged = pyqtSignal(binoculars.space.Axes,
+                                 name='plot axes changed')
+
+    def __init__(self, filelist=[], parent=None):
         super(TableWidget, self).__init__(parent)
 
         hbox = QHBoxLayout()
 
         self.table = QTableWidget(0, 4)
-        self.table.setHorizontalHeaderLabels(['', 'filename','labels', 'remove'])
+        self.table.setHorizontalHeaderLabels(['', 'filename',
+                                              'labels', 'remove'])
 
-        for index, width in enumerate([25,150,50,70]):
+        for index, width in enumerate([25, 150, 50, 70]):
             self.table.setColumnWidth(index, width)
 
         for filename in filelist:
@@ -1038,30 +1108,31 @@ class TableWidget(QWidget):
         hbox.addWidget(self.table)
         self.setLayout(hbox)
 
-    def add_space(self, filename, add = True, space = None):
+    def add_space(self, filename, add=True, space=None):
         index = self.table.rowCount()
         self.table.insertRow(index)
 
         checkboxwidget = QCheckBox()
         checkboxwidget.setChecked(add)
         checkboxwidget.clicked.connect(self.select)
-        self.table.setCellWidget(index,0, checkboxwidget)
+        self.table.setCellWidget(index, 0, checkboxwidget)
 
         container = SpaceContainer(filename, space)
         self.table.setItem(index, 1, container)
 
-        item = QTableWidgetItem(','.join(list(ax.label.lower() for ax in container.get_ax())))
+        item = QTableWidgetItem(','.join(list(ax.label.lower()
+                                              for ax in container.get_ax())))
         self.table.setItem(index, 2, item)
 
         buttonwidget = QPushButton('remove')
         buttonwidget.clicked.connect(lambda: self.remove(filename))
-        self.table.setCellWidget(index,3, buttonwidget)
+        self.table.setCellWidget(index, 3, buttonwidget)
         if add:
             self.select()
 
     def addfromserver(self, command, space):
-        if not command in self.filelist:
-            self.add_space(command, add = False, space = space)
+        if command not in self.filelist:
+            self.add_space(command, add=False, space=space)
         else:
             container = self.table.item(self.filelist.index(command), 1)
             container.add_to_space(space)
@@ -1076,18 +1147,28 @@ class TableWidget(QWidget):
         if len(axes) > 0:
             self.plotaxesChanged.emit(axes)
         else:
-            self.selectionError.emit('no spaces selected or spaces with non identical labels selected')
+            self.selectionError.emit(
+                'no spaces selected '
+                'or spaces with non identical labels selected')
 
     @property
     def selection(self):
-        return list(container.label for checkbox, container in zip(self.itercheckbox(), self.itercontainer()) if checkbox.checkState())
+        return list(container.label
+                    for checkbox, container
+                    in zip(self.itercheckbox(), self.itercontainer())
+                    if checkbox.checkState())
 
     @property
     def plotaxes(self):
-        axes = tuple(container.get_ax() for checkbox, container in zip(self.itercheckbox(), self.itercontainer()) if checkbox.checkState())
+        axes = tuple(container.get_ax()
+                     for checkbox, container
+                     in zip(self.itercheckbox(), self.itercontainer())
+                     if checkbox.checkState())
         if len(axes) > 0:
             try:
-                return binoculars.space.Axes(binoculars.space.union_unequal_axes(ax) for ax in zip(*axes))
+                return binoculars.space.Axes(
+                    binoculars.space.union_unequal_axes(ax)
+                    for ax in zip(*axes))
             except ValueError:
                 return ()
         else:
@@ -1101,19 +1182,22 @@ class TableWidget(QWidget):
         index = self.filelist.index(filename)
         return self.table.item(index, 1).get_ax()
 
-    def getspace(self, filename, key = None):
+    def getspace(self, filename, key=None):
         index = self.filelist.index(filename)
         return self.table.item(index, 1).get_space(key)
 
     def itercheckbox(self):
-        return iter(self.table.cellWidget(index, 0) for index in range(self.table.rowCount()))
+        return iter(self.table.cellWidget(index, 0)
+                    for index in range(self.table.rowCount()))
 
     def itercontainer(self):
-        return iter(self.table.item(index, 1) for index in range(self.table.rowCount()))
+        return iter(self.table.item(index, 1)
+                    for index in range(self.table.rowCount()))
+
 
 class LimitWidget(QWidget):
-    keydict = pyqtSignal(dict, name = "keydict")
-    rangechange = pyqtSignal(list, name = "rangechange")
+    keydict = pyqtSignal(dict, name="keydict")
+    rangechange = pyqtSignal(list, name="rangechange")
 
     def __init__(self, axes, parent=None):
         super(LimitWidget, self).__init__(parent)
@@ -1149,7 +1233,7 @@ class LimitWidget(QWidget):
             hbox.addWidget(box)
             box.stateChanged.connect(self.update_checkbox)
 
-        self.state = numpy.array(self.state, dtype = numpy.bool_)
+        self.state = numpy.array(self.state, dtype=numpy.bool_)
         self.init_checkbox()
 
         vbox.addLayout(hbox)
@@ -1199,7 +1283,7 @@ class LimitWidget(QWidget):
 
         vbox.addWidget(self.refreshbutton)
 
-        if self.layout() == None:
+        if self.layout() is None:
             self.setLayout(vbox)
 
     def refresh(self):
@@ -1212,15 +1296,22 @@ class LimitWidget(QWidget):
 
     def update_lines(self, value=0):
         for index, slider in enumerate(self.sliders):
-            self.leftindicator[index].setText(str(self.axes[index][slider.low()]))
-            self.rightindicator[index].setText(str(self.axes[index][slider.high()]))
-        key = list((float(str(left.text())), float(str(right.text()))) for left, right in zip(self.leftindicator, self.rightindicator))
+            self.leftindicator[index].setText(
+                str(self.axes[index][slider.low()]))
+            self.rightindicator[index].setText(
+                str(self.axes[index][slider.high()]))
+        key = list((float(str(left.text())), float(str(right.text())))
+                   for left, right
+                   in zip(self.leftindicator, self.rightindicator))
         self.rangechange.emit(key)
 
     def send_signal(self):
         signal = {}
-        key = ((float(str(left.text())), float(str(right.text()))) for left, right in zip(self.leftindicator, self.rightindicator))
-        key = [left if left == right else slice(left, right, None) for left, right in key]
+        key = ((float(str(left.text())), float(str(right.text())))
+               for left, right
+               in zip(self.leftindicator, self.rightindicator))
+        key = [left if left == right else slice(left, right, None)
+               for left, right in key]
         project = []
         for ax, state in zip(self.axes, self.state):
             if state:
@@ -1230,7 +1321,10 @@ class LimitWidget(QWidget):
         self.keydict.emit(signal)
 
     def update_sliders_left(self):
-        for ax, left, right , slider in zip(self.axes, self.leftindicator, self.rightindicator, self.sliders):
+        for ax, left, right, slider in zip(self.axes,
+                                           self.leftindicator,
+                                           self.rightindicator,
+                                           self.sliders):
             try:
                 leftvalue = ax.get_index(float(str(left.text())))
                 rightvalue = ax.get_index(float(str(right.text())))
@@ -1243,7 +1337,10 @@ class LimitWidget(QWidget):
             left.setText(str(ax[slider.low()]))
 
     def update_sliders_right(self):
-        for ax, left, right, slider in zip(self.axes, self.leftindicator, self.rightindicator, self.sliders):
+        for ax, left, right, slider in zip(self.axes,
+                                           self.leftindicator,
+                                           self.rightindicator,
+                                           self.sliders):
             leftvalue = ax.get_index(float(str(left.text())))
             try:
                 rightvalue = ax.get_index(float(str(right.text())))
@@ -1263,19 +1360,23 @@ class LimitWidget(QWidget):
 
     def init_checkbox(self):
         while len(self.state) - self.state.sum() > 2:
-            _index = numpy.where(self.state == False)[-1]
+            # FP useless ? _index = numpy.where(self.state is False)[-1]
             self.state[-1] = True
         for box, state in zip(self.checkbox, self.state):
             box.setChecked(bool(state))
 
     def axes_update(self, axes):
-        if not set(ax.label for ax in self.axes) == set(ax.label for ax in axes):
+        if (set(ax.label for ax in self.axes) != set(ax.label for ax in axes)):
             QWidget().setLayout(self.layout())
             self.initUI(axes)
             self.send_signal()
         else:
-            low = tuple(self.axes[index][slider.low()] for index, slider in enumerate(self.sliders))
-            high = tuple(self.axes[index][slider.high()] for index, slider in enumerate(self.sliders))
+            low = tuple(self.axes[index][slider.low()]
+                        for index, slider
+                        in enumerate(self.sliders))
+            high = tuple(self.axes[index][slider.high()]
+                         for index, slider
+                         in enumerate(self.sliders))
 
             for index, ax in enumerate(axes):
                 self.sliders[index].setMinimum(0)
@@ -1308,6 +1409,7 @@ def is_empty(key):
             if k.start == k.stop:
                 return True
     return False
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
