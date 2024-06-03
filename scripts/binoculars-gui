@@ -13,23 +13,22 @@ import numpy
 import matplotlib.figure
 import matplotlib.image
 
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT
+from matplotlib.backends.backend_qt5agg import \
+    (FigureCanvasQTAgg, NavigationToolbar2QT)
 from matplotlib.pyplot import rcParams
-
-rcParams['image.cmap'] = 'jet'
-
-# from mpl_toolkits.mplot3d import Axes3D
 
 from PyQt5.Qt import (Qt)  # noqa
 from PyQt5.QtCore import (QThread, pyqtSignal)
 from PyQt5.QtGui import (QPainter)
-from PyQt5.QtWidgets import (QAction, QApplication, QStyle, QSlider, QMenuBar, QTabWidget,
-                             QFileDialog, QStatusBar, QMessageBox, QRadioButton,
-                             QButtonGroup, QCheckBox, QPushButton, QHBoxLayout,
-                             QVBoxLayout, QSplitter, QTableWidgetItem, QTableWidget,
-                             QLabel, QLineEdit, QStyleOptionSlider, QMainWindow, QWidget)
+from PyQt5.QtWidgets import \
+    (QAction, QApplication, QStyle, QSlider, QMenuBar, QTabWidget,
+     QFileDialog, QStatusBar, QMessageBox, QRadioButton,
+     QButtonGroup, QCheckBox, QPushButton, QHBoxLayout,
+     QVBoxLayout, QSplitter, QTableWidgetItem, QTableWidget,
+     QLabel, QLineEdit, QStyleOptionSlider, QMainWindow, QWidget)
 
-#python3 support
+rcParams['image.cmap'] = 'jet'
+
 PY3 = sys.version_info > (3,)
 if PY3:
     import socketserver
