@@ -28,25 +28,10 @@ from PyQt5.QtWidgets import \
 
 rcParams['image.cmap'] = 'jet'
 
-
-def set_src():
-    import os.path as osp
-    dirpath = osp.join(osp.dirname(osp.abspath(__file__)), osp.pardir)
-    sys.path.insert(0, osp.abspath(dirpath))
-
-
-try:
-    import binoculars.main
-    import binoculars.space
-    import binoculars.plot
-    import binoculars.util
-except ImportError:
-    # try to use code from src distribution
-    set_src()
-    import binoculars.main
-    import binoculars.space
-    import binoculars.plot
-    import binoculars.util
+import binoculars.main
+import binoculars.space
+import binoculars.plot
+import binoculars.util
 
 # RangeSlider is taken from
 #    https://www.mail-archive.com/pyqt@riverbankcomputing.com/msg22889.html
@@ -1428,3 +1413,6 @@ def main():
     main.show()
 
     sys.exit(app.exec_())
+
+if __name__ == "__main__":
+    main()
