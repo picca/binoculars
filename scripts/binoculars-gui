@@ -242,52 +242,61 @@ class Window(QMainWindow):
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
 
+        menu_bar = QMenuBar()
+
+        # Menu FILE
+
+        f = menu_bar.addMenu("&File")
+
         newproject = QAction("New project", self)
         newproject.triggered.connect(self.newproject)
+        f.addAction(newproject)
 
         loadproject = QAction("Open project", self)
         loadproject.triggered.connect(self.loadproject)
+        f.addAction(loadproject)
 
         saveproject = QAction("Save project", self)
         saveproject.triggered.connect(self.saveproject)
+        f.addAction(saveproject)
 
         addspace = QAction("Import space", self)
         addspace.triggered.connect(self.add_to_project)
+        f.addAction(addspace)
 
         savespace = QAction("Export space", self)
         savespace.triggered.connect(self.exportspace)
-
-        menu_bar = QMenuBar()
-        f = menu_bar.addMenu("&File")
-        f.addAction(newproject)
-        f.addAction(loadproject)
-        f.addAction(saveproject)
-        f.addAction(addspace)
         f.addAction(savespace)
 
-        merge = QAction("Merge", self)
-        merge.triggered.connect(self.merge)
-
-        subtract = QAction("Subtract", self)
-        subtract.triggered.connect(self.subtract)
+        # Menu EDIT
 
         edit = menu_bar.addMenu("&Edit")
+
+        merge = QAction("Merge Spaces", self)
+        merge.triggered.connect(self.merge)
         edit.addAction(merge)
+
+        subtract = QAction("Subtract a Space", self)
+        subtract.triggered.connect(self.subtract)
         edit.addAction(subtract)
+
+        # Menu Server
+
+        serve = menu_bar.addMenu("&Serve")
 
         start_server = QAction("Start server queue", self)
         start_server.triggered.connect(lambda: self.open_server(startq=True))
+        serve.addAction(start_server)
 
         stop_server = QAction("Stop server queue", self)
         stop_server.triggered.connect(self.kill_server)
+        serve.addAction(stop_server)
 
         recieve = QAction("Open for spaces", self)
         recieve.triggered.connect(lambda: self.open_server(startq=False))
-
-        serve = menu_bar.addMenu("&Serve")
-        serve.addAction(start_server)
-        serve.addAction(stop_server)
         serve.addAction(recieve)
+
+
 
         self.tab_widget = QTabWidget(self)
         self.tab_widget.setTabsClosable(True)
@@ -1199,11 +1208,11 @@ class LimitWidget(QWidget):
     keydict = pyqtSignal(dict, name="keydict")
     rangechange = pyqtSignal(list, name="rangechange")
 
-    def __init__(self, axes, parent=None):
+    def __init__(self, axes, parent=None) -> None:
         super(LimitWidget, self).__init__(parent)
         self.initUI(axes)
 
-    def initUI(self, axes):
+    def initUI(self, axes) -> None:
         self.axes = axes
 
         self.sliders = list()
@@ -1286,7 +1295,7 @@ class LimitWidget(QWidget):
         if self.layout() is None:
             self.setLayout(vbox)
 
-    def refresh(self):
+    def refresh(self) -> None:
         for slider in self.sliders:
             slider.setLow(slider.minimum())
             slider.setHigh(slider.maximum())
@@ -1294,7 +1303,7 @@ class LimitWidget(QWidget):
         self.update_lines()
         self.send_signal()
 
-    def update_lines(self, value=0):
+    def update_lines(self, value=0) -> None:
         for index, slider in enumerate(self.sliders):
             self.leftindicator[index].setText(
                 str(self.axes[index][slider.low()]))
@@ -1305,7 +1314,7 @@ class LimitWidget(QWidget):
                    in zip(self.leftindicator, self.rightindicator))
         self.rangechange.emit(key)
 
-    def send_signal(self):
+    def send_signal(self) -> None:
         signal = {}
         key = ((float(str(left.text())), float(str(right.text())))
                for left, right
@@ -1320,7 +1329,7 @@ class LimitWidget(QWidget):
         signal['key'] = key
         self.keydict.emit(signal)
 
-    def update_sliders_left(self):
+    def update_sliders_left(self) -> None:
         for ax, left, right, slider in zip(self.axes,
                                            self.leftindicator,
                                            self.rightindicator,
@@ -1336,7 +1345,7 @@ class LimitWidget(QWidget):
                 slider.setLow(0)
             left.setText(str(ax[slider.low()]))
 
-    def update_sliders_right(self):
+    def update_sliders_right(self) -> None:
         for ax, left, right, slider in zip(self.axes,
                                            self.leftindicator,
                                            self.rightindicator,
@@ -1352,20 +1361,20 @@ class LimitWidget(QWidget):
                 slider.setHigh(len(ax) - 1)
             right.setText(str(ax[slider.high()]))
 
-    def update_checkbox(self):
+    def update_checkbox(self) -> None:
         self.state = list()
         for box in self.checkbox:
             self.state.append(box.checkState())
         self.send_signal()
 
-    def init_checkbox(self):
+    def init_checkbox(self) -> None:
         while len(self.state) - self.state.sum() > 2:
             # FP useless ? _index = numpy.where(self.state is False)[-1]
             self.state[-1] = True
         for box, state in zip(self.checkbox, self.state):
             box.setChecked(bool(state))
 
-    def axes_update(self, axes):
+    def axes_update(self, axes) -> None:
         if (set(ax.label for ax in self.axes) != set(ax.label for ax in axes)):
             QWidget().setLayout(self.layout())
             self.initUI(axes)
@@ -1393,7 +1402,7 @@ class LimitWidget(QWidget):
 
             self.send_signal()
 
-    def update_from_zoom(self, keydict):
+    def update_from_zoom(self, keydict) -> None:
         for key in keydict:
             index = self.axes.index(key)
             self.leftindicator[index].setText(str(keydict[key][0]))
@@ -1403,7 +1412,7 @@ class LimitWidget(QWidget):
         self.send_signal()
 
 
-def is_empty(keys):
+def is_empty(keys) -> bool:
     for k in keys:
         if isinstance(k, slice):
             if k.start == k.stop:
