@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 '''Serverqueue where jobs can be submitted. Jobs will be calculated on
 the spot or passed on to the OAR cluster if so specified in the
 configfile. Jobs can be submitted in a json dictionary. The keyword
@@ -17,29 +16,11 @@ import traceback
 import json
 import os
 
-#python3 support
-PY3 = sys.version_info > (3,)
-if PY3:
-    import socketserver
-    import queue
-else:
-    import SocketServer as socketserver
-    import Queue as queue
+import socketserver
+import queue
 
-def set_src():
-    import sys
-    import os.path as osp
-    dirpath = osp.join(osp.dirname(osp.abspath(__file__)), osp.pardir)
-    sys.path.insert(0, osp.abspath(dirpath))
-
-try:
-    import binoculars.main
-    import binoculars.util
-except ImportError:
-    # try to use code from src distribution
-    set_src()
-    import binoculars.main
-    import binoculars.util
+import binoculars.main
+import binoculars.util
 
 
 class ProcessTCPHandler(socketserver.BaseRequestHandler):
@@ -106,7 +87,7 @@ def process(run_event, ip, port, q):
             finally:
                 print('Number of jobs left in queue: {0}'.format(q.qsize()))
 
-if __name__ == '__main__':
+def main():
     if len(sys.argv) > 1:
         ip = sys.argv[1]
         port = sys.argv[2]

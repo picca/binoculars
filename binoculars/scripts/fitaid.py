@@ -1647,7 +1647,7 @@ def find_unused_rodkey(rodkey: str, rods: List[str]) -> str:
     return newkey
 
 
-if __name__ == "__main__":
+def main():
     app = QApplication(sys.argv)
 
     main = Window()

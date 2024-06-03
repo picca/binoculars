@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-from __future__ import unicode_literals
-
 import sys
 import os
 import json
@@ -1431,7 +1428,3 @@ def main():
     main.show()
 
     sys.exit(app.exec_())
-
-
-if __name__ == '__main__':
-    main()

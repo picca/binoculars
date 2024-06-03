@@ -5,22 +5,8 @@ import os
 import argparse
 import numpy
 
-
-def set_src():
-    import sys
-    import os.path as osp
-    dirpath = osp.join(osp.dirname(osp.abspath(__file__)), osp.pardir)
-    sys.path.insert(0, osp.abspath(dirpath))
-
-try:
-    import binoculars.space
-    import binoculars.util
-except ImportError:
-    # try to use code from src distribution
-    set_src()
-    import binoculars.space
-    import binoculars.util
-
+import binoculars.space
+import binoculars.util
 
 # INFO
 def command_info(args):
@@ -336,7 +322,7 @@ run binoculars COMMAND --help more info on that command
     sys.exit(1)
 
 
-if __name__ == '__main__':
+def main():
     binoculars.space.silence_numpy_errors()
 
     subcommands = {'info': command_info, 'convert': command_convert, 'plot': command_plot, 'fit': command_fit, 'process': command_process}

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 binoculars gui for data processing
 Created on 2015-06-04
@@ -18,22 +17,8 @@ from PyQt5.QtWidgets import (QAction, QApplication, QTabWidget,
                              QLabel, QLineEdit, QMainWindow, QWidget, QComboBox,
                              QProgressDialog, QDockWidget)
 
-
-def set_src():
-    import os.path as osp
-    dirpath = osp.join(osp.dirname(osp.abspath(__file__)), osp.pardir)
-    sys.path.insert(0, osp.abspath(dirpath))
-
-try:
-    import binoculars.main
-    import binoculars.util
-except ImportError:
-    # try to use code from src distribution
-    set_src()
-    import binoculars.main
-    import binoculars.util
-
-#--------------------------------------------CREATE MAIN WINDOW----------------------------------------
+import binoculars.main
+import binoculars.util
 
 
 class Window(QMainWindow):
@@ -418,7 +403,7 @@ class Conf_Tab(QWidget):
         commandconfig = (scan, cfg)
         self.command.emit(commandconfig)
 
-if __name__ == '__main__':
+def main():
     app = QApplication(sys.argv)
 
     main = Window()
