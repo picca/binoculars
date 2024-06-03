@@ -4,9 +4,11 @@ from __future__ import unicode_literals
 import sys
 import os
 import json
+import queue
 import signal
 import subprocess
 import socket
+import socketserver
 import threading
 
 import numpy
@@ -28,14 +30,6 @@ from PyQt5.QtWidgets import \
      QLabel, QLineEdit, QStyleOptionSlider, QMainWindow, QWidget)
 
 rcParams['image.cmap'] = 'jet'
-
-PY3 = sys.version_info > (3,)
-if PY3:
-    import socketserver
-    import queue
-else:
-    import SocketServer as socketserver
-    import Queue as queue
 
 
 def set_src():
