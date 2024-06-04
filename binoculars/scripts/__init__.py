@@ -26,16 +26,16 @@ def command_info(args):
             try:
                 axes = binoculars.space.Axes.fromfile(f)
             except Exception as e:
-                print(('{0}: unable to load Space: {1!r}'.format(f, e)))
+                print(f'{f}: unable to load Space: {e!r}')
             else:
-                print(('{0} \n{1!r}'.format(f, axes)))
+                print(f'{f} \n{axes!r}')
             if args.config:
                 try:
                     config = binoculars.util.ConfigFile.fromfile(f)
                 except Exception as e:
-                    print(('{0}: unable to load util.ConfigFile: {1!r}'.format(f, e)))
+                    print(f'{f}: unable to load util.ConfigFile: {e!r}')
                 else:
-                    print(('{!r}'.format(config)))
+                    print(f'{config!r}')
 
 
 # CONVERT
@@ -50,7 +50,7 @@ def command_convert(args):
     args = parser.parse_args(args)
 
     if args.wait:
-        binoculars.util.statusnl('waiting for {0} to appear'.format(args.infile))
+        binoculars.util.statusnl(f'waiting for {args.infile} to appear')
         binoculars.util.wait_for_file(args.infile)
         binoculars.util.statusnl('processing...')
 
@@ -70,18 +70,18 @@ def command_convert(args):
 
     if ext == '.edf':
         binoculars.util.space_to_edf(space, args.outfile)
-        print('saved at {0}'.format(args.outfile))
+        print(f'saved at {args.outfile}')
 
     elif ext == '.txt':
         binoculars.util.space_to_txt(space, args.outfile)
-        print('saved at {0}'.format(args.outfile))
+        print(f'saved at {args.outfile}')
 
     elif ext == '.hdf5':
         space.tofile(args.outfile)
-        print('saved at {0}'.format(args.outfile))
+        print(f'saved at {args.outfile}')
 
     else:
-        sys.stderr.write('unknown extension {0}, unable to save!\n'.format(ext))
+        sys.stderr.write(f'unknown extension {ext}, unable to save!\n')
         sys.exit(1)
 
 
@@ -154,21 +154,21 @@ def command_plot(args):
     if plotcount == 1:
         label = basename
     else:
-        label = '{0} files'.format(plotcount)
+        label = f'{plotcount} files'
 
     if args.subtract:
-        label = '{0} (subtracted {1})'.format(label, os.path.splitext(os.path.basename(args.subtract))[0])
+        label = f'{label} (subtracted {os.path.splitext(os.path.basename(args.subtract))[0]})'
 
     if plotcount > 1 and args.multi == 'stack':
         pyplot.legend()
 
-    pyplot.suptitle('{0}, {1}'.format(label, ' '.join(info)))
+    pyplot.suptitle('{}, {}'.format(label, ' '.join(info)))
 
     if args.savepdf or args.savefile:
         if args.savefile:
             pyplot.savefig(args.savefile)
         else:
-            filename = '{0}_plot.pdf'.format(os.path.splitext(args.infile[0])[0])
+            filename = f'{os.path.splitext(args.infile[0])[0]}_plot.pdf'
             filename = binoculars.util.find_unused_filename(filename)
             pyplot.savefig(filename)
     else:
@@ -195,7 +195,7 @@ def command_fit(args):
     ax = axes[axindex]
     axlabel = ax.label
     if float(args.resolution) < ax.res:
-        raise ValueError('interval {0} to low, minimum interval is {1}'.format(args.resolution, ax.res))
+        raise ValueError(f'interval {args.resolution} to low, minimum interval is {ax.res}')
 
     mi, ma = ax.min, ax.max
     bins = numpy.linspace(mi, ma, numpy.ceil(1 / numpy.float(args.resolution) * (ma - mi)) + 1)
@@ -211,7 +211,7 @@ def command_fit(args):
         if args.savefile:
             filename = binoculars.util.filename_enumerator(args.savefile)
         else:
-            filename = binoculars.util.filename_enumerator('{0}_fit.pdf'.format(basename))
+            filename = binoculars.util.filename_enumerator(f'{basename}_fit.pdf')
 
     fitclass = binoculars.fit.get_class_by_name(args.func)
 
@@ -256,8 +256,8 @@ def command_fit(args):
                     pyplot.subplot(122)
                     binoculars.plot.plot(newspace, pyplot.gcf(), pyplot.gca(), label=basename, log=not args.nolog, clipping=float(args.clip), fit=fit)
 
-                info.append('sliced in {0} from {1} to {2}'.format(axlabel, left, right))
-                pyplot.suptitle('{0}'.format(' '.join(info)))
+                info.append(f'sliced in {axlabel} from {left} to {right}')
+                pyplot.suptitle('{}'.format(' '.join(info)))
 
                 pyplot.savefig(next(filename))
                 pyplot.close()
@@ -274,24 +274,24 @@ def command_fit(args):
             pyplot.semilogy()
         pyplot.xlabel(paramnames[i])
 
-    pyplot.suptitle('fit summary of {0}'.format(args.infile))
+    pyplot.suptitle(f'fit summary of {args.infile}')
     if args.savepdf or args.savefile:
         if args.savefile:
             root, ext = os.path.split(args.savefile)
-            pyplot.savefig('{0}_summary{1}'.format(root, ext))
-            print('saved at {0}_summary{1}'.format(root, ext))
-            filename = '{0}_summary{1}'.format(root, '.txt')
+            pyplot.savefig(f'{root}_summary{ext}')
+            print(f'saved at {root}_summary{ext}')
+            filename = '{}_summary{}'.format(root, '.txt')
         else:
-            pyplot.savefig('{0}_summary.pdf'.format(os.path.splitext(args.infile)[0]))
-            print('saved at {0}_summary.pdf'.format(os.path.splitext(args.infile)[0]))
-            filename = '{0}_summary.txt'.format(os.path.splitext(args.infile)[0])
+            pyplot.savefig(f'{os.path.splitext(args.infile)[0]}_summary.pdf')
+            print(f'saved at {os.path.splitext(args.infile)[0]}_summary.pdf')
+            filename = f'{os.path.splitext(args.infile)[0]}_summary.txt'
 
         file = open(filename, 'w')
         file.write('L\t')
         file.write('\t'.join(paramnames))
         file.write('\n')
         for n in range(parameters.shape[1]):
-            file.write('{0}\t'.format(fitlabel[n]))
+            file.write(f'{fitlabel[n]}\t')
             file.write('\t'.join(numpy.array(parameters[:, n], dtype=numpy.str)))
             file.write('\n')
         file.close()
@@ -333,6 +333,6 @@ def main():
     if subcommand in ('-h', '--help'):
         usage()
     if subcommand not in subcommands:
-        usage("binoculars error: unknown command '{0}'\n".format(subcommand))
+        usage(f"binoculars error: unknown command '{subcommand}'\n")
 
     subcommands[sys.argv[1]](sys.argv[2:])

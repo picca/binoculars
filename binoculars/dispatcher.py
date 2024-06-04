@@ -1,4 +1,3 @@
-
 import os
 import time
 import itertools
@@ -8,7 +7,7 @@ import multiprocessing
 from . import util, errors, space
 
 
-class Destination(object):
+class Destination:
     type = filename = overwrite = value = config = limits = None
     opts = {}  # type: Dict[Any, Any]
 
@@ -71,10 +70,10 @@ class Destination(object):
 class DispatcherBase(util.ConfigurableObject):
     def __init__(self, config, main):
         self.main = main
-        super(DispatcherBase, self).__init__(config)
+        super().__init__(config)
 
     def parse_config(self, config):
-        super(DispatcherBase, self).parse_config(config)
+        super().parse_config(config)
         self.config.destination = Destination()
         # optional 'output.hdf5' by default
         destination = config.pop("destination", "output.hdf5")
@@ -151,7 +150,7 @@ class ReentrantBase(DispatcherBase):
     actions = ("user",)  # type: Tuple[str, ...]
 
     def parse_config(self, config):
-        super(ReentrantBase, self).parse_config(config)
+        super().parse_config(config)
         self.config.action = config.pop("action", "user").lower()
         if self.config.action not in self.actions:
             raise errors.ConfigError(
@@ -176,7 +175,7 @@ class Local(ReentrantBase):
     actions = "user", "job"
 
     def parse_config(self, config):
-        super(Local, self).parse_config(config)
+        super().parse_config(config)
         # optionally, specify number of cores (autodetect by default)
         self.config.ncores = int(config.pop("ncores", 0))
         if self.config.ncores <= 0:
@@ -188,8 +187,7 @@ class Local(ReentrantBase):
         map = pool.imap_unordered
 
         configs = (self.prepare_config(job) for job in jobs)
-        for result in map(self.main.get_reentrant(), configs):
-            yield result
+        yield from map(self.main.get_reentrant(), configs)
 
     def sum(self, results):
         return space.chunked_sum(self.send(results))
@@ -220,7 +218,7 @@ class Oar(ReentrantBase):
     actions = "user", "process"
 
     def parse_config(self, config):
-        super(Oar, self).parse_config(config)
+        super().parse_config(config)
         # Optional, current directory by default
         self.config.tmpdir = config.pop("tmpdir", os.getcwd())
         # optionally, tweak oarsub parameters
@@ -385,7 +383,7 @@ class Oar(ReentrantBase):
             errorfilename = f"OAR.{jobid}.stderr"
 
             if os.path.exists(errorfilename):
-                with open(errorfilename, "r") as fp:
+                with open(errorfilename) as fp:
                     errormsg = fp.read()
                 if len(errormsg) > 0:
                     errorfn.append(errorfilename)

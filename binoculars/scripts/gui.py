@@ -48,7 +48,7 @@ class RangeSlider(QSlider):
         exception of valueChanged
     """
     def __init__(self, *args):
-        super(RangeSlider, self).__init__(*args)
+        super().__init__(*args)
 
         self._low = self.minimum()
         self._high = self.maximum()
@@ -222,7 +222,7 @@ class RangeSlider(QSlider):
 
 class Window(QMainWindow):
     def __init__(self, parent=None):
-        super(Window, self).__init__(parent)
+        super().__init__(parent)
 
         menu_bar = QMenuBar()
 
@@ -295,7 +295,7 @@ class Window(QMainWindow):
 
     def closeEvent(self, event):
         self.kill_subprocess()
-        super(Window, self).closeEvent(event)
+        super().closeEvent(event)
 
     def newproject(self):
         widget = ProjectWidget([], parent=self)
@@ -540,19 +540,19 @@ class HiddenToolbar(NavigationToolbar2QT):
             self.show_coords(event)
 
     def press_zoom(self, event):
-        super(HiddenToolbar, self).press_zoom(event)
+        super().press_zoom(event)
         if not self.threed:
             self.inaxes = event.inaxes
 
     def release_zoom(self, event):
-        super(HiddenToolbar, self).release_zoom(event)
+        super().release_zoom(event)
         if not self.threed:
             self.update_sliders(self.inaxes)
 
 
 class ProjectWidget(QWidget):
     def __init__(self, filelist, key=None, projection=None, parent=None):
-        super(ProjectWidget, self).__init__(parent)
+        super().__init__(parent)
         self.parent = parent
 
         self.figure = matplotlib.figure.Figure()
@@ -683,7 +683,7 @@ class ProjectWidget(QWidget):
                     rounded_coords = \
                         [ax[ax.get_index(coord)] for ax,
                          coord in zip(plotaxes.space.axes, coords)]
-                    intensity = '{0:.2e}'.format(plotaxes.space[list(coords)])
+                    intensity = f'{plotaxes.space[list(coords)]:.2e}'
                     self.parent.statusbar.showMessage(
                         f"{labels[0]} = {rounded_coords[0]}, "
                         f"{labels[1]} = {rounded_coords[1]}, "
@@ -695,7 +695,7 @@ class ProjectWidget(QWidget):
                 xaxis = plotaxes.space.axes[plotaxes.space.axes.index(xlabel)]
                 if event.xdata in xaxis:
                     xcoord = xaxis[xaxis.get_index(event.xdata)]
-                    intensity = '{0:.2e}'.format(event.ydata)
+                    intensity = f'{event.ydata:.2e}'
                     self.parent.statusbar.showMessage(
                         f"{xaxis.label} = {xcoord}, "
                         f"Intensity = {intensity}")
@@ -963,9 +963,9 @@ class ProjectWidget(QWidget):
                                                        '.',
                                                        '*.proj'))
         try:
-            with open(filename, 'r') as fp:
+            with open(filename) as fp:
                 dict = json.load(fp)
-        except IOError as e:
+        except OSError as e:
             raise cls.error.showMessage(
                 f"unable to open '{filename}' as project file "
                 f"(original error: {e:1!r})")
@@ -1050,7 +1050,7 @@ def short_filename(filename):
 
 class SpaceContainer(QTableWidgetItem):
     def __init__(self, label, space=None):
-        super(SpaceContainer, self).__init__(short_filename(label))
+        super().__init__(short_filename(label))
         self.label = label
         self.space = space
 
@@ -1082,7 +1082,7 @@ class TableWidget(QWidget):
                                  name='plot axes changed')
 
     def __init__(self, filelist=[], parent=None):
-        super(TableWidget, self).__init__(parent)
+        super().__init__(parent)
 
         hbox = QHBoxLayout()
 
@@ -1131,7 +1131,7 @@ class TableWidget(QWidget):
     def remove(self, filename):
         self.table.removeRow(self.filelist.index(filename))
         self.select()
-        print(('removed: {0}'.format(filename)))
+        print(f'removed: {filename}')
 
     def select(self):
         axes = self.plotaxes
@@ -1191,7 +1191,7 @@ class LimitWidget(QWidget):
     rangechange = pyqtSignal(list, name="rangechange")
 
     def __init__(self, axes, parent=None) -> None:
-        super(LimitWidget, self).__init__(parent)
+        super().__init__(parent)
         self.initUI(axes)
 
     def initUI(self, axes) -> None:
@@ -1357,7 +1357,7 @@ class LimitWidget(QWidget):
             box.setChecked(bool(state))
 
     def axes_update(self, axes) -> None:
-        if (set(ax.label for ax in self.axes) != set(ax.label for ax in axes)):
+        if ({ax.label for ax in self.axes} != {ax.label for ax in axes}):
             QWidget().setLayout(self.layout())
             self.initUI(axes)
             self.send_signal()

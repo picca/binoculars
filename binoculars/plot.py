@@ -15,13 +15,13 @@ from binoculars.space import Space
 # which in turn is based on an example from http://matplotlib.org/users/event_handling.html
 
 
-class DraggableColorbar(object):
+class DraggableColorbar:
     def __init__(self, cbar, mappable):
         self.cbar = cbar
         self.mappable = mappable
         self.press = None
         self.cycle = sorted(
-            [i for i in dir(matplotlib.cm) if hasattr(getattr(matplotlib.cm, i), "N")]
+            i for i in dir(matplotlib.cm) if hasattr(getattr(matplotlib.cm, i), "N")
         )
 
         try:  # matploltib 2.x

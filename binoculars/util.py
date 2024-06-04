@@ -414,7 +414,7 @@ def parse_pairs(s):
     if not s:
         return s
     limits = []
-    for lim in re.findall("\[(.*?)\]", s):
+    for lim in re.findall(r"\[(.*?)\]", s):
         parsed = []
         for pair in re.split(",", lim):
             mi, ma = tuple(m.strip() for m in pair.split(":"))
@@ -449,11 +449,11 @@ def parse_dict(config, option, default=None) -> dict:
 def limit_to_filelabel(s):
     return tuple(
         f"[{lim.replace('-', 'm').replace(':', '-').replace(' ', '')}]"
-        for lim in re.findall("\[(.*?)\]", s)
+        for lim in re.findall(r"\[(.*?)\]", s)
     )
 
 
-class MetaBase(object):
+class MetaBase:
     def __init__(self, label=None, section=None):
         self.sections = []
         if label is not None and section is not None:
@@ -526,7 +526,7 @@ class MetaBase(object):
         return obj
 
 
-class MetaData(object):  # a collection of metadata objects
+class MetaData:  # a collection of metadata objects
     def __init__(self):
         self.metas = []
 
@@ -550,7 +550,7 @@ class MetaData(object):  # a collection of metadata objects
     def fromfile(cls, filename):
         if isinstance(filename, str):
             if not os.path.exists(filename):
-                raise IOError(
+                raise OSError(
                     "Error importing configuration file."
                     f" filename {filename} does not exist"
                 )
@@ -566,7 +566,7 @@ class MetaData(object):  # a collection of metadata objects
                 for section in list(metadata[label].keys()):
                     group = metadata[label][section]
                     setattr(
-                        meta, section, dict((key, group[key][()]) for key in group)
+                        meta, section, {key: group[key][()] for key in group}
                     )
                     meta.sections.append(section)
                 metadataobj.metas.append(meta)
@@ -610,7 +610,7 @@ class ConfigFile(MetaBase):
     def __init__(self, origin="n/a", command=[]):
         self.origin = origin
         self.command = command
-        super(ConfigFile, self).__init__()
+        super().__init__()
         self.sections = ["dispatcher", "projection", "input"]
         for section in self.sections:
             setattr(self, section, dict())
@@ -619,7 +619,7 @@ class ConfigFile(MetaBase):
     def fromfile(cls, filename):
         if isinstance(filename, str):
             if not os.path.exists(filename):
-                raise IOError(
+                raise OSError(
                     "Error importing configuration file."
                     f" filename {filename} does not exist"
                 )
@@ -635,10 +635,10 @@ class ConfigFile(MetaBase):
                         setattr(
                             configobj,
                             section,
-                            dict(
-                                (key, config[section][key][()])
+                            {
+                                key: config[section][key][()]
                                 for key in config[section]
-                            ),
+                            },
                         )
                     else:  # old
                         setattr(configobj, section, dict(config[section]))
@@ -649,7 +649,7 @@ class ConfigFile(MetaBase):
     @classmethod
     def fromtxtfile(cls, filename, command=[], overrides=[]):
         if not os.path.exists(filename):
-            raise IOError(
+            raise OSError(
                 "Error importing configuration file."
                 f" filename {filename} does not exist"
             )
@@ -665,7 +665,7 @@ class ConfigFile(MetaBase):
             setattr(
                 configobj,
                 section,
-                dict((k, v.split("#")[0].strip()) for (k, v) in config.items(section)),
+                {k: v.split("#")[0].strip() for (k, v) in config.items(section)},
             )
         return configobj
 
@@ -690,7 +690,7 @@ class ConfigFile(MetaBase):
                     fp.write(f"{entry} = {s[entry]}\n")
 
     def __repr__(self):
-        str = super(ConfigFile, self).__repr__()
+        str = super().__repr__()
         str += f"origin = {self.origin}\n"
         str += f"command = {','.join(self.command)}"
         return str
@@ -699,7 +699,7 @@ class ConfigFile(MetaBase):
 # contains one parsed dict, for distribution to dispatcher, input or projection class
 
 
-class ConfigSection(object):
+class ConfigSection:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
@@ -710,7 +710,7 @@ class ConfigSection(object):
 # contains the parsed configsections
 
 
-class ConfigSectionGroup(object):
+class ConfigSectionGroup:
     def __init__(self, origin="n/a"):
         self.origin = origin
         self.sections = "dispatcher", "projection", "input"
@@ -719,7 +719,7 @@ class ConfigSectionGroup(object):
         self.configfile = ConfigFile()
 
 
-class ConfigurableObject(object):
+class ConfigurableObject:
     def __init__(self, config):
         if isinstance(config, ConfigSection):
             self.config = config
@@ -739,11 +739,11 @@ class ConfigurableObject(object):
                     " Please specify this option in the configuration file"
                 )
             except Exception as exc:
-                missing = set(
+                missing = {
                     key
                     for key in allkeys
                     if key not in list(self.config.__dict__.keys())
-                ) - set(config.keys())
+                } - set(config.keys())
                 exc.args = errors.addmessage(
                     exc.args,
                     ". Unable to parse configuration option"
@@ -809,9 +809,8 @@ def yield_when_exists(filelist, timeout=None):
     start = time.time()
     while filelist:
         next(delay)
-        exists = set(f for f in filelist if os.path.exists(f))
-        for e in exists:
-            yield e
+        exists = {f for f in filelist if os.path.exists(f)}
+        yield from exists
         filelist -= exists
         if timeout is not None and time.time() - start > timeout:
             break
@@ -955,8 +954,8 @@ def loop_delayer(delay):
 
 def transformation_from_expressions(space, exprs):
     def transformation(*coords):
-        ns = dict((i, getattr(numpy, i)) for i in dir(numpy))
-        ns.update(**dict((ax.label, coord) for ax, coord in zip(space.axes, coords)))
+        ns = {i: getattr(numpy, i) for i in dir(numpy)}
+        ns.update(**{ax.label: coord for ax, coord in zip(space.axes, coords)})
         return tuple(eval(expr, ns) for expr in exprs)
 
     return transformation
@@ -1121,7 +1120,7 @@ def socket_send(ip, port, mssg):
             for packet in packet_slicer(l):
                 sock.send(mssg.read(packet))
         sock.close()
-    except socket.error:  # in case of failure to send. The data will be saved anyway so any loss of communication unfortunate but not critical
+    except OSError:  # in case of failure to send. The data will be saved anyway so any loss of communication unfortunate but not critical
         pass
 
 

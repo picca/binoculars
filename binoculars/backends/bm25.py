@@ -72,7 +72,7 @@ class HKProjection(HKLProjection):
         UB,
         qconv,
     ):
-        H, K, L = super(HKProjection, self).project(
+        H, K, L = super().project(
             mu,
             theta,
             phi,
@@ -163,14 +163,14 @@ class EDFInput(backend.InputBase):
             )
 
     def process_job(self, job):
-        super(EDFInput, self).process_job(job)
+        super().process_job(job)
         images = self.get_images(job.images, job.firstimage, job.lastimage)  # iterator!
 
         for image in images:
             yield self.process_image(image)
 
     def parse_config(self, config):
-        super(EDFInput, self).parse_config(config)
+        super().parse_config(config)
         self.config.xmask = util.parse_multi_range(config.pop("xmask"))
         self.config.ymask = util.parse_multi_range(config.pop("ymask"))
         self.config.imagefile = config.pop("imagefile")
@@ -253,7 +253,7 @@ class EH2SCD(EDFInput):
     # third the primary beam direction.
 
     def parse_config(self, config):
-        super(EH2SCD, self).parse_config(config)
+        super().parse_config(config)
         centralpixel = self.config.centralpixel
         # define detector parameters
         roi = (

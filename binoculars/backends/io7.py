@@ -171,7 +171,7 @@ class IO7Input(backend.InputBase):
                 )
 
     def process_job(self, job):
-        super(IO7Input, self).process_job(job)
+        super().process_job(job)
         scan = self.get_scan(job.scan)
         self.metadict = dict()
         try:
@@ -262,7 +262,7 @@ class IO7Input(backend.InputBase):
                 )
 
     def parse_config(self, config):
-        super(IO7Input, self).parse_config(config)
+        super().parse_config(config)
         self.config.xmask = util.parse_multi_range(
             config.pop("xmask", None)
         )  # Optional, select a subset of the image range in the x direction. all by default
@@ -387,7 +387,7 @@ class EH2(IO7Input):
 
 class EH1(IO7Input):
     def parse_config(self, config):
-        super(EH1, self).parse_config(config)
+        super().parse_config(config)
         self.config.sdd = float(config.pop("sdd"))  # Sample to detector distance (mm)
 
     def process_image(self, scan, scanparams, pointparams, image):
@@ -456,6 +456,6 @@ def load_matrix(filename):
                 f"unknown extension {ext}, unable to load matrix!\n"
             )
     else:
-        raise IOError(
+        raise OSError(
             f"filename: {filename} does not exist. Can not load matrix"
         )

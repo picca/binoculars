@@ -24,7 +24,7 @@ import binoculars.util
 class Window(QMainWindow):
 
     def __init__(self):
-        super(Window, self).__init__()
+        super().__init__()
         self.initUI()
         self.tab_widget = QTabWidget(self)
         self.setCentralWidget(self.tab_widget)
@@ -136,7 +136,7 @@ class Window(QMainWindow):
         except BaseException as e:
                 #cfg = self.ListCommand.item(index,1).cfg
                 #print cfg
-                QMessageBox.about(self, "Error", "There was an error processing one of the scans: {0}".format(e))
+                QMessageBox.about(self, "Error", f"There was an error processing one of the scans: {e}")
 
         finally:
                 pd.close()
@@ -168,7 +168,7 @@ class Window(QMainWindow):
 
 class Table(QWidget):
     def __init__(self, label, parent=None):
-        super(Table, self).__init__()
+        super().__init__()
 
         # create a QTableWidget
         self.table = QTableWidget(1, 2, self)
@@ -247,7 +247,7 @@ class Table(QWidget):
 
     def addDataConf(self, options):
         keys = self.get_keys()
-        newconfigs = dict((option[0], '') for option in options if option[0] not in keys)
+        newconfigs = {option[0]: '' for option in options if option[0] not in keys}
         self.addData(newconfigs)
 
         names = list(option[0] for option in options)
@@ -271,7 +271,7 @@ class Table(QWidget):
 
 class Conf_Tab(QWidget):
     def __init__(self, parent=None):
-        super(Conf_Tab, self).__init__(parent)
+        super().__init__(parent)
         #we create 3 tables
         self.Dis = Table(QLabel('<strong>Dispatcher :</strong>'))
         self.Inp = Table(QLabel('<strong>Input :</strong>'))
@@ -348,17 +348,17 @@ class Conf_Tab(QWidget):
             fp.write('[dispatcher]\n')
             # cycles over the iterator object
             for key, value, comment in self.Dis.getParam():
-                fp.write('{0} = {1} #{2}\n'.format(key, value, comment))
+                fp.write(f'{key} = {value} #{comment}\n')
             fp.write('[input]\n')
             for key, value, comment in self.Inp.getParam():
                 if key == 'type':
-                    value = '{0}:{1}'.format(self.select.currentText(), value)
-                fp.write('{0} = {1} #{2}\n'.format(key, value, comment))
+                    value = f'{self.select.currentText()}:{value}'
+                fp.write(f'{key} = {value} #{comment}\n')
             fp.write('[projection]\n')
             for key, value, comment in self.Pro.getParam():
                 if key == 'type':
-                    value = '{0}:{1}'.format(self.select.currentText(), value)
-                fp.write('{0} = {1} #{2}\n'.format(key, value, comment))
+                    value = f'{self.select.currentText()}:{value}'
+                fp.write(f'{key} = {value} #{comment}\n')
 
     #This method take the name of objects and values for run the script
     def get_configobj(self):
@@ -367,19 +367,19 @@ class Conf_Tab(QWidget):
         inDis = {}
         inPro = {}
 
-        inDis = dict((key, value) for key, value, comment in self.Dis.getParam())
+        inDis = {key: value for key, value, comment in self.Dis.getParam()}
 
         for key, value, comment in self.Inp.getParam():
             if key == 'type':
-                value = '{0}:{1}'.format(str(self.select.currentText()).strip(), value)
+                value = f'{str(self.select.currentText()).strip()}:{value}'
             inInp[key] = value
 
         for key, value, comment in self.Pro.getParam():
             if key == 'type':
-                value = '{0}:{1}'.format(str(self.select.currentText()).strip(), value)
+                value = f'{str(self.select.currentText()).strip()}:{value}'
             inPro[key] = value
 
-        cfg = binoculars.util.ConfigFile('processgui {0}'.format(time.strftime('%d %b %Y %H:%M:%S', time.localtime())))
+        cfg = binoculars.util.ConfigFile('processgui {}'.format(time.strftime('%d %b %Y %H:%M:%S', time.localtime())))
         setattr(cfg, 'input', inInp)
         setattr(cfg, 'dispatcher', inDis)
         setattr(cfg, 'projection', inPro)

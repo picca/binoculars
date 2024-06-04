@@ -39,7 +39,7 @@ def multiprocessing_main(xxx_todo_changeme):
     return config.dispatcher.destination.retrieve()
 
 
-class Main(object):
+class Main:
     def __init__(self, config, command):
         if isinstance(config, util.ConfigSectionGroup):
             self.config = config.configfile.copy()
@@ -193,5 +193,4 @@ class Split(Main):
 
     def run(self):
         for job in self.input.generate_jobs(self.command):
-            for verse in self.process_job(job):
-                yield verse
+            yield from self.process_job(job)

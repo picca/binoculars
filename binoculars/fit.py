@@ -5,7 +5,7 @@ import inspect
 import re
 
 
-class FitBase(object):
+class FitBase:
     parameters = None
     guess = None
     result = None
@@ -61,7 +61,7 @@ class FitBase(object):
             self._fitfunc, self.guess, full_output=True, epsfcn=0.000001
         )
 
-        self.message = re.sub("\s{2,}", " ", result[3].strip())
+        self.message = re.sub(r"\s{2,}", " ", result[3].strip())
         self.result = result[0]
         errdata = result[2]["fvec"]
         if result[1] is None:
@@ -75,7 +75,7 @@ class FitBase(object):
             self.func(self.xdata, self.result), mask=self.ydata.mask
         )
         self.summary = "\n".join(
-            "%s: %.4g +/- %.4g" % (n, p, v)
+            f"{n}: {p:.4g} +/- {v:.4g}"
             for (n, p, v) in zip(self.parameters, self.result, self.variance)
         )
 
@@ -98,7 +98,7 @@ class PeakFitBase(FitBase):
             self.argmax = tuple(loc)
         else:
             self.argmax = None
-        super(PeakFitBase, self).__init__(space, guess)
+        super().__init__(space, guess)
 
     def _guess(self):
         maximum = self.cydata.max()  # for background determination

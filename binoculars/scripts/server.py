@@ -34,13 +34,13 @@ class ProcessTCPHandler(socketserver.BaseRequestHandler):
                 job = json.loads(input)
                 parsed, result = parse_job(job)
                 if parsed:
-                    print('Recieved command: {0}. Job is added to queue.\nNumber of jobs left in queue: {1}'.format(job['command'], self.server.q.qsize()))
+                    print('Recieved command: {}. Job is added to queue.\nNumber of jobs left in queue: {}'.format(job['command'], self.server.q.qsize()))
                     response = 'Job added to queue'
                     self.server.q.put(job)
                 else:
                     response = result
             except Exception:
-                print('Could not parse the job: {0}'.format(input))
+                print(f'Could not parse the job: {input}')
                 print(traceback.format_exc())
                 response = 'Error: Job could not be added to queue'
             finally:
@@ -57,7 +57,7 @@ def parse_job(job):
                 overrides.append((section, key, value))
         return True, overrides
     except Exception:
-        message = 'Error parsing the configuration options. {0}'.format(job)
+        message = f'Error parsing the configuration options. {job}'
         return False, message
 
 
@@ -71,21 +71,21 @@ def process(run_event, ip, port, q):
             command = str(job['command'])
             configfilename = job['configfilename']
             overrides = parse_job(job)[1]  # [1] are the succesfully parsed jobs
-            print('Start processing: {0}'.format(command))
+            print(f'Start processing: {command}')
             try:
                 configobj = binoculars.util.ConfigFile.fromtxtfile(configfilename, overrides=overrides)
                 if binoculars.util.parse_bool(configobj.dispatcher['send_to_gui']):
                     configobj.dispatcher['host'] = ip
                     configobj.dispatcher['port'] = port
                 binoculars.main.Main.from_object(configobj, [command])
-                print('Succesfully finished processing: {0}.'.format(command))
+                print(f'Succesfully finished processing: {command}.')
             except Exception:
-                errorfilename = 'error_{0}.txt'.format(command)
-                print('An error occured for scan {0}. For more information see {1}'.format(command, errorfilename))
+                errorfilename = f'error_{command}.txt'
+                print(f'An error occured for scan {command}. For more information see {errorfilename}')
                 with open(errorfilename, 'w') as fp:
                     traceback.print_exc(file=fp)
             finally:
-                print('Number of jobs left in queue: {0}'.format(q.qsize()))
+                print(f'Number of jobs left in queue: {q.qsize()}')
 
 def main():
     if len(sys.argv) > 1:
@@ -111,7 +111,7 @@ def main():
     server.q = q
     ip, port = server.server_address
 
-    print('Process server started running at ip {0} and port {1}. Interrupt server with Ctrl-C'.format(ip, port))
+    print(f'Process server started running at ip {ip} and port {port}. Interrupt server with Ctrl-C')
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -45,7 +45,7 @@ class HKLProjection(backend.ProjectionBase):
 
 class HKProjection(HKLProjection):
     def project(self, wavelength, UB, gamma, delta, theta, mu, chi, phi):
-        H, K, L = super(HKProjection, self).project(
+        H, K, L = super().project(
             wavelength, UB, gamma, delta, theta, mu, chi, phi
         )
         return (H, K)
@@ -188,7 +188,7 @@ class QProjection(backend.ProjectionBase):
 
 class SphericalQProjection(QProjection):
     def project(self, wavelength, UB, gamma, delta, theta, mu, chi, phi):
-        qz, qy, qx = super(SphericalQProjection, self).project(
+        qz, qy, qx = super().project(
             wavelength, UB, gamma, delta, theta, mu, chi, phi
         )
         q = numpy.sqrt(qx ** 2 + qy ** 2 + qz ** 2)
@@ -202,7 +202,7 @@ class SphericalQProjection(QProjection):
 
 class CylindricalQProjection(QProjection):
     def project(self, wavelength, UB, gamma, delta, theta, mu, chi, phi):
-        qz, qy, qx = super(CylindricalQProjection, self).project(
+        qz, qy, qx = super().project(
             wavelength, UB, gamma, delta, theta, mu, chi, phi
         )
         qpar = numpy.sqrt(qx ** 2 + qy ** 2)
@@ -215,7 +215,7 @@ class CylindricalQProjection(QProjection):
 
 class nrQProjection(QProjection):
     def project(self, wavelength, UB, gamma, delta, theta, mu, chi, phi):
-        qx, qy, qz = super(nrQProjection, self).project(
+        qx, qy, qz = super().project(
             wavelength, UB, gamma, delta, 0, mu, chi, phi
         )
         return (qx, qy, qz)
@@ -226,7 +226,7 @@ class nrQProjection(QProjection):
 
 class TwoThetaProjection(SphericalQProjection):
     def project(self, wavelength, UB, gamma, delta, theta, mu, chi, phi):
-        q, theta, phi = super(TwoThetaProjection, self).project(
+        q, theta, phi = super().project(
             wavelength, UB, gamma, delta, theta, mu, chi, phi
         )
         return (
@@ -239,7 +239,7 @@ class TwoThetaProjection(SphericalQProjection):
 
 class Qpp(nrQProjection):
     def project(self, wavelength, UB, gamma, delta, theta, mu, chi, phi):
-        qx, qy, qz = super(Qpp, self).project(
+        qx, qy, qz = super().project(
             wavelength, UB, gamma, delta, theta, mu, chi, phi
         )
         qpar = numpy.sqrt(qx ** 2 + qy ** 2)
@@ -287,7 +287,7 @@ class GammaDeltaMu(
 
 class QTransformation(QProjection):
     def project(self, wavelength, UB, gamma, delta, theta, mu, chi, phi):
-        qx, qy, qz = super(QTransformation, self).project(
+        qx, qy, qz = super().project(
             wavelength, UB, gamma, delta, theta, mu, chi, phi
         )
 
@@ -302,7 +302,7 @@ class QTransformation(QProjection):
         return "q1", "q2", "q3"
 
     def parse_config(self, config):
-        super(QTransformation, self).parse_config(config)
+        super().parse_config(config)
         self.config.matrix = util.parse_tuple(
             config.pop("matrix"), length=9, type=float
         )
@@ -321,8 +321,7 @@ class ID03Input(backend.InputBase):
         for scanno in scans:
             util.status(f"processing scan {scanno}...")
             if self.config.wait_for_data:
-                for job in self.get_delayed_jobs(scanno):
-                    yield job
+                yield from self.get_delayed_jobs(scanno)
             else:
                 scan = self.get_scan(scanno)
                 if self.config.pr:
@@ -424,7 +423,7 @@ class ID03Input(backend.InputBase):
                     )
 
     def process_job(self, job):
-        super(ID03Input, self).process_job(job)
+        super().process_job(job)
         scan = self.get_scan(job.scan)
         self.metadict = dict()
         try:
@@ -447,7 +446,7 @@ class ID03Input(backend.InputBase):
         self.metadata.add_section("id03_backend", self.metadict)
 
     def parse_config(self, config):
-        super(ID03Input, self).parse_config(config)
+        super().parse_config(config)
         self.config.xmask = util.parse_multi_range(
             config.pop("xmask", None)
         )  # Optional, select a subset of the image range in the x direction. all by default
@@ -750,7 +749,7 @@ class EH1(ID03Input):
     monitor_counter = "mon"
 
     def parse_config(self, config):
-        super(EH1, self).parse_config(config)
+        super().parse_config(config)
         self.config.centralpixel = util.parse_tuple(
             config.pop("centralpixel"), length=2, type=int
         )  # x,y
@@ -906,7 +905,7 @@ class EH2(ID03Input):
     monitor_counter = "Monitor"
 
     def parse_config(self, config):
-        super(EH2, self).parse_config(config)
+        super().parse_config(config)
         self.config.centralpixel = util.parse_tuple(
             config.pop("centralpixel"), length=2, type=int
         )  # x,y
@@ -1116,7 +1115,7 @@ class GisaxsDetector(ID03Input):
         )
 
     def parse_config(self, config):
-        super(GisaxsDetector, self).parse_config(config)
+        super().parse_config(config)
         self.config.directbeam = util.parse_tuple(
             config.pop("directbeam"), length=2, type=int
         )
@@ -1186,6 +1185,6 @@ def load_matrix(filename):
                 f"unknown extension {ext}, unable to load matrix!\n"
             )
     else:
-        raise IOError(
+        raise OSError(
             "filename: {filename} does not exist. Can not load matrix"
         )

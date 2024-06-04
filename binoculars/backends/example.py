@@ -72,7 +72,7 @@ class Input(backend.InputBase):
         The angles are with respect to the sample where af and delta are the angular coordinates
         of the pixels and ai and omega are the in plane and out of plane angles of the incoming beam.
         """
-        super(Input, self).process_job(job)  # call super to fix metadeta handling
+        super().process_job(job)  # call super to fix metadeta handling
 
         # reflects a scan with 100 datapoints
         aaf = numpy.linspace(0, numpy.random.random() * 20, 100)
@@ -137,7 +137,7 @@ class Input(backend.InputBase):
         to the self.config object which can be used throughout the input class. A warning will be
         generated afterwards for config values not popped out of the dict.
         """
-        super(Input, self).parse_config(config)
+        super().parse_config(config)
         self.config.sdd = float(config.pop("sdd"))
         self.config.pixelsize = util.parse_tuple(
             config.pop("pixelsize"), length=2, type=float

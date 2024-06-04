@@ -37,7 +37,7 @@ from scipy.spatial.qhull import QhullError
 from binoculars.fit import PeakFitBase
 from binoculars.space import Axes, Axis, Space, get_axis_values, get_bins
 
-class FitData(object):
+class FitData:
 
     def __init__(self, filename: str, parent: QWidget) -> None:
         self.filename = filename
@@ -50,18 +50,18 @@ class FitData(object):
                     result = QMessageBox.question(
                         parent,
                         'Warning',
-                        'Cannot find space {0} at file {1}; locate proper space'.format(rodkey, spacename),  # noqa
+                        f'Cannot find space {rodkey} at file {spacename}; locate proper space',  # noqa
                         QMessageBox.Open,
                         QMessageBox.Ignore
                     )
                     if result == QMessageBox.Open:
                         spacename = str(QFileDialog.getOpenFileName(
-                            caption='Open space {0}'.format(rodkey),
+                            caption=f'Open space {rodkey}',
                             directory='.',
                             filter='*.hdf5'))
                         db[rodkey].attrs['filename'] = spacename
                     else:
-                        raise IOError('Select proper input')
+                        raise OSError('Select proper input')
                 self.axdict[rodkey] = Axes.fromfile(spacename)
 
     def create_rod(self, rodkey: str, spacename: str) -> None:
@@ -115,10 +115,10 @@ class RodData(FitData):
     def __init__(self, filename: str, rodkey: Optional[str], axis: str,
                  resolution: float,
                  parent: QWidget) -> None:
-        super(RodData, self).__init__(filename, parent)
+        super().__init__(filename, parent)
         if rodkey is not None:
             self.rodkey = rodkey
-            self.slicekey = '{0}_{1}'.format(axis, resolution)
+            self.slicekey = f'{axis}_{resolution}'
             self.axis = axis
             self.resolution = resolution
 
@@ -197,7 +197,7 @@ class RodData(FitData):
                 return None
 
     def save_sliceattr(self, index: int, key: str, value: ndarray) -> None:
-        mkey = 'mask{0}'.format(key)
+        mkey = f'mask{key}'
         with h5py.File(self.filename, 'a') as db:
             try:
                 group = db[self.rodkey][self.slicekey]['attrs']  # else it breaks with the old fitaid
@@ -215,7 +215,7 @@ class RodData(FitData):
             group[mkey][index] = 0
 
     def load_sliceattr(self, index: int, key: str) -> Optional[MaskedArray]:
-        mkey = 'mask{0}'.format(key)
+        mkey = f'mask{key}'
         with h5py.File(self.filename, 'a') as db:
             try:
                 group = db[self.rodkey][self.slicekey]['attrs']
@@ -243,7 +243,7 @@ class RodData(FitData):
 
     def all_from_key(self, key: str) -> Optional[Tuple[ndarray, MaskedArray]]:
         with h5py.File(self.filename, 'a') as db:
-            mkey = 'mask{0}'.format(key)
+            mkey = f'mask{key}'
             axes = self.axdict[self.rodkey]
             group = db[self.rodkey][self.slicekey]['attrs']
             if key in list(group.keys()):
@@ -257,18 +257,18 @@ class RodData(FitData):
         if index is not None:
             loc = list()
             count = itertools.count()
-            key = 'guessloc{0}'.format(next(count))
+            key = f'guessloc{next(count)}'
             while self.load_sliceattr(index, key) is not None:
                 loc.append(self.load_sliceattr(index, key))
-                key = 'guessloc{0}'.format(next(count))
+                key = f'guessloc{next(count)}'
             if len(loc) > 0:
                 return loc
             else:
                 count = itertools.count()
-                key = 'loc{0}'.format(next(count))
+                key = f'loc{next(count)}'
                 while self.load_sliceattr(index, key) is not None:
                     loc.append(self.load_sliceattr(index, key))
-                    key = 'loc{0}'.format(next(count))
+                    key = f'loc{next(count)}'
                 if len(loc) > 0:
                     return loc
         return None
@@ -278,7 +278,7 @@ class RodData(FitData):
                  loc: Sequence[Optional[MaskedArray]]) -> None:
         if index is not None:
             for i, value in enumerate(loc):
-                self.save_sliceattr(index, 'guessloc{0}'.format(i), value)
+                self.save_sliceattr(index, f'guessloc{i}', value)
 
     def save_segments(self, segments: ndarray) -> None:
         with h5py.File(self.filename, 'a') as db:
@@ -302,16 +302,16 @@ class RodData(FitData):
         return None
 
     def save_aroundroi(self, aroundroi: bool) -> None:
-        return super(RodData, self).save(self.rodkey, 'aroundroi', aroundroi)
+        return super().save(self.rodkey, 'aroundroi', aroundroi)
 
     def save_fromfit(self, fromfit: bool) -> None:
-        return super(RodData, self).save(self.rodkey, 'fromfit', fromfit)
+        return super().save(self.rodkey, 'fromfit', fromfit)
 
     def save_index(self, index: int) -> None:
-        return super(RodData, self).save(self.rodkey, 'index', index)
+        return super().save(self.rodkey, 'index', index)
 
     def save_roi(self, roi: List[float]) -> None:
-        return super(RodData, self).save(self.rodkey, 'roi', roi)
+        return super().save(self.rodkey, 'roi', roi)
 
     def currentindex(self) -> Optional[int]:
         index = self.load_int('index')
@@ -321,7 +321,7 @@ class RodData(FitData):
         return index
 
     def load(self, _rodkey: str, key: str) -> Optional[ndarray]:
-        return super(RodData, self).load(self.rodkey, key)
+        return super().load(self.rodkey, key)
 
     def __iter__(self) -> Generator[Space, None, None]:
         for index in range(self.rodlength()):
@@ -330,7 +330,7 @@ class RodData(FitData):
 class Window(QMainWindow):
 
     def __init__(self, parent: Optional[QWidget] = None):
-        super(Window, self).__init__(parent)
+        super().__init__(parent)
 
         newproject = QAction("New project", self)
         newproject.triggered.connect(self.newproject)
@@ -377,7 +377,7 @@ class Window(QMainWindow):
             QMessageBox.critical(
                 self,
                 'New project',
-                'Unable to save project to {}: {}'.format(fname, e)
+                f'Unable to save project to {fname}: {e}'
             )
 
     def loadproject(self, filename: Optional[str]=None) -> None:
@@ -399,7 +399,7 @@ class Window(QMainWindow):
                 QMessageBox.critical(
                     self,
                     'Load project',
-                    'Unable to load project from {}: {}'.format(fname, e)
+                    f'Unable to load project from {fname}: {e}'
                 )
         else:
             widget = TopWidget(str(fname), parent=self)
@@ -430,7 +430,7 @@ class Window(QMainWindow):
                     QMessageBox.critical(
                         self,
                         'Import spaces',
-                        'Unable to import space {}: {}'.format(fname, e)
+                        f'Unable to import space {fname}: {e}'
                     )
         else:
             widget = self.tab_widget.currentWidget()
@@ -440,7 +440,7 @@ class Window(QMainWindow):
 class TopWidget(QWidget):
 
     def __init__(self, filename: str, parent: Optional[QWidget]=None):
-        super(TopWidget, self).__init__(parent)
+        super().__init__(parent)
 
         hbox = QHBoxLayout()
         vbox = QVBoxLayout()
@@ -633,7 +633,7 @@ class TopWidget(QWidget):
                 else:
                     return
 
-                res = database.all_from_key('var_{0}'.format(param))
+                res = database.all_from_key(f'var_{param}')
                 if res is not None:
                     x, yvar = res
                 else:
@@ -654,13 +654,13 @@ class TopWidget(QWidget):
                     for index, newval in enumerate(newy):
                         database.save_sliceattr(
                             index,
-                            'guessloc{0}'.format(param.lstrip('loc')),
+                            'guessloc{}'.format(param.lstrip('loc')),
                             newval
                         )
 
     def progressbox(self, rodkey: str, function: Any, iterator: Any, length: int) -> None:
         pd = QProgressDialog(
-            'Processing {0}'.format(rodkey), 'Cancel', 0, length)
+            f'Processing {rodkey}', 'Cancel', 0, length)
         pd.setWindowModality(Qt.WindowModal)
         pd.show()
 
@@ -681,7 +681,7 @@ class TableWidget(QWidget):
     check_changed = pyqtSignal()
 
     def __init__(self, database: FitData, parent: Optional[QWidget]=None) -> None:
-        super(TableWidget, self).__init__(parent)
+        super().__init__(parent)
 
         hbox = QHBoxLayout()
         self.database = database
@@ -769,7 +769,7 @@ class TableWidget(QWidget):
             if rodkey == label:
                 self.table.removeRow(index)
         self.database.delete_rod(rodkey)
-        print('removed: {0}'.format(rodkey))
+        print(f'removed: {rodkey}')
 
     def setlength(self, y: int, x: int=1) -> None:
         if self.database is not None:
@@ -805,7 +805,7 @@ def short_filename(filename: str) -> str:
 class HiddenToolbar(NavigationToolbar2QT):
 
     def __init__(self, corner_callback: Any, canvas: Any) -> None:
-        super(HiddenToolbar, self).__init__(canvas, None)
+        super().__init__(canvas, None)
         self._corner_callback = corner_callback
         self.zoom()
 
@@ -816,11 +816,11 @@ class HiddenToolbar(NavigationToolbar2QT):
         return limits
 
     def press_zoom(self, event: Any) -> None:
-        super(HiddenToolbar, self).press_zoom(event)
+        super().press_zoom(event)
         self._corner_preclick = self._generate_key()
 
     def release_zoom(self, event: Any) -> None:
-        super(HiddenToolbar, self).release_zoom(event)
+        super().release_zoom(event)
         if self._corner_preclick == self._generate_key():
             self._corner_callback(event.xdata, event.ydata)
         self._corner_preclick = []
@@ -831,7 +831,7 @@ class FitWidget(QWidget):
     def __init__(self,
                  database: Optional[RodData]=None,
                  parent: Optional[QWidget]=None):
-        super(FitWidget, self).__init__(parent)
+        super().__init__(parent)
 
         self.database = database
         vbox = QHBoxLayout()
@@ -874,7 +874,7 @@ class FitWidget(QWidget):
                 else:
                     self.ax = self.figure.add_subplot(111)
                     binoculars.plot.plot(space, self.figure, self.ax)
-                self.figure.suptitle('{0}, res = {1}, {2} = {3}'.format(
+                self.figure.suptitle('{}, res = {}, {} = {}'.format(
                     self.database.rodkey, self.database.resolution, label, info))
                 self.canvas.draw()
 
@@ -892,7 +892,7 @@ class FitWidget(QWidget):
                     self.database.save_sliceattr(index, key, value)
                 for key, value in zip(params, fit.variance):
                     self.database.save_sliceattr(
-                        index, 'var_{0}'.format(key), value)
+                        index, f'var_{key}', value)
 
     def get_loc(self) -> Optional[MaskedArray]:
         if self.database is not None:
@@ -905,7 +905,7 @@ class IntegrateWidget(QWidget):
                  database: Optional[RodData],
                  topwidget: TopWidget,
                  parent: Optional[QWidget] = None):
-        super(IntegrateWidget, self).__init__(parent)
+        super().__init__(parent)
         self.database = database
         self.topwidget = topwidget
 
@@ -1102,11 +1102,11 @@ class IntegrateWidget(QWidget):
                     interdata[key].mask = numpy.zeros_like(interdata[key])
                     self.database.save_data(index, 'inter',  interdata)
                 except ValueError as e:
-                    print('Warning error interpolating silce {0}: {1}'.format(index, e))  # noqa
+                    print(f'Warning error interpolating silce {index}: {e}')  # noqa
                     intensity = numpy.array([])
                     bkg = numpy.array([])
                 except QhullError as e:
-                    print('Warning error interpolating silce {0}: {1}'.format(index, e))  # noqa
+                    print(f'Warning error interpolating silce {index}: {e}')  # noqa
                     intensity = numpy.array([])
                     bkg = numpy.array([])
 
@@ -1123,7 +1123,7 @@ class IntegrateWidget(QWidget):
                 self.database.save_sliceattr(index, 'sf', structurefactor)
                 self.database.save_sliceattr(index, 'nisf', nistructurefactor)
 
-                print('Structurefactor {0}: {1}'.format(index, structurefactor))
+                print(f'Structurefactor {index}: {structurefactor}')
 
     def intkey(self,
                coords: Optional[Union[List[Optional[MaskedArray]],
@@ -1229,7 +1229,7 @@ class IntegrateWidget(QWidget):
                     self.ax = self.figure.add_subplot(111)
                     binoculars.plot.plot(space, self.figure, self.ax)
 
-                self.figure.suptitle('{0}, res = {1}, {2} = {3}'.format(
+                self.figure.suptitle('{}, res = {}, {} = {}'.format(
                     self.database.rodkey, self.database.resolution, label, info))
 
                 self.plot_box()
@@ -1264,7 +1264,7 @@ class ButtonedSlider(QWidget):
     slice_index = pyqtSignal(int)
 
     def __init__(self, parent: Optional[QWidget]=None):
-        super(ButtonedSlider, self).__init__(parent)
+        super().__init__(parent)
 
         self.navigation_button_left_end = QPushButton('|<')
         self.navigation_button_left_one = QPushButton('<')
@@ -1337,7 +1337,7 @@ class ButtonedSlider(QWidget):
 class HiddenToolbar2(NavigationToolbar2QT):
 
     def __init__(self, canvas: Any):
-        super(HiddenToolbar2, self).__init__(canvas, None)
+        super().__init__(canvas, None)
         self.zoom()
 
 
@@ -1346,7 +1346,7 @@ class OverviewWidget(QWidget):
     def __init__(self,
                  database: Optional[RodData],
                  parent: Optional[QWidget]=None):
-        super(OverviewWidget, self).__init__(parent)
+        super().__init__(parent)
 
         self.databaselist = []  # type: List[RodData]
 
@@ -1407,7 +1407,7 @@ class OverviewWidget(QWidget):
                 if res is not None:
                     x, y = res
                     args = numpy.argsort(x)
-                    filename = '{0}_{1}.txt'.format(param, database.rodkey)
+                    filename = f'{param}_{database.rodkey}.txt'
                     numpy.savetxt(os.path.join(folder, filename),
                                   numpy.vstack(arr[args] for arr in [x, y]).T)
 
@@ -1468,7 +1468,7 @@ class OverviewWidget(QWidget):
                         )
                         self.ax.plot(
                             x, y[:, 0], '+',
-                            label='{0} - {1}'.format('locx_s', database.rodkey)
+                            label='{} - {}'.format('locx_s', database.rodkey)
                         )
                 elif param == 'locy_s':
                     segments = database.load_segments()
@@ -1482,7 +1482,7 @@ class OverviewWidget(QWidget):
                         )
                         self.ax.plot(
                             x, y[:, 1], '+',
-                            label='{0} - {1}'.format('locy_s', database.rodkey)
+                            label='{} - {}'.format('locy_s', database.rodkey)
                         )
                 else:
                     res = database.all_from_key(param)
@@ -1490,7 +1490,7 @@ class OverviewWidget(QWidget):
                         x, y = res
                         self.ax.plot(
                             x, y, '+',
-                            label='{0} - {1}'.format(param, database.rodkey)
+                            label=f'{param} - {database.rodkey}'
                         )
 
         self.ax.legend()
@@ -1504,7 +1504,7 @@ class PeakWidget(QWidget):
     def __init__(self,
                  database: Optional[RodData],
                  parent: Optional[QWidget]=None):
-        super(PeakWidget, self).__init__(parent)
+        super().__init__(parent)
         self.database = database
 
         # create a QTableWidget
@@ -1539,9 +1539,9 @@ class PeakWidget(QWidget):
                 for index in range(segments.shape[0]):
                     self.add_row(segments[index, :])
             self.table.setHorizontalHeaderLabels(
-                ['{0}'.format(self.database.axis),
-                 '{0}'.format(self.axes[0].label),
-                 '{0}'.format(self.axes[1].label)]
+                [f'{self.database.axis}',
+                 f'{self.axes[0].label}',
+                 f'{self.axes[1].label}']
             )
 
     def add_row(self, row: Optional[ndarray]=None) -> None:
@@ -1641,7 +1641,7 @@ def find_unused_rodkey(rodkey: str, rods: List[str]) -> str:
         newkey = rodkey
     else:
         for index in itertools.count(0):
-            newkey = '{0}_{1}'.format(rodkey, index)
+            newkey = f'{rodkey}_{index}'
             if newkey not in rods:
                 break
     return newkey

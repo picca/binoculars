@@ -3,7 +3,7 @@ from . import util, errors, dispatcher
 
 class ProjectionBase(util.ConfigurableObject):
     def parse_config(self, config):
-        super(ProjectionBase, self).parse_config(config)
+        super().parse_config(config)
         res = config.pop("resolution")  # or just give 1 number for
 
         # all dimensions Optional, set the limits of the space object
@@ -40,7 +40,7 @@ class ProjectionBase(util.ConfigurableObject):
         raise NotImplementedError
 
 
-class Job(object):
+class Job:
     weight = 1.0  # estimate of job difficulty (arbitrary units)
 
     def __init__(self, **kwargs):
@@ -55,7 +55,7 @@ class InputBase(util.ConfigurableObject):
     same computer!"""
 
     def parse_config(self, config):
-        super(InputBase, self).parse_config(config)
+        super().parse_config(config)
         # approximate number of images per job, only useful when
         # running on the oar cluster
         self.config.target_weight = int(config.pop("target_weight", 1000))
@@ -131,7 +131,7 @@ def _get_backend(config, section, basecls, default=None, args=[], kwargs={}):
         )
 
     clsname = clsname.lower()
-    names = dict((name.lower(), name) for name in dir(module))
+    names = {name.lower(): name for name in dir(module)}
     if clsname in names:
         cls = getattr(module, names[clsname])
 

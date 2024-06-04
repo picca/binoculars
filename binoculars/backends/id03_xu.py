@@ -39,7 +39,7 @@ class HKLProjection(backend.ProjectionBase):
 
 class HKProjection(HKLProjection):
     def project(self, mu, theta, delta, gamR, gamT, ty, wavelength, UB, qconv):
-        H, K, L = super(HKProjection, self).project(
+        H, K, L = super().project(
             mu, theta, delta, gamR, gamT, ty, wavelength, UB, qconv
         )
         return (H, K)
@@ -94,7 +94,7 @@ class ID03Input(backend.InputBase):
                 )
 
     def process_job(self, job):
-        super(ID03Input, self).process_job(job)
+        super().process_job(job)
         scan = self.get_scan(job.scan)
 
         scanparams = self.get_scan_params(scan)  # wavelength, UB
@@ -107,7 +107,7 @@ class ID03Input(backend.InputBase):
             yield self.process_image(scanparams, pp, image)
 
     def parse_config(self, config):
-        super(ID03Input, self).parse_config(config)
+        super().parse_config(config)
         self.config.xmask = util.parse_multi_range(config.pop("xmask"))
         self.config.ymask = util.parse_multi_range(config.pop("ymask"))
         self.config.specfile = config.pop("specfile")
@@ -228,7 +228,7 @@ class EH2(ID03Input):
     ty = 600.0  # mm
 
     def parse_config(self, config):
-        super(EH2, self).parse_config(config)
+        super().parse_config(config)
         centralpixel = self.config.centralpixel  # (row, column) = (gamma, delta)
         # define detector parameters
         roi = (

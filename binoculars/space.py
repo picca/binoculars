@@ -29,7 +29,7 @@ def sum_onto(a, axis):
     return a
 
 
-class Axis(object):
+class Axis:
     """Represents a single dimension finite discrete grid centered at 0.
 
     Important attributes:
@@ -228,7 +228,7 @@ class Axis(object):
             return self.restrict_slice(value)
 
 
-class Axes(object):
+class Axes:
     """Luxurious tuple of Axis objects."""
 
     def __init__(self, axes):
@@ -390,7 +390,7 @@ class Axes(object):
             raise IndexError("dimension mismatch")
 
 
-class EmptySpace(object):
+class EmptySpace:
     """Convenience object for sum() and friends. Treated as zero for addition.
     Does not share a base class with Space for simplicity."""
 
@@ -423,7 +423,7 @@ class EmptySpace(object):
         return f"{self.__class__.__name__}"
 
 
-class Space(object):
+class Space:
     """Main data-storing object in BINoculars.
     Data is represented on an n-dimensional rectangular grid. Per grid point,
     the number of photons (~ intensity) and the number of original data points
@@ -721,7 +721,7 @@ class Space(object):
         # get rid of invalid coords
         valid = reduce(
             numpy.bitwise_and,
-            chain((numpy.isfinite(t) for t in transcoords)),
+            chain(numpy.isfinite(t) for t in transcoords),
             (weights > 0),
         )
         transcoords = tuple(t[valid] for t in transcoords)
@@ -855,14 +855,14 @@ class Space(object):
                         f" (original error: {e!r})"
                     )
 
-        except IOError as e:
+        except OSError as e:
             raise errors.HDF5FileError(
                 f"unable to open '{file}' as HDF5 file (original error: {e!r})"
             )
         return space
 
 
-class Multiverse(object):
+class Multiverse:
     """A collection of spaces with basic support for addition.
        Only to be used when processing data. This makes it possible to
        process multiple limit sets in a combination of scans"""
@@ -910,7 +910,7 @@ class Multiverse(object):
                         raise TypeError("This is not a multiverse")
                 else:
                     raise TypeError("This is not a multiverse")
-        except IOError as e:
+        except OSError as e:
             raise errors.HDF5FileError(
                 f"unable to open '{file}' as HDF5 file (original error: {e!r})"
             )
@@ -919,7 +919,7 @@ class Multiverse(object):
         return f"{self.__class__.__name__}\n{self.spaces}"
 
 
-class EmptyVerse(object):
+class EmptyVerse:
     """Convenience object for sum() and friends. Treated as zero for addition."""
 
     spaces = [EmptySpace()]
@@ -950,7 +950,7 @@ def union_axes(axes):
         return axes[0]
     if not all(isinstance(ax, Axis) for ax in axes):
         raise TypeError("not all objects are Axis instances")
-    if len(set(ax.res for ax in axes)) != 1 or len(set(ax.label for ax in axes)) != 1:
+    if len({ax.res for ax in axes}) != 1 or len({ax.label for ax in axes}) != 1:
         raise ValueError("cannot unite axes with different resolution/label")
     mi = min(ax.min for ax in axes)
     ma = max(ax.max for ax in axes)
@@ -964,7 +964,7 @@ def union_unequal_axes(axes):
         return axes[0]
     if not all(isinstance(ax, Axis) for ax in axes):
         raise TypeError("not all objects are Axis instances")
-    if len(set(ax.label for ax in axes)) != 1:
+    if len({ax.label for ax in axes}) != 1:
         raise ValueError("cannot unite axes with different label")
     mi = min(ax.min for ax in axes)
     ma = max(ax.max for ax in axes)
@@ -982,7 +982,7 @@ def sum(spaces):
         return EmptySpace()
     if len(spaces) == 1:
         return spaces[0]
-    if len(set(space.dimension for space in spaces)) != 1:
+    if len({space.dimension for space in spaces}) != 1:
         raise TypeError("dimension mismatch in spaces")
 
     first = spaces[0]

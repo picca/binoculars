@@ -44,7 +44,7 @@ class HKLProjection(backend.ProjectionBase):
 
 class HKProjection(HKLProjection):
     def project(self, wavelength, UB, beta, delta, omega, alfa, chi, phi):
-        H, K, L = super(HKProjection, self).project(
+        H, K, L = super().project(
             wavelength, UB, beta, delta, omega, alfa, chi, phi
         )
         return (H, K)
@@ -96,7 +96,7 @@ class QProjection(backend.ProjectionBase):
 
 class SphericalQProjection(QProjection):
     def project(self, wavelength, UB, gamma, delta, theta, mu, chi, phi):
-        qz, qy, qx = super(SphericalQProjection, self).project(
+        qz, qy, qx = super().project(
             wavelength, UB, gamma, delta, theta, mu, chi, phi
         )
         q = numpy.sqrt(qx ** 2 + qy ** 2 + qz ** 2)
@@ -110,7 +110,7 @@ class SphericalQProjection(QProjection):
 
 class CylindricalQProjection(QProjection):
     def project(self, wavelength, UB, gamma, delta, theta, mu, chi, phi):
-        qz, qy, qx = super(CylindricalQProjection, self).project(
+        qz, qy, qx = super().project(
             wavelength, UB, gamma, delta, theta, mu, chi, phi
         )
         qpar = numpy.sqrt(qx ** 2 + qy ** 2)
@@ -142,7 +142,7 @@ class nrQProjection(backend.ProjectionBase):
 
 class TwoThetaProjection(SphericalQProjection):
     def project(self, wavelength, UB, gamma, delta, theta, mu, chi, phi):
-        q, theta, phi = super(TwoThetaProjection, self).project(
+        q, theta, phi = super().project(
             wavelength, UB, gamma, delta, theta, mu, chi, phi
         )
         return (
@@ -155,7 +155,7 @@ class TwoThetaProjection(SphericalQProjection):
 
 class Qpp(nrQProjection):
     def project(self, wavelength, UB, gamma, delta, theta, mu, chi, phi):
-        qx, qy, qz = super(Qpp, self).project(
+        qx, qy, qz = super().project(
             wavelength, UB, gamma, delta, theta, mu, chi, phi
         )
         qpar = numpy.sqrt(qx ** 2 + qy ** 2)
@@ -241,7 +241,7 @@ class BM32Input(backend.InputBase):
                 )
 
     def process_job(self, job):
-        super(BM32Input, self).process_job(job)
+        super().process_job(job)
         scan = self.get_scan(job.scan)
         self.metadict = dict()
         try:
@@ -259,7 +259,7 @@ class BM32Input(backend.InputBase):
         self.metadata.add_section("id03_backend", self.metadict)
 
     def parse_config(self, config):
-        super(BM32Input, self).parse_config(config)
+        super().parse_config(config)
         self.config.xmask = util.parse_multi_range(
             config.pop("xmask", None)
         )  # Optional, select a subset of the image range in the x direction. all by default
@@ -409,7 +409,7 @@ class BM32Input(backend.InputBase):
 
 class EH1(BM32Input):
     def parse_config(self, config):
-        super(EH1, self).parse_config(config)
+        super().parse_config(config)
         self.config.centralpixel = util.parse_tuple(
             config.pop("centralpixel", None), length=2, type=int
         )
@@ -532,6 +532,6 @@ def load_matrix(filename):
                 f"unknown extension {ext}, unable to load matrix!\n"
             )
     else:
-        raise IOError(
+        raise OSError(
             f"filename: {filename} does not exist. Can not load matrix"
         )

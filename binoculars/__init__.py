@@ -59,7 +59,7 @@ def load(filename, key=None):
     if os.path.exists(filename):
         return binoculars.space.Space.fromfile(filename, key=key)
     else:
-        raise IOError(f"File '{filename}' does not exist")
+        raise OSError(f"File '{filename}' does not exist")
 
 
 def save(filename, space):
@@ -334,17 +334,17 @@ def info(filename):
             try:
                 axes = binoculars.space.Axes.fromfile(filename)
             except Exception as e:
-                raise IOError(
+                raise OSError(
                     f"{filename}: unable to load Space: {e!r}"
                 )
             ret += f"{axes!r}\n"
             try:
                 config = binoculars.util.ConfigFile.fromfile(filename)
             except Exception as e:
-                raise IOError(
+                raise OSError(
                     f"{filename}: unable to load util.ConfigFile: {e!r}"
                 )
             ret += f"{config!r}"
         else:
-            raise IOError(f"File '{filename}' does not exist")
+            raise OSError(f"File '{filename}' does not exist")
     return ret
