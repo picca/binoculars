@@ -359,7 +359,7 @@ class BM32Input(backend.InputBase):
             try:
                 uccdtagline = scan.header("M")[0].split()[-1]
                 UCCD = os.path.dirname(uccdtagline).split(os.sep)
-            except:
+            except Exception:
                 print(
                     "warning: UCCD tag not found, use imagefolder for proper file specification"
                 )

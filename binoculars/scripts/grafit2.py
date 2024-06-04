@@ -2300,7 +2300,7 @@ class Ui_FitWindow(QMainWindow):
                 print(title)
                 xlabel = title[ix]
                 ylabel = title[iy]
-            except:
+            except Exception:
                 ni = self.readfileparams.heading
                 xlabel = "x"
                 ylabel = "y"
@@ -2319,7 +2319,7 @@ class Ui_FitWindow(QMainWindow):
                 if np.isfinite(xx) and np.isfinite(yy):
                     x.append(xx)
                     y.append(yy)
-            except:
+            except Exception:
                 pass
 
         self.tabval.cwd = path.dirname(path.realpath(fname))

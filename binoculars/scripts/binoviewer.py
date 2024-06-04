@@ -11,7 +11,7 @@ Created on Wed Dec 07 11:10:28 2016
 
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2009-2011, 2020, 2021, 2023 CEA
+# Copyright © 2009-2011, 2020, 2021, 2023, 2024 CEA
 # Pierre Raybaut
 # Licensed under the terms of the CECILL License
 # (see guiqwt/__init__.py for details)
@@ -3727,7 +3727,7 @@ class Image3DDialog(ImageDialog):
         filename = str(filename)
         try:
             hfile = tables.openFile(filename)
-        except:
+        except Exception:
             QMessageBox.about(self, "Error", "unable to open file")
             return
 
@@ -5227,7 +5227,7 @@ class Image3DDialog(ImageDialog):
                     title=item.curveparam.label,
                 )
                 self.figfit.show()
-            except:
+            except Exception:
                 print("error in show_fit, unable to display curve to be fitted")
                 pass
 

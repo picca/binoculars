@@ -152,7 +152,7 @@ class DataSet:
                     self.nodenames.append(leaf.name)
                     try:
                         nodelongname = leaf.attrs.long_name
-                    except:
+                    except Exception:
                         nodelongname = ""
                     # nodelongname=leaf.attrs.long_name[leaf.attrs.long_name.rfind('/')+1:]
                     if len(nodelongname) == 0:
@@ -177,7 +177,7 @@ class DataSet:
                                 namesplit[-2] + "/" + namesplit[-1]
                             )  # on prend les deux derniers si possible
                             self.nodenicknames.append(nodenickname)
-                        except:
+                        except Exception:
                             self.nodenicknames.append(nodelongname)
 
                     elif pref.inamedisplay == 3:
@@ -227,7 +227,7 @@ class DataSet:
                         nodenickname = (
                             namesplit[-2] + "/" + namesplit[-1]
                         )  # on prend les deux derniers
-                    except:
+                    except Exception:
                         nodenickname = nodelongname  # on prend les deux derniers
 
                     self.nodenicknames[i] = nodenickname

@@ -1708,7 +1708,7 @@ class RectanglePeakTool(RectangularShapeTool):
             else:
                 QMessageBox.about(plot, "Error", "Spot not found")
 
-        except:
+        except Exception:
             QMessageBox.about(plot, "Error", "Spot not found")
 
         plot.del_item(shape)

@@ -623,7 +623,7 @@ class ID03Input(backend.InputBase):
                     UB = numpy.array(
                         ubscan.header("G")[2].split(" ")[-9:], dtype=numpy.float
                     )
-                except:
+                except Exception:
                     scanno -= 1
                 else:
                     break
@@ -673,7 +673,7 @@ class ID03Input(backend.InputBase):
                 try:
                     uccdtagline = scanheaderC[0]
                     UCCD = os.path.split(uccdtagline.split()[-1])
-                except:
+                except Exception:
                     print(
                         "warning: UCCD tag not found, use imagefolder for proper file specification"
                     )
@@ -698,7 +698,7 @@ class ID03Input(backend.InputBase):
                 try:
                     uccdtagline = scan.header("UCCD")[0]
                     UCCD = os.path.split(os.path.dirname(uccdtagline.split()[-1]))
-                except:
+                except Exception:
                     print(
                         "warning: UCCD tag not found, use imagefolder for proper file specification"
                     )
@@ -847,7 +847,7 @@ class EH1(ID03Input):
         try:
             params[:, HRX] = scan.motorpos("hrx")
             params[:, HRY] = scan.motorpos("hry")
-        except:
+        except Exception:
             raise errors.BackendError(
                 "The specfile does not accept hrx and hry as a motor label. Have you selected the right hutch? Scannumber = {0}, pointnumber = {1}".format(
                     self.dbg_scanno, self.dbg_pointno
@@ -889,7 +889,7 @@ class EH1(ID03Input):
                 params[:, MON] = scan.datacol(self.monitor_counter)[
                     sl
                 ]  # differs in EH1/EH2
-            except:
+            except Exception:
                 raise errors.BackendError(
                     "The specfile does not accept {2} as a monitor label. Have you selected the right hutch? Scannumber = {0}, pointnumber = {1}".format(
                         self.dbg_scanno, self.dbg_pointno, self.monitor_counter
@@ -1034,7 +1034,7 @@ class EH2(ID03Input):
                 params[:, MON] = scan.datacol(self.monitor_counter)[
                     sl
                 ]  # differs in EH1/EH2
-            except:
+            except Exception:
                 raise errors.BackendError(
                     "The specfile does not accept {2} as a monitor label. Have you selected the right hutch? Scannumber = {0}, pointnumber = {1}".format(
                         self.dbg_scanno, self.dbg_pointno, self.monitor_counter
@@ -1140,7 +1140,7 @@ class GisaxsDetector(ID03Input):
             params[:, MON] = scan.datacol(self.monitor_counter)[
                 sl
             ]  # differs in EH1/EH2
-        except:
+        except Exception:
             raise errors.BackendError(
                 "The specfile does not accept {2} as a monitor label. Have you selected the right hutch? Scannumber = {0}, pointnumber = {1}".format(
                     self.dbg_scanno, self.dbg_pointno, self.monitor_counter

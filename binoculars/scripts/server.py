@@ -39,7 +39,7 @@ class ProcessTCPHandler(socketserver.BaseRequestHandler):
                     self.server.q.put(job)
                 else:
                     response = result
-            except:
+            except Exception:
                 print('Could not parse the job: {0}'.format(input))
                 print(traceback.format_exc())
                 response = 'Error: Job could not be added to queue'
@@ -56,7 +56,7 @@ def parse_job(job):
                 section, key = section_key.split(':')
                 overrides.append((section, key, value))
         return True, overrides
-    except:
+    except Exception:
         message = 'Error parsing the configuration options. {0}'.format(job)
         return False, message
 

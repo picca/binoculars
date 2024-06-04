@@ -1,5 +1,5 @@
 """
-BINocular backend for beamline ID03:EH2 
+BINocular backend for beamline ID03:EH2
 This backend should serve as a basic example of a backend based on
 xrayutilities [1]. It still uses PyMCA for parsing the spec,edf files.
 The 'original' ID03 backend was used as a template.
@@ -168,7 +168,7 @@ class ID03Input(backend.InputBase):
         try:
             uccdtagline = scan.header("UCCD")[0]
             UCCD = os.path.split(os.path.dirname(uccdtagline.split()[-1]))
-        except:
+        except Exception:
             print(
                 "warning: UCCD tag not found, use imagefolder for proper file specification"
             )
