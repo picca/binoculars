@@ -31,7 +31,7 @@ def run(args):
 
     if isinstance(main.result, binoculars.space.Multiverse):
         return main.result.spaces
-    if type(main.result) == bool:
+    if isinstance(main.result, bool):
         filenames = main.dispatcher.config.destination.final_filenames()
         return tuple(binoculars.space.Space.fromfile(fn) for fn in filenames)
 
@@ -327,7 +327,7 @@ def info(filename):
     ret = ""
     if isinstance(filename, binoculars.space.Space):
         ret += "{!r}\n{!r}".format(filename, filename.config)
-    elif type(filename) == str:
+    elif isinstance(filename, str):
         if os.path.exists(filename):
             try:
                 axes = binoculars.space.Axes.fromfile(filename)
