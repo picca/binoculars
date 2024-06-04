@@ -62,7 +62,8 @@ from guidata.dataset.dataitems import (
 )
 from PIL import Image
 
-_fromUtf8 = lambda s: s
+def _fromUtf8(s):
+    return s
 
 abspath = osp.abspath(__file__)
 dirpath = osp.dirname(abspath)

@@ -2,7 +2,7 @@
 
 # TODO: export des fit en ascii should be versionned.
 
-from typing import Any, Callable, Dict, Generator, List, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Callable, Generator, List, Optional, Sequence, Tuple, Type, Union
 
 import sys
 import os.path

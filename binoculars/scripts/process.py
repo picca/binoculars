@@ -212,7 +212,7 @@ class Table(QWidget):
     #Here we take all values from tables
     def getParam(self):
         for index in range(self.table.rowCount()):
-            if not self.table.item == None:
+            if self.table.item is not None:
                 key = str(self.table.item(index, 0).text())
                 comment = str(self.table.item(index, 0).toolTip())
                 if index == 0:

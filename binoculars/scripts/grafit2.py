@@ -78,7 +78,8 @@ SHAPE_Z_OFFSET = 1000
 try:
     _fromUtf8 = QString.fromUtf8
 except AttributeError:
-    _fromUtf8 = lambda s: s
+    def _fromUtf8(s):
+        return s
 
 abspath = path.abspath(__file__)
 dirpath = path.dirname(abspath)

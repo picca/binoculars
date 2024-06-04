@@ -804,7 +804,7 @@ def label_enumerator(label, start=0):
 
 def find_unused_label(label, labellist):
     for l in label_enumerator(label):
-        if not l in labellist:
+        if l not in labellist:
             return l
 
 

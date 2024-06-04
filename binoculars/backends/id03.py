@@ -1167,7 +1167,7 @@ class GisaxsDetector(ID03Input):
 
 
 def load_matrix(filename):
-    if filename == None:
+    if filename is None:
         return None
     if os.path.exists(filename):
         ext = os.path.splitext(filename)[-1]

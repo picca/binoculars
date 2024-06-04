@@ -25,7 +25,7 @@
            Picca Frédéric-Emmanuel <picca@synchrotron-soleil.fr>
 
 """
-from typing import Any, Dict, NamedTuple, Optional, Tuple
+from typing import Dict, NamedTuple, Optional, Tuple
 
 import numpy
 import math
@@ -556,22 +556,22 @@ class AnglesProjection(backend.ProjectionBase):
         try:
             axis = geometry.axis_get("eta_a")
             eta_a = axis.value_get(Hkl.UnitEnum.USER)
-        except GLib.GError as err:
+        except GLib.GError:
             eta_a = 0
         try:
             axis = geometry.axis_get("omega")
             omega0 = axis.value_get(Hkl.UnitEnum.USER)
-        except GLib.GError as err:
+        except GLib.GError:
             omega0 = 0
         try:
             axis = geometry.axis_get("delta")
             delta0 = axis.value_get(Hkl.UnitEnum.USER)
-        except GLib.GError as err:
+        except GLib.GError:
             delta0 = 0
         try:
             axis = geometry.axis_get("gamma")
             gamma0 = axis.value_get(Hkl.UnitEnum.USER)
-        except GLib.GError as err:
+        except GLib.GError:
             gamma0 = 0
 
         P = M(math.radians(eta_a), [1, 0, 0])
@@ -633,22 +633,22 @@ class AnglesProjection2(backend.ProjectionBase):    # omega <> mu
         try:
             axis = geometry.axis_get("eta_a")
             eta_a = axis.value_get(Hkl.UnitEnum.USER)
-        except GLib.GError as err:
+        except GLib.GError:
             eta_a = 0
         try:
             axis = geometry.axis_get("mu")
             mu0 = axis.value_get(Hkl.UnitEnum.USER)
-        except GLib.GError as err:
+        except GLib.GError:
             mu0 = 0
         try:
             axis = geometry.axis_get("delta")
             delta0 = axis.value_get(Hkl.UnitEnum.USER)
-        except GLib.GError as err:
+        except GLib.GError:
             delta0 = 0
         try:
             axis = geometry.axis_get("gamma")
             gamma0 = axis.value_get(Hkl.UnitEnum.USER)
-        except GLib.GError as err:
+        except GLib.GError:
             gamma0 = 0
 
         P = M(math.radians(eta_a), [1, 0, 0])

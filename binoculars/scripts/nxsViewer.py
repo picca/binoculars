@@ -42,7 +42,8 @@ from reciprocal2D import D2Dview
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
 except AttributeError:
-    _fromUtf8 = lambda s: s
+    def _fromUtf8(s):
+        return s
 
 # import guidata
 # _app = guidata.qapplication()
@@ -680,15 +681,18 @@ class SelectMultiPointTool(InteractiveTool):
             if self.on_active_item:
                 # constraint_cb = filter.plot.on_active_curve
                 # constraint_cb = self.on_active_curve
-                constraint_cb = lambda x, y: self.on_active_curve(x, y, filter.plot)
+                def constraint_cb(x, y):
+                    return self.on_active_curve(x, y, filter.plot)
 
-                label_cb = lambda x, y: self.on_active_curve_label(x, y, filter.plot)
+                def label_cb(x, y):
+                    return self.on_active_curve_label(x, y, filter.plot)
                 """
                 label_cb = lambda x, y: title + \
                            filter.plot.get_coordinates_str(x, y)
                 """
             else:
-                label_cb = lambda x, y: "%sx = %g<br>y = %g" % (title, x, y)
+                def label_cb(x, y):
+                    return "%sx = %g<br>y = %g" % (title, x, y)
             self.marker = Marker(label_cb=label_cb, constraint_cb=constraint_cb)
             # print self.marker.xValue()   : 0
             self.set_marker_style(self.marker)
@@ -1084,7 +1088,7 @@ def make3Dmesh(
         values = hist[mask].flatten()
 
         ## Find indecies of finite values
-        index = np.where(mask == True)
+        index = np.where(mask is True)
 
         """
       x0,y0 = index[0],index[1]
@@ -1092,7 +1096,7 @@ def make3Dmesh(
       print x
       print y
       """
-        grid = np.where(mask0 == True)
+        grid = np.where(mask0 is True)
 
         ## Grid irregular points to regular grid using delaunay triangulation
         values = griddata(index, values, grid, method="linear").reshape(hist.shape)
@@ -1622,10 +1626,10 @@ class Ui_MainWindow(object):
 
         itemselected = self.plot.get_active_item(force=False)
 
-        if itemselected == None:
+        if itemselected is None:
             itemselected = self.lastitem
 
-        if itemselected == None:
+        if itemselected is None:
             pass
 
         elif ICurveItemType in itemselected.types():

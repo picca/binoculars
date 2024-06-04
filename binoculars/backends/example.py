@@ -1,9 +1,6 @@
-import sys
-import os
-import itertools
 import numpy
 
-from .. import backend, errors, util
+from .. import backend, util
 
 
 """
@@ -76,7 +73,6 @@ class Input(backend.InputBase):
         of the pixels and ai and omega are the in plane and out of plane angles of the incoming beam.
         """
         super(Input, self).process_job(job)  # call super to fix metadeta handling
-        scan = job.scan
 
         # reflects a scan with 100 datapoints
         aaf = numpy.linspace(0, numpy.random.random() * 20, 100)

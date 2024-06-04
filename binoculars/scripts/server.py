@@ -51,7 +51,7 @@ def parse_job(job):
     try:
         overrides = []
         for key in list(job.keys()):
-            if not key in ['command', 'configfilename']:
+            if key not in ['command', 'configfilename']:
                 section_key, value = job[key].split('=')
                 section, key = section_key.split(':')
                 overrides.append((section, key, value))
@@ -79,7 +79,7 @@ def process(run_event, ip, port, q):
                     configobj.dispatcher['port'] = port
                 binoculars.main.Main.from_object(configobj, [command])
                 print('Succesfully finished processing: {0}.'.format(command))
-            except Exception as exc:
+            except Exception:
                 errorfilename = 'error_{0}.txt'.format(command)
                 print('An error occured for scan {0}. For more information see {1}'.format(command, errorfilename))
                 with open(errorfilename, 'w') as fp:

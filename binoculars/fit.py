@@ -96,7 +96,7 @@ class FitBase(object):
 
 class PeakFitBase(FitBase):
     def __init__(self, space, guess=None, loc=None):
-        if loc != None:
+        if loc is not None:
             self.argmax = tuple(loc)
         else:
             self.argmax = None
@@ -107,7 +107,7 @@ class PeakFitBase(FitBase):
 
         background = self.cydata < (numpy.median(self.cydata) + maximum) / 2
 
-        if any(background == True):  # the fit will fail if background is flas for all
+        if any(background is True):  # the fit will fail if background is flas for all
             linparams = self._linfit(
                 list(grid[background] for grid in self.cxdata), self.cydata[background]
             )
@@ -125,7 +125,7 @@ class PeakFitBase(FitBase):
         )
         signal = self.cydata - simbackground
 
-        if self.argmax != None:
+        if self.argmax is not None:
             argmax = self.argmax
         else:
             argmax = tuple((signal * grid).sum() / signal.sum() for grid in self.cxdata)

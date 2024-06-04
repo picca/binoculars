@@ -254,7 +254,7 @@ class BM32Input(backend.InputBase):
             for pp, image in zip(pointparams, images):
                 yield self.process_image(scanparams, pp, image)
             util.statuseol()
-        except Exception as exc:
+        except Exception:
             # exc.args = errors.addmessage(exc.args, ', An error occured for scan {0} at point {1}. See above for more information'.format(self.dbg_scanno, self.dbg_pointno))
             raise
         self.metadata.add_section("id03_backend", self.metadict)
@@ -483,7 +483,7 @@ class EH1(BM32Input):
 
         # polarisation correction
         delta_grid, beta_grid = numpy.meshgrid(delta_range, beta_range)
-        Pver = (
+        (
             1
             - numpy.sin(delta_grid * numpy.pi / 180.0) ** 2
             * numpy.cos(beta_grid * numpy.pi / 180.0) ** 2
@@ -519,7 +519,7 @@ class EH1(BM32Input):
 
 
 def load_matrix(filename):
-    if filename == None:
+    if filename is None:
         return None
     if os.path.exists(filename):
         ext = os.path.splitext(filename)[-1]

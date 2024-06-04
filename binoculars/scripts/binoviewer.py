@@ -2307,9 +2307,9 @@ class FitTool(CommandTool):
     def __init__(
         self, manager, title=None, icon=None, tip=None, toolbar_id=DefaultToolbarID
     ):
-        if title == None:
+        if title is None:
             title = "Fit curve"
-        if icon == None:
+        if icon is None:
             icon = get_icon("curve.png")
         super(FitTool, self).__init__(manager, title, icon, toolbar_id=toolbar_id)
 
@@ -2322,9 +2322,9 @@ class RunTool(CommandTool):
     def __init__(
         self, manager, title=None, icon=None, tip=None, toolbar_id=DefaultToolbarID
     ):
-        if title == None:
+        if title is None:
             title = "Apply"
-        if icon == None:
+        if icon is None:
             icon = get_icon("apply.png")
         super(RunTool, self).__init__(manager, title, icon, toolbar_id=toolbar_id)
 

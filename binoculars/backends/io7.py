@@ -23,13 +23,11 @@
 """
 import sys
 import os
-import itertools
 import numpy
 import time
 import math
 import json
 
-from functools import reduce
 
 from scipy.misc import imread
 import scisoftpy as dnp
@@ -449,7 +447,7 @@ class EH1(IO7Input):
 
 
 def load_matrix(filename):
-    if filename == None:
+    if filename is None:
         return None
     if os.path.exists(filename):
         ext = os.path.splitext(filename)[-1]
