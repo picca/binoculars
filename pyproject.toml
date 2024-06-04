@@ -1,12 +1,14 @@
 [build-system]
 requires = [
-  "setuptools >= 40.9.0",
+  "setuptools>=64",
+  "setuptools_scm>=8"
 ]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "binoculars"
-version = "0.0.15"
+# version = "0.0.15"  # Remove any existing version parameter.
+dynamic = ["version"]
 authors = [
     {name = "Willem Onderwaater", email = "onderwaa@esrf.fr"},
     {name = "Frédéric-Emmanuel Picca", email = "picca@synchrotron-soleil.fr"},
@@ -63,4 +65,5 @@ binoculars-processgui="binoculars.scripts.process"
 
 [tool.setuptools.packages.find]
 include = ["binoculars*"]
-# exclude = ["tests"]  # empty by default
+
+[tool.setuptools_scm]
