@@ -100,16 +100,15 @@ class Axis(object):
                 raise IndexError("key out of range")
             return (self.imin + key) * self.res
         else:
-            raise IndexError("unknown key {0!r}".format(key))
+            raise IndexError(f"unknown key {key!r}")
 
     def _get_index_float(self, value: float) -> int:
         intvalue = int(round(value / self.res))
         if self.imin <= intvalue <= self.imax:
             return intvalue - self.imin
         raise ValueError(
-            "cannot get index: value {0} not in range [{1}, {2}]".format(
-                value, self.min, self.max
-            )
+            f"cannot get index: value {value}"
+            f" not in range [{self.min}, {self.max}]"
         )
 
     def get_index(self,
@@ -135,9 +134,9 @@ class Axis(object):
             if ((self.imin <= intvalue) & (intvalue <= self.imax)).all():
                 return intvalue - self.imin
             raise ValueError(
-                "cannot get indices, values from [{0}, {1}], axes range [{2}, {3}]".format(
-                    value.min(), value.max(), self.min, self.max
-                )
+                f"cannot get indices,"
+                f" values from [{value.min()}, {value.max()}],"
+                f" axes range [{self.min}, {self.max}]"
             )
 
     def __or__(self, other):  # union operation
@@ -188,9 +187,10 @@ class Axis(object):
         return self.imin % factor, -self.imax % factor, new
 
     def __repr__(self):
-        return "{0.__class__.__name__} {0.label} (min={0.min}, max={0.max}, res={0.res}, count={1})".format(
-            self, len(self)
-        )
+        return \
+            f"{self.__class__.__name__} {self.label}" \
+            f" (min={self.min}, max={self.max}," \
+            f" res={self.res}, count={len(self)})"
 
     def restrict_slice(self, value: slice) -> slice:
         # TODO rename into clip_slice
@@ -300,9 +300,9 @@ class Axes(object):
                     )
             except (KeyError, TypeError) as e:
                 raise errors.HDF5FileError(
-                    "unable to load axes definition from HDF5 file {0}, is it a valid BINoculars file? (original error: {1!r})".format(
-                        filename, e
-                    )
+                    f"unable to load axes definition"
+                    f" from HDF5 file {filename},"
+                    f" is it a valid BINoculars file? (original error: {e!r})"
                 )
 
     def tofile(self, filename):
@@ -343,9 +343,9 @@ class Axes(object):
             elif len(matches) == 1:
                 return matches[0]
             else:
-                raise ValueError("ambiguous axis label {0}".format(label))
+                raise ValueError(f"ambiguous axis label {label}")
         else:
-            raise ValueError("invalid axis identifier {0!r}".format(obj))
+            raise ValueError(f"invalid axis identifier {obj!r}")
 
     def __contains__(self, obj):
         if isinstance(obj, Axis):
@@ -356,7 +356,7 @@ class Axes(object):
             label = obj.lower()
             return any(axis.label.lower() == label for axis in self.axes)
         else:
-            raise ValueError("invalid axis identifier {0!r}".format(obj))
+            raise ValueError(f"invalid axis identifier {obj!r}")
 
     def __len__(self):
         return len(self.axes)
@@ -375,11 +375,11 @@ class Axes(object):
         return self.axes != other.axes
 
     def __repr__(self):
-        return "{0.__class__.__name__} ({0.dimension} dimensions, {0.npoints} points, {1}) {{\n    {2}\n}}".format(
-            self,
-            util.format_bytes(self.memory_size),
-            "\n    ".join(repr(ax) for ax in self.axes),
-        )
+        axes = "\n    ".join(repr(ax) for ax in self.axes)
+        return \
+            f"{self.__class__.__name__}" \
+            f" ({self.dimension} dimensions, {self.npoints} points," \
+            f" {util.format_bytes(self.memory_size)}) {{\n    {axes}\n}}"
 
     def restricted_key(self, key):
         if len(key) == 0:
@@ -420,7 +420,7 @@ class EmptySpace(object):
                 fp.attrs["type"] = "Empty"
 
     def __repr__(self):
-        return "{0.__class__.__name__}".format(self)
+        return f"{self.__class__.__name__}"
 
 
 class Space(object):
@@ -473,7 +473,7 @@ class Space(object):
         elif not conf:
             self._config = util.ConfigFile()
         else:
-            raise TypeError("'{0!r}' is not a util.ConfigFile".format(conf))
+            raise TypeError(f"'{conf!r}' is not a util.ConfigFile")
 
     @property
     def metadata(self):
@@ -487,7 +487,7 @@ class Space(object):
         elif not metadata:
             self._metadata = util.MetaData()
         else:
-            raise TypeError("'{0!r}' is not a util.MetaData".format(metadata))
+            raise TypeError(f"'{metadata!r}' is not a util.MetaData")
 
     def copy(self):
         """Returns a copy of self. Numpy data is not shared, but the Axes object is."""
@@ -501,11 +501,11 @@ class Space(object):
         return self.photons / self.contributions
 
     def __repr__(self):
-        return "{0.__class__.__name__} ({0.dimension} dimensions, {0.npoints} points, {1}) {{\n    {2}\n}}".format(
-            self,
-            util.format_bytes(self.memory_size),
-            "\n    ".join(repr(ax) for ax in self.axes),
-        )
+        axes = "\n    ".join(repr(ax) for ax in self.axes)
+        return \
+            f"{self.__class__.__name__} ({self.dimension} dimensions," \
+            f" {self.npoints} points, {util.format_bytes(self.memory_size)})" \
+            f" {{\n    {axes}\n}}"
 
     def __getitem__(self, key):
         """Slicing only! space[-0.2:0.2, 0.9:1.1] does exactly what the syntax implies.
@@ -832,9 +832,8 @@ class Space(object):
                 if key:
                     if len(axes) != len(key):
                         raise ValueError(
-                            "dimensionality of 'key' does not match dimensionality of Space in HDF5 file {0}".format(
-                                file
-                            )
+                            "dimensionality of 'key' does not match"
+                            f" dimensionality of Space in HDF5 file {file}"
                         )
                     key = tuple(ax.get_index(k) for k, ax in zip(key, axes))
                     for index, sl in enumerate(key):
@@ -851,16 +850,14 @@ class Space(object):
                     fp["contributions"].read_direct(space.contributions, key)
                 except (KeyError, TypeError) as e:
                     raise errors.HDF5FileError(
-                        "unable to load Space from HDF5 file {0}, is it a valid BINoculars file? (original error: {1!r})".format(
-                            file, e
-                        )
+                        f"unable to load Space from HDF5 file {file},"
+                        " is it a valid BINoculars file?"
+                        f" (original error: {e!r})"
                     )
 
         except IOError as e:
             raise errors.HDF5FileError(
-                "unable to open '{0}' as HDF5 file (original error: {1!r})".format(
-                    file, e
-                )
+                f"unable to open '{file}' as HDF5 file (original error: {e!r})"
             )
         return space
 
@@ -898,7 +895,7 @@ class Multiverse(object):
             with util.open_h5py(tmpname, "w") as fp:
                 fp.attrs["type"] = "Multiverse"
                 for index, sp in enumerate(self.spaces):
-                    spacegroup = fp.create_group("space_{0}".format(index))
+                    spacegroup = fp.create_group(f"space_{index}")
                     sp.tofile(spacegroup)
 
     @classmethod
@@ -915,13 +912,11 @@ class Multiverse(object):
                     raise TypeError("This is not a multiverse")
         except IOError as e:
             raise errors.HDF5FileError(
-                "unable to open '{0}' as HDF5 file (original error: {1!r})".format(
-                    file, e
-                )
+                f"unable to open '{file}' as HDF5 file (original error: {e!r})"
             )
 
     def __repr__(self):
-        return "{0.__class__.__name__}\n{1}".format(self, self.spaces)
+        return f"{self.__class__.__name__}\n{self.spaces}"
 
 
 class EmptyVerse(object):
@@ -1057,7 +1052,7 @@ def iterate_over_axis_keys(axes, axis, resolution=None):
 def get_bins(ax: Axis, resolution: float) -> ndarray:
     if float(resolution) < ax.res:
         raise ValueError(
-            "interval {0} to low, minimum interval is {1}".format(resolution, ax.res)
+            f"interval {resolution} to low, minimum interval is {ax.res}"
         )
 
     mi, ma = ax.min, ax.max
@@ -1074,7 +1069,7 @@ def dstack(spaces, dindices, dlabel, dresolution):
         labels = list(ax.label for ax in space.axes)
         labels.append(dlabel)
         exprs = list(ax.label for ax in space.axes)
-        exprs.append("ones_like({0}) * {1}".format(labels[0], dindex))
+        exprs.append(f"ones_like({labels[0]}) * {dindex}")
         transformation = util.transformation_from_expressions(space, exprs)
         return space.transform_coordinates(resolutions, labels, transformation)
 
@@ -1084,7 +1079,7 @@ def dstack(spaces, dindices, dlabel, dresolution):
 def axis_offset(space, label, offset):
     exprs = list(ax.label for ax in space.axes)
     index = space.axes.index(label)
-    exprs[index] += "+ {0}".format(offset)
+    exprs[index] += f"+ {offset}"
     transformation = util.transformation_from_expressions(space, exprs)
     return space.transform_coordinates(
         (ax.res for ax in space.axes), (ax.label for ax in space.axes), transformation
@@ -1124,8 +1119,7 @@ def make_compatible(spaces):
     )
     if not resmax == resmin:
         print(
-            "Warning: Not all spaces have the same resolution. Resolution will be changed to: {0}".format(
-                resmax
-            )
+            "Warning: Not all spaces have the same resolution."
+            f" Resolution will be changed to: {resmax}"
         )
     return tuple(space.reorder(ax0).rebin(resmax) for space in spaces)

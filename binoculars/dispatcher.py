@@ -87,7 +87,8 @@ class DispatcherBase(util.ConfigurableObject):
         # port of the running gui awaiting the spaces
         self.config.port = config.pop("port", None)
         # previewing the data, if true, also specify host and port
-        self.config.send_to_gui = util.parse_bool(config.pop("send_to_gui", "false"))
+        self.config.send_to_gui = util.parse_bool(config.pop("send_to_gui",
+                                                             "false"))
 
     # provides the possiblity to send the results to the gui over the network
     def send(self, verses):
@@ -102,24 +103,23 @@ class DispatcherBase(util.ConfigurableObject):
                         util.socket_send(
                             self.config.host,
                             int(self.config.port),
-                            util.serialize(sp, ",".join(self.main.config.command)),
-                        )  # noqa
+                            util.serialize(sp,
+                                           ",".join(self.main.config.command)),
+                        )
                 else:
                     for sp, label in zip(
                         M.spaces,
                         util.limit_to_filelabel(self.config.destination.limits),
-                    ):  # noqa
+                    ):
                         if isinstance(sp, space.Space):
                             util.socket_send(
                                 self.config.host,
                                 int(self.config.port),
                                 util.serialize(
                                     sp,
-                                    "{0}_{1}".format(
-                                        ",".join(self.main.config.command), label
-                                    ),
+                                    f"{','.join(self.main.config.command)}_{label}"
                                 ),
-                            )  # noqa
+                            )
                 yield M
         else:
             for M in verses:
@@ -155,9 +155,8 @@ class ReentrantBase(DispatcherBase):
         self.config.action = config.pop("action", "user").lower()
         if self.config.action not in self.actions:
             raise errors.ConfigError(
-                "action {0} not recognized for {1}".format(
-                    self.config.action, self.__class__.__name__
-                )
+                f"action {self.config.action}"
+                f" not recognized for {self.__class__.__name__}"
             )  # noqa
 
     def has_specific_task(self):
@@ -198,8 +197,8 @@ class Local(ReentrantBase):
     def run_specific_task(self, command):
         if command:
             raise errors.SubprocessError(
-                "invalid command, too many parameters: '{0}'".format(command)
-            )  # noqa
+                f"invalid command, too many parameters: '{command}'"
+            )
         if self.config.action == "job":
             result = self.main.process_job(self.config.job)
             self.config.destination.store(result)
@@ -225,7 +224,8 @@ class Oar(ReentrantBase):
         # Optional, current directory by default
         self.config.tmpdir = config.pop("tmpdir", os.getcwd())
         # optionally, tweak oarsub parameters
-        self.config.oarsub_options = config.pop("oarsub_options", "walltime=0:15")
+        self.config.oarsub_options = config.pop("oarsub_options",
+                                                "walltime=0:15")
         # optionally, override default location of python and/or
         # BINoculars installation
         self.config.executable = config.pop(
@@ -235,17 +235,18 @@ class Oar(ReentrantBase):
     def process_jobs(self, jobs):
         self.configfiles = []
         self.intermediates = []
-        clusters = util.cluster_jobs2(jobs, self.main.input.config.target_weight)
+        clusters = util.cluster_jobs2(jobs,
+                                      self.main.input.config.target_weight)
         for jobscluster in clusters:
             uniq = util.uniqid()
             jobconfig = os.path.join(
-                self.config.tmpdir, "binoculars-{0}-jobcfg.zpi".format(uniq)
+                self.config.tmpdir, f"binoculars-{uniq}-jobcfg.zpi"
             )
             self.configfiles.append(jobconfig)
 
             config = self.main.clone_config()
             interm = os.path.join(
-                self.config.tmpdir, "binoculars-{0}-jobout.hdf5".format(uniq)
+                self.config.tmpdir, f"binoculars-{uniq}-jobout.hdf5"
             )
             self.intermediates.append(interm)
             config.dispatcher.destination.set_tmp_filename(interm)
@@ -260,7 +261,7 @@ class Oar(ReentrantBase):
         # sums all other jobs
         uniq = util.uniqid()
         jobconfig = os.path.join(
-            self.config.tmpdir, "binoculars-{0}-jobcfg.zpi".format(uniq)
+            self.config.tmpdir, f"binoculars-{uniq}-jobcfg.zpi"
         )
         self.configfiles.append(jobconfig)
         config = self.main.clone_config()
@@ -310,20 +311,16 @@ class Oar(ReentrantBase):
         return retcode, output
 
     def oarsub(self, *args):
-        command = "{0} process {1}".format(
-            self.config.executable, " ".join(args)
-        )  # noqa
+        command = f"{self.config.executable} process {' '.join(args)}"
         ret, output = self.subprocess_run(
-            "oarsub", "-l {0}".format(self.config.oarsub_options), command
-        )  # noqa
+            "oarsub", f"-l {self.config.oarsub_options}", command
+        )
         if ret == 0:
             lines = output.split("\n")
             for line in lines:
                 if line.startswith("OAR_JOB_ID="):
                     void, jobid = line.split("=")
-                    util.status(
-                        "{0}: Launched job {1}".format(time.ctime(), jobid)
-                    )  # noqa
+                    util.status(f"{time.ctime()}: Launched job {jobid}")
                     return jobid.strip()
         return False
 
@@ -343,9 +340,7 @@ class Oar(ReentrantBase):
 
     def oarwait(self, jobs, remaining=0):
         if len(jobs) > remaining:
-            util.status(
-                "{0}: getting status of {1} jobs...".format(time.ctime(), len(jobs))
-            )  # noqa
+            util.status(f"{time.ctime()}: getting status of {len(jobs)} jobs.")
         else:
             return
 
@@ -371,10 +366,9 @@ class Oar(ReentrantBase):
                     i -= 1  # otherwise it skips a job
                 i += 1
             util.status(
-                "{0}: {1} jobs to go. {2} waiting, {3} running, {4} unknown.".format(
-                    time.ctime(), len(jobs), W, R, U
-                )
-            )  # noqa
+                f"{time.ctime()}: {len(jobs)} jobs to go."
+                f" {W} waiting, {R} running, {U} unknown."
+            )
         util.statuseol()
 
     def oar_cleanup(self, jobs):
@@ -383,12 +377,12 @@ class Oar(ReentrantBase):
             try:
                 os.remove(f)
             except Exception as e:
-                print("unable to remove {0}: {1}".format(f, e))
+                print(f"unable to remove {f}: {e}")
 
         errorfn = []
 
         for jobid in jobs:
-            errorfilename = "OAR.{0}.stderr".format(jobid)
+            errorfilename = f"OAR.{jobid}.stderr"
 
             if os.path.exists(errorfilename):
                 with open(errorfilename, "r") as fp:
@@ -396,14 +390,13 @@ class Oar(ReentrantBase):
                 if len(errormsg) > 0:
                     errorfn.append(errorfilename)
                     print(
-                        "Critical error: OAR Job {0} failed with the following error: \n{1}".format(
-                            jobid, errormsg
-                        )
-                    )  # noqa
+                        f"Critical error: OAR Job {jobid} failed"
+                        f" with the following error: \n{errormsg}"
+                    )
 
         if len(errorfn) > 0:
             print(
-                "Warning! {0} job(s) failed. See above for the details or the error log files: {1}".format(
-                    len(errorfn), ", ".join(errorfn)
-                )
-            )  # noqa
+                f"Warning! {len(errorfn)} job(s) failed."
+                f" See above for the details"
+                f" or the error log files: {', '.join(errorfn)}"
+            )

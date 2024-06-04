@@ -211,15 +211,14 @@ class EDFInput(backend.InputBase):
                 fpattern = pattern.format(scannr=nr)
             except Exception as e:
                 raise errors.ConfigError(
-                    "invalid 'imagefile' specification '{0}': {1}".format(
-                        self.config.imagefile, e
-                    )
+                    "invalid 'imagefile' specification "
+                    f"'{self.config.imagefile}': {e!r}"
                 )
 
             files = glob.glob(fpattern)
             if len(files) == 0:
                 raise errors.FileError(
-                    "needed file do not exist: scannr {0}".format(nr)
+                    f"needed file do not exist: scannr {nr}"
                 )
             else:
                 imgfiles += files
@@ -276,11 +275,8 @@ class EH2SCD(EDFInput):
             roi=roi,
         )
         print(
-            (
-                "{:>20} {:>9} {:>10} {:>9} {:>9} {:>9}".format(
-                    " ", "Mu", "Theta", "CCD_Y", "CCD_X", "CCD_Z"
-                )
-            )
+            f"{' ':>20} {'Mu':>9} {'Theta':>10}"
+            f" {'CCD_Y':>9} {'CCD_X':>9} {'CCD_Z':>9}"
         )
 
     def process_image(self, image):
@@ -310,11 +306,8 @@ class EH2SCD(EDFInput):
         # normalization
         data = image.data / mon / transm
         print(
-            (
-                "{:>20} {:9.4f} {:10.4f} {:9.1f} {:9.1f} {:9.1f}".format(
-                    os.path.split(image.filename)[-1], mu, th, cty, ctx, ctz
-                )
-            )
+            f"{os.path.split(image.filename)[-1]:>20}"
+            f" {mu:9.4f} {th:10.4f} {cty:9.1f} {ctx:9.1f} {ctz:9.1f}"
         )
 
         # masking
@@ -343,5 +336,5 @@ class EH2SCD(EDFInput):
     def _get_UB(header):
         ub = numpy.zeros(9)
         for i in range(9):
-            ub[i] = float(header["UB{:d}".format(i)])
+            ub[i] = float(header[f"UB{i:d}"])
         return ub

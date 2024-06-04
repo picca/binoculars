@@ -319,7 +319,7 @@ class ID03Input(backend.InputBase):
         if not len(scans):
             sys.stderr.write("error: no scans selected, nothing to do\n")
         for scanno in scans:
-            util.status("processing scan {0}...".format(scanno))
+            util.status(f"processing scan {scanno}...")
             if self.config.wait_for_data:
                 for job in self.get_delayed_jobs(scanno):
                     yield job
@@ -440,9 +440,8 @@ class ID03Input(backend.InputBase):
         except Exception as exc:
             exc.args = errors.addmessage(
                 exc.args,
-                ", An error occured for scan {0} at point {1}. See above for more information".format(
-                    self.dbg_scanno, self.dbg_pointno
-                ),
+                f", An error occured for scan {self.dbg_scanno}"
+                f" at point {self.dbg_pointno}. See above for more information"
             )
             raise
         self.metadata.add_section("id03_backend", self.metadict)
@@ -505,7 +504,7 @@ class ID03Input(backend.InputBase):
     # CONVENIENCE FUNCTIONS
     def get_scan(self, scannumber):
         spec = specfilewrapper.Specfile(self.config.specfile)
-        return spec.select("{0}.1".format(scannumber))
+        return spec.select(f"{scannumber}.1")
 
     def get_delayed_scan(self, scannumber, timeout=None):
         delay = util.loop_delayer(5)
@@ -519,7 +518,7 @@ class ID03Input(backend.InputBase):
                         "Scan timed out. There is no data to process"
                     )
                 else:
-                    util.status("waiting for scan {0}...".format(scannumber))
+                    util.status(f"waiting for scan {scannumber}...")
                     next(delay)
 
     def wait_for_points(self, scannumber, stop, timeout=None):
@@ -537,13 +536,13 @@ class ID03Input(backend.InputBase):
             finally:
                 next(delay)
 
-            util.status("waiting for scan {0}, point {1}...".format(scannumber, stop))
+            util.status(f"waiting for scan {scannumber}, point {stop}...")
             if (
                 timeout is not None and time.time() - start > timeout
             ) or self.is_aborted(scan):
                 try:
                     util.statusnl(
-                        "scan {0} aborted at point {1}".format(scannumber, scan.lines())
+                        f"scan {scannumber} aborted at point {scan.lines()}"
                     )
                     return True
                 except specfile.error:
@@ -655,7 +654,7 @@ class ID03Input(backend.InputBase):
         if self.config.background:
             if not os.path.exists(self.config.background):
                 raise errors.FileError(
-                    "could not find background file {0}".format(self.config.background)
+                    f"could not find background file {self.config.background}"
                 )
             if dry_run:
                 yield
@@ -682,9 +681,9 @@ class ID03Input(backend.InputBase):
                 matches = self.find_edfs(pattern, zapscanno)
                 if 0 not in matches:
                     raise errors.FileError(
-                        "could not find matching edf for zapscannumber {0} using pattern {1}".format(
-                            zapscanno, pattern
-                        )
+                        "could not find matching edf"
+                        f" for zapscannumber {zapscanno} using"
+                        f" pattern {pattern}"
                     )
                 if dry_run:
                     yield
@@ -707,9 +706,8 @@ class ID03Input(backend.InputBase):
                 matches = self.find_edfs(pattern, scan.number())
                 if set(range(first, last + 1)) > set(matches.keys()):
                     raise errors.FileError(
-                        "incorrect number of matches for scan {0} using pattern {1}".format(
-                            scan.number(), pattern
-                        )
+                        f"incorrect number of matches for scan {scan.number()}"
+                        f" using pattern {pattern}"
                     )
                 if dry_run:
                     yield
@@ -726,24 +724,24 @@ class ID03Input(backend.InputBase):
                 imagefolder = imagefolder.format(UCCD=UCCD, rUCCD=list(reversed(UCCD)))
             except Exception as e:
                 raise errors.ConfigError(
-                    "invalid 'imagefolder' specification '{0}': {1}".format(
-                        self.config.imagefolder, e
-                    )
+                    "invalid 'imagefolder' specification"
+                    f" '{self.config.imagefolder}': {e!r}"
                 )
             else:
                 if not os.path.exists(imagefolder):
                     raise errors.ConfigError(
-                        "invalid 'imagefolder' specification '{0}'. Path {1} does not exist".format(
-                            self.config.imagefolder, imagefolder
-                        )
+                        "invalid 'imagefolder' specification"
+                        f" '{self.config.imagefolder}'."
+                        f" Path {imagefolder} does not exist"
                     )
         else:
             imagefolder = os.path.join(*UCCD)
             if not os.path.exists(imagefolder):
                 raise errors.ConfigError(
-                    "invalid UCCD tag '{0}'. The UCCD tag in the specfile does not point to an existing folder. Specify the imagefolder in the configuration file.".format(
-                        imagefolder
-                    )
+                    f"invalid UCCD tag '{imagefolder}'."
+                    " The UCCD tag in the specfile does not point"
+                    " to an existing folder. Specify the imagefolder"
+                    " in the configuration file."
                 )
         return os.path.join(imagefolder, "*")
 
@@ -785,15 +783,15 @@ class EH1(ID03Input):
 
         if mon == 0:
             raise errors.BackendError(
-                "Monitor is zero, this results in empty output. Scannumber = {0}, pointnumber = {1}. Did you forget to open the shutter?".format(
-                    self.dbg_scanno, self.dbg_pointno
-                )
+                "Monitor is zero, this results in empty output."
+                f" Scannumber = {self.dbg_scanno},"
+                f" pointnumber = {self.dbg_pointno}."
+                " Did you forget to open the shutter?"
             )
 
         util.status(
-            "{4}| gamma: {0}, delta: {1}, theta: {2}, mu: {3}".format(
-                gamma, delta, theta, mu, time.ctime(time.time())
-            )
+            f"{time.ctime(time.time())}| gamma: {gamma}, delta: {delta},"
+            f" theta: {theta}, mu: {mu}"
         )
 
         # pixels to angles
@@ -849,9 +847,10 @@ class EH1(ID03Input):
             params[:, HRY] = scan.motorpos("hry")
         except Exception:
             raise errors.BackendError(
-                "The specfile does not accept hrx and hry as a motor label. Have you selected the right hutch? Scannumber = {0}, pointnumber = {1}".format(
-                    self.dbg_scanno, self.dbg_pointno
-                )
+                "The specfile does not accept hrx and hry as a motor label."
+                " Have you selected the right hutch?"
+                f" Scannumber = { self.dbg_scanno},"
+                f" pointnumber = {self.dbg_pointno}"
             )
 
         if self.is_zap(scan):
@@ -891,9 +890,10 @@ class EH1(ID03Input):
                 ]  # differs in EH1/EH2
             except Exception:
                 raise errors.BackendError(
-                    "The specfile does not accept {2} as a monitor label. Have you selected the right hutch? Scannumber = {0}, pointnumber = {1}".format(
-                        self.dbg_scanno, self.dbg_pointno, self.monitor_counter
-                    )
+                    f"The specfile does not accept {self.monitor_counter}"
+                    " as a monitor label. Have you selected the right hutch?"
+                    f" Scannumber = {self.dbg_scanno},"
+                    f" pointnumber = {self.dbg_pointno}"
                 )
 
             params[:, TRANSM] = scan.datacol("transm")[sl]
@@ -929,15 +929,15 @@ class EH2(ID03Input):
 
         if mon == 0:
             raise errors.BackendError(
-                "Monitor is zero, this results in empty output. Scannumber = {0}, pointnumber = {1}. Did you forget to open the shutter?".format(
-                    self.dbg_scanno, self.dbg_pointno
-                )
+                "Monitor is zero, this results in empty output."
+                f" Scannumber = {self.dbg_scanno},"
+                f" pointnumber = {self.dbg_pointno}."
+                " Did you forget to open the shutter?"
             )
 
         util.status(
-            "{4}| gamma: {0}, delta: {1}, theta: {2}, mu: {3}".format(
-                gamma, delta, theta, mu, time.ctime(time.time())
-            )
+            f"{time.ctime(time.time())}| gamma: {gamma}, delta: {delta},"
+            f" theta: {theta}, mu: {mu}"
         )
 
         # area correction
@@ -1036,9 +1036,11 @@ class EH2(ID03Input):
                 ]  # differs in EH1/EH2
             except Exception:
                 raise errors.BackendError(
-                    "The specfile does not accept {2} as a monitor label. Have you selected the right hutch? Scannumber = {0}, pointnumber = {1}".format(
-                        self.dbg_scanno, self.dbg_pointno, self.monitor_counter
-                    )
+                    "The specfile does not accept"
+                    f" {self.monitor_counter} as a monitor label."
+                    " Have you selected the right hutch?"
+                    f" Scannumber = {self.dbg_scanno},"
+                    f" pointnumber = {self.dbg_pointno}"
                 )
 
             params[:, TRANSM] = scan.datacol("transm")[sl]
@@ -1063,15 +1065,15 @@ class GisaxsDetector(ID03Input):
 
         if mon == 0:
             raise errors.BackendError(
-                "Monitor is zero, this results in empty output. Scannumber = {0}, pointnumber = {1}. Did you forget to open the shutter?".format(
-                    self.dbg_scanno, self.dbg_pointno
-                )
+                "Monitor is zero, this results in empty output."
+                f" Scannumber = {self.dbg_scanno},"
+                f" pointnumber = {self.dbg_pointno}."
+                " Did you forget to open the shutter?"
             )
 
         util.status(
-            "{4}| ccdy: {0}, ccdz: {1}, theta: {2}, mu: {3}".format(
-                ccdy, ccdz, theta, mu, time.ctime(time.time())
-            )
+            f"{time.ctime(time.time())}| ccdy: {ccdy}, ccdz: {ccdz},"
+            f" theta: {theta}, mu: {mu}"
         )
 
         # pixels to angles
@@ -1142,9 +1144,11 @@ class GisaxsDetector(ID03Input):
             ]  # differs in EH1/EH2
         except Exception:
             raise errors.BackendError(
-                "The specfile does not accept {2} as a monitor label. Have you selected the right hutch? Scannumber = {0}, pointnumber = {1}".format(
-                    self.dbg_scanno, self.dbg_pointno, self.monitor_counter
-                )
+                "The specfile does not accept"
+                f" {self.monitor_counter} as a monitor label."
+                " Have you selected the right hutch?"
+                f" Scannumber = {self.dbg_scanno},"
+                f" pointnumber = {self.dbg_pointno}"
             )
 
         params[:, TRANSM] = scan.datacol("transm")[sl]
@@ -1179,9 +1183,9 @@ def load_matrix(filename):
             return numpy.array(EdfFile.EdfFile(filename).getData(0), dtype=numpy.bool_)
         else:
             raise ValueError(
-                "unknown extension {0}, unable to load matrix!\n".format(ext)
+                f"unknown extension {ext}, unable to load matrix!\n"
             )
     else:
         raise IOError(
-            "filename: {0} does not exist. Can not load matrix".format(filename)
+            "filename: {filename} does not exist. Can not load matrix"
         )

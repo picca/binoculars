@@ -16,18 +16,20 @@ class ProjectionBase(util.ConfigurableObject):
             for lim in self.config.limits:
                 if len(lim) != len(labels):
                     raise errors.ConfigError(
-                        "dimension mismatch between projection axes ({0}) and limits specification ({1}) in {2}".format(  # noqa
-                            labels, self.config.limits, self.__class__.__name__
-                        )
-                    )  # noqa
+                        f"dimension mismatch between projection"
+                        f" axes ({labels})"
+                        f" and limits specification"
+                        f" ({self.config.limits}) in {self.__class__.__name__}"
+                    )
         if "," in res:
             self.config.resolution = util.parse_tuple(res, type=float)
             if not len(labels) == len(self.config.resolution):
                 raise errors.ConfigError(
-                    "dimension mismatch between projection axes ({0}) and resolution specification ({1}) in {2}".format(  # noqa
-                        labels, self.config.resolution, self.__class__.__name__
-                    )
-                )  # noqa
+                    f"dimension mismatch between projection"
+                    f" axes ({labels})"
+                    f" and resolution specification"
+                    f" ({self.config.resolution}) in {self.__class__.__name__}"
+                )
         else:
             self.config.resolution = tuple([float(res)] * len(labels))
 
@@ -80,7 +82,8 @@ args_to_be_sent_to_a_Projection_instance)
 
 def get_dispatcher(config, main, default=None):
     return _get_backend(
-        config, "dispatcher", dispatcher.DispatcherBase, default=default, args=[main]
+        config, "dispatcher", dispatcher.DispatcherBase, default=default,
+        args=[main]
     )
 
 
@@ -99,7 +102,7 @@ def _get_backend(config, section, basecls, default=None, args=[], kwargs={}):
     type = config.pop("type", default)
     if type is None:
         raise errors.ConfigError(
-            "required option 'type' not given in section '{0}'".format(section)  # noqa
+            f"required option 'type' not given in section '{section}'"
         )
     type = type.strip()
 
@@ -108,15 +111,15 @@ def _get_backend(config, section, basecls, default=None, args=[], kwargs={}):
             modname, clsname = type.split(":")
         except ValueError:
             raise errors.ConfigError(
-                "invalid type '{0}' in section '{1}'".format(type, section)
+                f"invalid type '{type}' in section '{section}'"
             )
         try:
             backend = __import__(
-                "backends.{0}".format(modname), globals(), locals(), [], 1
+                f"backends.{modname}", globals(), locals(), [], 1
             )
         except ImportError as e:
             raise errors.ConfigError(
-                "unable to import module backends.{0}: {1}".format(modname, e)  # noqa
+                f"unable to import module backends.{modname}: {e}"
             )
         module = getattr(backend, modname)
     elif section == "dispatcher":
@@ -124,7 +127,7 @@ def _get_backend(config, section, basecls, default=None, args=[], kwargs={}):
         clsname = type
     else:
         raise errors.ConfigError(
-            "invalid type '{0}' in section '{1}'".format(type, section)
+            f"invalid type '{type}' in section '{section}'"
         )
 
     clsname = clsname.lower()
@@ -136,11 +139,11 @@ def _get_backend(config, section, basecls, default=None, args=[], kwargs={}):
             return cls(config, *args, **kwargs)
         else:
             raise errors.ConfigError(
-                "type '{0}' not compatible in section '{1}': expected class derived from '{2}', got '{3}'".format(  # noqa
-                    type, section, basecls.__name__, cls.__name__
-                )
-            )  # noqa
+                f"type '{type}' not compatible in section '{section}':"
+                f" expected class derived from '{basecls.__name__}',"
+                f" got '{cls.__name__}'"
+            )
     else:
         raise errors.ConfigError(
-            "invalid type '{0}' in section '{1}'".format(type, section)
-        )  # noqa
+            f"invalid type '{type}' in section '{section}'"
+        )

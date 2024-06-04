@@ -26,10 +26,9 @@ def parse_commandline_config_option(s):
         section, option = key.split(":")
     except ValueError:
         raise argparse.ArgumentTypeError(
-            "configuration specification '{0}' not in the form section:option=value".format(
-                s
-            )
-        )  # noqa
+            f"configuration specification '{s}'"
+            f" not in the form section:option=value"
+        )
     return section, option, value
 
 
@@ -82,9 +81,7 @@ class Main(object):
                 args.configfile, 10
             ):  # noqa
                 raise errors.FileError(
-                    "configuration file '{0}' does not exist".format(  # noqa
-                        args.configfile
-                    )
+                    f"configuration file '{args.configfile}' does not exist"
                 )
         configobj = False
         with open(args.configfile, "rb") as fp:

@@ -122,7 +122,7 @@ def argparse_common_arguments(parser, *args):
 
         # ERROR!
         else:
-            raise ValueError("unsupported argument '{0}'".format(arg))
+            raise ValueError(f"unsupported argument '{arg}'")
 
 
 def parse_transform_args(transform):
@@ -152,12 +152,10 @@ def handle_ordered_operations(space, args, auto3to2=False):
                     stop = space.axes[axindex].max
                 key = slice(start, stop)
 
-                info.append(
-                    "sliced in {0} from {1} to {2}".format(axlabel, start, stop)
-                )
+                info.append(f"sliced in {axlabel} from {start} to {stop}")
             else:
                 key = float(key.replace("m", "-"))
-                info.append("sliced in {0} at {1}".format(axlabel, key))
+                info.append(f"sliced in {axlabel} at {key}")
             space = space.slice(axindex, key)
 
             if command == "pslice":
@@ -167,26 +165,21 @@ def handle_ordered_operations(space, args, auto3to2=False):
                     pass
                 else:
                     info.append(
-                        "projected on {0}".format(space.axes[projectaxis].label)
+                        f"projected on {space.axes[projectaxis].label}."
                     )
                     space = space.project(projectaxis)
 
         elif command == "project":
             projectaxis = space.axes.index(opts)
-            info.append("projected on {0}".format(space.axes[projectaxis].label))
+            info.append(f"projected on {space.axes[projectaxis].label}")
             space = space.project(projectaxis)
 
         elif command == "transform":
             labels, resolutions, exprs = list(zip(*parse_transform_args(opts)))
             transformation = transformation_from_expressions(space, exprs)
-            info.append(
-                "transformed to {0}".format(
-                    ", ".join(
-                        "{0} = {1}".format(label, expr)
-                        for (label, expr) in zip(labels, exprs)
-                    )
-                )
-            )
+            expression = ", ".join(f"{label} = {expr}"
+                                   for (label, expr) in zip(labels, exprs))
+            info.append(f"transformed to {expression}")
             space = space.transform_coordinates(resolutions, labels, transformation)
 
         elif command == "rebin":
@@ -197,11 +190,11 @@ def handle_ordered_operations(space, args, auto3to2=False):
             space = space.rebin(factors)
 
         else:
-            raise ValueError("unsported Ordered Operation '{0}'".format(command))
+            raise ValueError(f"unsported Ordered Operation '{command}'")
 
     if auto3to2 and space.dimension == 3:  # automatic projection on smallest axis
         projectaxis = numpy.argmin(space.photons.shape)
-        info.append("projected on {0}".format(space.axes[projectaxis].label))
+        info.append(f"projected on {space.axes[projectaxis].label}")
         space = space.project(projectaxis)
 
     return space, info
@@ -217,7 +210,7 @@ def status(line, eol=False):
     Set eol to True to append a newline to the end of the line"""
 
     global _status_line_length
-    sys.stdout.write("\r{0}\r{1}".format(" " * _status_line_length, line))
+    sys.stdout.write(f"\r{' ' * _status_line_length}\r{line}")
     if eol:
         sys.stdout.write("\n")
         _status_line_length = 0
@@ -288,14 +281,14 @@ def get_base(modname, base):
     from inspect import isclass
 
     if modname not in get_backends():
-        raise KeyError("{0} is not an available backend".format(modname))
+        raise KeyError(f"{modname} is not an available backend")
     try:
         backends = __import__(
-            "backends.{0}".format(modname), globals(), locals(), [], 1
+            f"backends.{modname}", globals(), locals(), [], 1
         )
     except ImportError as e:
         raise ImportError(
-            "Unable to import module backends.{0}: {1}".format(modname, e)
+            f"Unable to import module backends.{modname}: {e!r}"
         )
 
     backend = getattr(backends, modname)
@@ -329,7 +322,7 @@ def get_input_configkeys(modname, classname):
 
 
 def get_backend_configkeys(modname, classname):
-    backends = __import__("backends.{0}".format(modname), globals(), locals(), [], 1)
+    backends = __import__(f"backends.{modname}", globals(), locals(), [], 1)
     backend = getattr(backends, modname)
     cls = getattr(backend, classname)
     return get_configkeys(cls)
@@ -403,7 +396,7 @@ def parse_tuple(s, length=None, type=str):
     t = tuple(type(i) for i in s.split(","))
     if length is not None and len(t) != length:
         raise ValueError(
-            "invalid tuple length: expected {0} got {1}".format(length, len(t))
+            f"invalid tuple length: expected {length} got {len(t)}"
         )
     return t
 
@@ -414,7 +407,7 @@ def parse_bool(s):
         return True
     elif l in ("0", "false", "no", "off"):
         return False
-    raise ValueError("invalid input for boolean: '{0}'".format(s))
+    raise ValueError(f"invalid input for boolean: '{s}'")
 
 
 def parse_pairs(s):
@@ -434,7 +427,7 @@ def parse_pairs(s):
             else:
                 if float(ma) < float(mi):
                     raise ValueError(
-                        "invalid input. maximum is larger than minimum: '{0}'".format(s)
+                        f"invalid input. maximum is larger than minimum: '{s}'"
                     )
                 else:
                     parsed.append(slice(float(mi), float(ma)))
@@ -455,7 +448,7 @@ def parse_dict(config, option, default=None) -> dict:
 
 def limit_to_filelabel(s):
     return tuple(
-        "[{0}]".format(lim.replace("-", "m").replace(":", "-").replace(" ", ""))
+        f"[{lim.replace('-', 'm').replace(':', '-').replace(' ', '')}]"
         for lim in re.findall("\[(.*?)\]", s)
     )
 
@@ -478,12 +471,12 @@ class MetaBase(object):
             setattr(self, label, dict())
 
     def __repr__(self):
-        str = "{0.__class__.__name__}{{\n".format(self)
+        str = f"{self.__class__.__name__}{{\n"
         for section in self.sections:
-            str += "  [{}]\n".format(section)
+            str += f"  [{section}]\n"
             s = getattr(self, section)
             for entry in s:
-                str += "    {} = {}\n".format(entry, s[entry])
+                str += f"    {entry} = {s[entry]}\n"
         str += "}\n"
         return str
 
@@ -558,9 +551,8 @@ class MetaData(object):  # a collection of metadata objects
         if isinstance(filename, str):
             if not os.path.exists(filename):
                 raise IOError(
-                    "Error importing configuration file. filename {0} does not exist".format(
-                        filename
-                    )
+                    "Error importing configuration file."
+                    f" filename {filename} does not exist"
                 )
 
         metadataobj = cls()
@@ -593,7 +585,7 @@ class MetaData(object):  # a collection of metadata objects
                         sectiongroup.create_dataset(key, data=s[key])
 
     def __repr__(self):
-        str = "{0.__class__.__name__}{{\n".format(self)
+        str = f"{self.__class__.__name__}{{\n"
         for meta in self.metas:
             for line in meta.__repr__().split("\n"):
                 str += "    " + line + "\n"
@@ -628,9 +620,8 @@ class ConfigFile(MetaBase):
         if isinstance(filename, str):
             if not os.path.exists(filename):
                 raise IOError(
-                    "Error importing configuration file. filename {0} does not exist".format(
-                        filename
-                    )
+                    "Error importing configuration file."
+                    f" filename {filename} does not exist"
                 )
 
         configobj = cls(str(filename))
@@ -659,9 +650,8 @@ class ConfigFile(MetaBase):
     def fromtxtfile(cls, filename, command=[], overrides=[]):
         if not os.path.exists(filename):
             raise IOError(
-                "Error importing configuration file. filename {0} does not exist".format(
-                    filename
-                )
+                "Error importing configuration file."
+                f" filename {filename} does not exist"
             )
 
         config = configparser.RawConfigParser()
@@ -692,17 +682,17 @@ class ConfigFile(MetaBase):
 
     def totxtfile(self, filename):
         with open(filename, "w") as fp:
-            fp.write("# Configurations origin: {}\n".format(self.origin))
+            fp.write(f"# Configurations origin: {self.origin}\n")
             for section in self.sections:
-                fp.write("[{}]\n".format(section))
+                fp.write(f"[{section}]\n")
                 s = getattr(self, section)
                 for entry in s:
-                    fp.write("{} = {}\n".format(entry, s[entry]))
+                    fp.write(f"{entry} = {s[entry]}\n")
 
     def __repr__(self):
         str = super(ConfigFile, self).__repr__()
-        str += "origin = {0}\n".format(self.origin)
-        str += "command = {0}".format(",".join(self.command))
+        str += f"origin = {self.origin}\n"
+        str += f"command = {','.join(self.command)}"
         return str
 
 
@@ -735,7 +725,7 @@ class ConfigurableObject(object):
             self.config = config
         elif not isinstance(config, dict):
             raise ValueError(
-                "expecting dict or Configsection, not: {0}".format(type(config))
+                f"expecting dict or Configsection, not: {type(config)}"
             )
         else:
             self.config = ConfigSection()
@@ -744,9 +734,9 @@ class ConfigurableObject(object):
                 self.parse_config(config)
             except KeyError as exc:
                 raise errors.ConfigError(
-                    "Configuration option {0} is missing from the configuration file. Please specify this option in the configuration file".format(
-                        exc
-                    )
+                    f"Configuration option {exc} is missing"
+                    " from the configuration file."
+                    " Please specify this option in the configuration file"
                 )
             except Exception as exc:
                 missing = set(
@@ -756,16 +746,16 @@ class ConfigurableObject(object):
                 ) - set(config.keys())
                 exc.args = errors.addmessage(
                     exc.args,
-                    ". Unable to parse configuration option '{0}'. The error can quite likely be solved by modifying the option in the configuration file.".format(
-                        ",".join(missing)
-                    ),
+                    ". Unable to parse configuration option"
+                    f" '{','.join(missing)}'."
+                    " The error can quite likely be solved by modifying"
+                    " the option in the configuration file."
                 )
                 raise
             for k in config:
                 print(
-                    "warning: unrecognized configuration option {0} for {1}".format(
-                        k, self.__class__.__name__
-                    )
+                    f"warning: unrecognized configuration option {k}"
+                    f" for {self.__class__.__name__}"
                 )
             self.config.class_ = self.__class__
 
@@ -786,7 +776,7 @@ def best_effort_atomic_rename(src, dest):
 def filename_enumerator(filename, start=0):
     base, ext = os.path.splitext(filename)
     for count in itertools.count(start):
-        yield "{0}_{2}{1}".format(base, ext, count)
+        yield f"{base}_{ext}{count}"
 
 
 def find_unused_filename(filename):
@@ -799,7 +789,7 @@ def find_unused_filename(filename):
 
 def label_enumerator(label, start=0):
     for count in itertools.count(start):
-        yield "{0}_{1}".format(label, count)
+        yield f"{label}_{count}"
 
 
 def find_unused_label(label, labellist):
@@ -843,7 +833,7 @@ def wait_for_file(file, timeout=None):
 def space_to_edf(space, filename):
     header = {}
     for a in space.axes:
-        header[str(a.label)] = "{0} {1} {2}".format(a.min, a.max, a.res)
+        header[str(a.label)] = f"{a.min} {a.max} {a.res}"
     edf = EdfFile.EdfFile(filename)
     edf.WriteImage(header, space.get_masked().filled(0), DataType="Float")
 
@@ -879,7 +869,7 @@ def open_h5py(fn, mode):
 
 
 def uniqid():
-    return "{0:08x}".format(random.randint(0, 2 ** 32 - 1))
+    return f"{random.randint(0, 2 ** 32 - 1):08x}"
 
 
 def grouper(iterable, n):
@@ -975,7 +965,7 @@ def transformation_from_expressions(space, exprs):
 def format_bytes(bytes):
     units = "kB", "MB", "GB", "TB"
     exp = min(max(int(numpy.log(bytes) / numpy.log(1024.0)), 1), 4)
-    return "{0:.1f} {1}".format(bytes / 1024 ** exp, units[exp - 1])
+    return f"{bytes / 1024 ** exp:.1f} {units[exp - 1]}"
 
 
 ### GZIP PICKLING (zpi)
@@ -1027,7 +1017,7 @@ def atomic_write(filename):
     if isinstance(filename, h5py._hl.group.Group):
         yield filename
     else:
-        tmpfile = "{0}-{1}.tmp".format(os.path.splitext(filename)[0], uniqid())
+        tmpfile = f"{os.path.splitext(filename)[0]}-{uniqid()}.tmp"
         try:
             yield tmpfile
         except:
@@ -1145,9 +1135,8 @@ def socket_recieve(RequestHandler):  # pass one the handler to deal with incomin
             msg.write(p)
         if msg.len != length:
             raise errors.CommunicationError(
-                "recieved message is too short. expected length {0}, recieved length {1}".format(
-                    length, msg.len
-                )
+                f"recieved message is too short. expected length {length},"
+                f" recieved length {msg.len}"
             )
         msg.seek(0)
         return msg

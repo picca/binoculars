@@ -212,7 +212,7 @@ class BM32Input(backend.InputBase):
         if not len(scans):
             sys.stderr.write("error: no scans selected, nothing to do\n")
         for scanno in scans:
-            util.status("processing scan {0}...".format(scanno))
+            util.status(f"processing scan {scanno}...")
             scan = self.get_scan(scanno)
             if self.config.pr:
                 pointcount = self.config.pr[1] - self.config.pr[0] + 1
@@ -255,7 +255,6 @@ class BM32Input(backend.InputBase):
                 yield self.process_image(scanparams, pp, image)
             util.statuseol()
         except Exception:
-            # exc.args = errors.addmessage(exc.args, ', An error occured for scan {0} at point {1}. See above for more information'.format(self.dbg_scanno, self.dbg_pointno))
             raise
         self.metadata.add_section("id03_backend", self.metadict)
 
@@ -308,7 +307,7 @@ class BM32Input(backend.InputBase):
     def get_scan(self, scannumber):
         if self._spec is None:
             self._spec = specfilewrapper.Specfile(self.config.specfile)
-        return self._spec.select("{0}.1".format(scannumber))
+        return self._spec.select(f"{scannumber}.1")
 
     def find_edfs(self, pattern):
         files = glob.glob(pattern)
@@ -346,7 +345,7 @@ class BM32Input(backend.InputBase):
         if self.config.background:
             if not os.path.exists(self.config.background):
                 raise errors.FileError(
-                    "could not find background file {0}".format(self.config.background)
+                    f"could not find background file {self.config.background}"
                 )
             if dry_run:
                 yield
@@ -368,9 +367,8 @@ class BM32Input(backend.InputBase):
             matches = self.find_edfs(pattern)
             if not set(imagenos).issubset(set(matches.keys())):
                 raise errors.FileError(
-                    "incorrect number of matches for scan {0} using pattern {1}".format(
-                        scan.number(), pattern
-                    )
+                    f"incorrect number of matches for scan {scan.number()}"
+                    f" using pattern {pattern}"
                 )
             if dry_run:
                 yield
@@ -387,24 +385,24 @@ class BM32Input(backend.InputBase):
                 imagefolder = imagefolder.format(UCCD=UCCD, rUCCD=list(reversed(UCCD)))
             except Exception as e:
                 raise errors.ConfigError(
-                    "invalid 'imagefolder' specification '{0}': {1}".format(
-                        self.config.imagefolder, e
-                    )
+                    "invalid 'imagefolder' specification "
+                    f"'{self.config.imagefolder}': {e!r}"
                 )
             else:
                 if not os.path.exists(imagefolder):
                     raise errors.ConfigError(
-                        "invalid 'imagefolder' specification '{0}'. Path {1} does not exist".format(
-                            self.config.imagefolder, imagefolder
-                        )
+                        "invalid 'imagefolder' specification"
+                        f" '{self.config.imagefolder}'."
+                        f" Path {imagefolder} does not exist"
                     )
         else:
             imagefolder = os.path.join(*UCCD)
             if not os.path.exists(imagefolder):
                 raise errors.ConfigError(
-                    "invalid UCCD tag '{0}'. The UCCD tag in the specfile does not point to an existing folder. Specify the imagefolder in the configuration file.".format(
-                        imagefolder
-                    )
+                    f"invalid UCCD tag '{imagefolder}'."
+                    " The UCCD tag in the specfile does not point"
+                    " to an existing folder. Specify the imagefolder"
+                    " in the configuration file."
                 )
         return os.path.join(imagefolder, "*")
 
@@ -438,15 +436,15 @@ class EH1(BM32Input):
 
         if mon == 0:
             raise errors.BackendError(
-                "Monitor is zero, this results in empty output. Scannumber = {0}, pointnumber = {1}. Did you forget to open the shutter?".format(
-                    self.dbg_scanno, self.dbg_pointno
-                )
+                "Monitor is zero, this results in empty output."
+                f" Scannumber = {self.dbg_scanno},"
+                f" pointnumber = {self.dbg_pointno}."
+                " Did you forget to open the shutter?"
             )
 
         util.status(
-            "{4}| beta: {0:.3f}, delta: {1:.3f}, omega: {2:.3f}, alfa: {3:.3f}".format(
-                beta, delta, omega, alfa, time.ctime(time.time())
-            )
+            f"{time.ctime(time.time())}| beta: {beta:.3f}, delta:"
+            f" {delta:.3f}, omega: {omega:.3f}, alfa: {alfa:.3f}"
         )
 
         # pixels to angles
@@ -531,9 +529,9 @@ def load_matrix(filename):
             return numpy.array(EdfFile.EdfFile(filename).getData(0), dtype=numpy.bool_)
         else:
             raise ValueError(
-                "unknown extension {0}, unable to load matrix!\n".format(ext)
+                f"unknown extension {ext}, unable to load matrix!\n"
             )
     else:
         raise IOError(
-            "filename: {0} does not exist. Can not load matrix".format(filename)
+            f"filename: {filename} does not exist. Can not load matrix"
         )

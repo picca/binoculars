@@ -59,7 +59,7 @@ def load(filename, key=None):
     if os.path.exists(filename):
         return binoculars.space.Space.fromfile(filename, key=key)
     else:
-        raise IOError("File '{0}' does not exist".format(filename))
+        raise IOError(f"File '{filename}' does not exist")
 
 
 def save(filename, space):
@@ -94,7 +94,7 @@ def save(filename, space):
         else:
             space.tofile(filename)
     else:
-        raise TypeError("'{0!r}' is not a binoculars space".format(space))
+        raise TypeError(f"'{space!r}' is not a binoculars space")
 
 
 def plotspace(
@@ -203,7 +203,7 @@ def plotspace(
                 **plotopts
             )
     else:
-        raise TypeError("'{0!r}' is not a binoculars space".format(space))
+        raise TypeError(f"'{space!r}' is not a binoculars space")
 
 
 def transform(space, labels, resolutions, exprs):
@@ -242,10 +242,12 @@ def transform(space, labels, resolutions, exprs):
     import binoculars.space
 
     if isinstance(space, binoculars.space.Space):
-        transformation = binoculars.util.transformation_from_expressions(space, exprs)
-        newspace = space.transform_coordinates(resolutions, labels, transformation)
+        transformation = \
+            binoculars.util.transformation_from_expressions(space, exprs)
+        newspace = \
+            space.transform_coordinates(resolutions, labels, transformation)
     else:
-        raise TypeError("'{0!r}' is not a binoculars space".format(space))
+        raise TypeError(f"'{space!r}' is not a binoculars space")
     return newspace
 
 
@@ -283,7 +285,7 @@ def fitspace(space, function, guess=None):
         fitclass = binoculars.fit.get_class_by_name(function)
         return fitclass(space, guess)
     else:
-        raise TypeError("'{0!r}' is not a binoculars space".format(space))
+        raise TypeError(f"'{space!r}' is not a binoculars space")
 
 
 def info(filename):
@@ -326,23 +328,23 @@ def info(filename):
 
     ret = ""
     if isinstance(filename, binoculars.space.Space):
-        ret += "{!r}\n{!r}".format(filename, filename.config)
+        ret += f"{filename!r}\n{filename.config!r}"
     elif isinstance(filename, str):
         if os.path.exists(filename):
             try:
                 axes = binoculars.space.Axes.fromfile(filename)
             except Exception as e:
                 raise IOError(
-                    "{0}: unable to load Space: {1!r}".format(filename, e)
-                )  # noqa
-            ret += "{!r}\n".format(axes)
+                    f"{filename}: unable to load Space: {e!r}"
+                )
+            ret += f"{axes!r}\n"
             try:
                 config = binoculars.util.ConfigFile.fromfile(filename)
             except Exception as e:
                 raise IOError(
-                    "{0}: unable to load util.ConfigFile: {1!r}".format(filename, e)
-                )  # noqa
-            ret += "{!r}".format(config)
+                    f"{filename}: unable to load util.ConfigFile: {e!r}"
+                )
+            ret += f"{config!r}"
         else:
-            raise IOError("File '{0}' does not exist".format(filename))
+            raise IOError(f"File '{filename}' does not exist")
     return ret

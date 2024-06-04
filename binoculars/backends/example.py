@@ -81,7 +81,7 @@ class Input(backend.InputBase):
         aomega = numpy.linspace(0, numpy.random.random() * 20, 100)
         for af, delta, ai, omega in zip(aaf, adelta, aai, aomega):
             print(
-                "af: {0}, delta: {1}, ai: {2}, omega: {3}".format(af, delta, ai, omega)
+                f"af: {af}, delta: {delta}, ai: {ai}, omega: {omega}"
             )
 
             # caculating the angles per pixel. The values specified in the configuration file

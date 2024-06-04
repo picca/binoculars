@@ -17,15 +17,14 @@ class FitBase(object):
         code = inspect.getsource(self.func)
 
         args = tuple(
-            re.findall("\((.*?)\)", line)[0].split(",")
+            re.findall(r"\((.*?)\)", line)[0].split(",")
             for line in code.split("\n")[2:4]
         )
 
         if space.dimension != len(args[0]):
             raise ValueError(
-                "dimension mismatch: space has {0}, {1.__class__.__name__} expects {2}".format(
-                    space.dimension, self, len(args[0])
-                )
+                f"dimension mismatch: space has {space.dimension},"
+                f" {self.__class__.__name__} expects {len(args[0])}"
             )
         self.parameters = args[1]
 
@@ -33,9 +32,8 @@ class FitBase(object):
         if guess is not None:
             if len(guess) != len(self.parameters):
                 raise ValueError(
-                    "invalid number of guess parameters {0!r} for {1!r}".format(
-                        guess, self.parameters
-                    )
+                    f"invalid number of guess parameters {guess!r}"
+                    f" for {self.parameters!r}"
                 )
             self.guess = guess
         else:
@@ -89,9 +87,9 @@ class FitBase(object):
         )  # corresponds to True on success, False on failure
 
     def __str__(self):
-        return "{0.__class__.__name__} fit on {1}\n{2}\n{3}".format(
-            self, self.space, self.message, self.summary
-        )
+        return \
+            f"{self.__class__.__name__} fit on" \
+            f" {self.space}\n{self.message}\n{self.summary}"
 
 
 class PeakFitBase(FitBase):
@@ -162,9 +160,8 @@ class AutoDimensionFit(FitBase):
             return cls.dimensions[space.dimension](space, guess)
         else:
             raise TypeError(
-                "{0}-dimensional space not supported for {1.__name__}".format(
-                    space.dimension, cls
-                )
+                f"{space.dimension}-dimensional space"
+                f" not supported for {cls.__name__}"
             )
 
 
@@ -198,7 +195,7 @@ def get_class_by_name(name):
     if name.lower() in options:
         return options[name.lower()]
     else:
-        raise ValueError("unsupported fit function '{0}'".format(name))
+        raise ValueError(f"unsupported fit function '{name}'")
 
 
 # fitting functions

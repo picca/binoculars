@@ -136,7 +136,7 @@ class ID03Input(backend.InputBase):
     def get_scan(self, scannumber):
         if self._spec is None:
             self._spec = specfilewrapper.Specfile(self.config.specfile)
-        return self._spec.select("{0}.1".format(scannumber))
+        return self._spec.select(f"{scannumber}.1")
 
     def find_edfs(self, pattern, scanno):
         files = glob.glob(pattern)
@@ -177,9 +177,8 @@ class ID03Input(backend.InputBase):
         matches = self.find_edfs(pattern, scan.number())
         if set(range(first, last + 1)) > set(matches.keys()):
             raise errors.FileError(
-                "incorrect number of matches for scan {0} using pattern {1}".format(
-                    scan.number(), pattern
-                )
+                f"incorrect number of matches for scan {scan.number()}"
+                f" using pattern {pattern}"
             )
         if dry_run:
             yield
@@ -195,18 +194,17 @@ class ID03Input(backend.InputBase):
                 imagefolder = imagefolder.format(UCCD=UCCD, rUCCD=list(reversed(UCCD)))
             except Exception as e:
                 raise errors.ConfigError(
-                    "invalid 'imagefolder' specification '{0}': {1}".format(
-                        self.config.imagefolder, e
-                    )
+                    "invalid 'imagefolder' specification"
+                    f" '{self.config.imagefolder}': {e!r}"
                 )
         else:
             imagefolder = os.path.join(*UCCD)
 
         if not os.path.exists(imagefolder):
             raise ValueError(
-                "invalid 'imagefolder' specification '{0}'. Path {1} does not exist".format(
-                    self.config.imagefolder, imagefolder
-                )
+                "invalid 'imagefolder' specification"
+                f" '{self.config.imagefolder}'."
+                f" Path {imagefolder} does not exist"
             )
         return os.path.join(imagefolder, "*")
 
@@ -254,13 +252,13 @@ class EH2(ID03Input):
         # distance sdd-600 corresponds to distance of the detector chip from
         # the gamR rotation axis (rest is handled by the translations ty and
         # gamT (along z))
-        print(("{:>9} {:>10} {:>9} {:>9}".format("Mu", "Theta", "Delta", "Gamma")))
+        print(f"{'Mu':>9} {'Theta':>10} {'Delta':>9} {'Gamma':>9}")
 
     def process_image(self, scanparams, pointparams, image):
         mu, theta, chi, phi, delta, gamma, mon, transm = pointparams
         wavelength, UB = scanparams
         data = image / mon / transm
-        print(("{:9.4f} {:10.4f} {:9.4f} {:9.4f}".format(mu, theta, delta, gamma)))
+        print(f"{mu:9.4f} {theta:10.4f} {delta:9.4f} {gamma:9.4f}")
 
         # recalculate detector translation (which should be saved!)
         gamT = self.ty * numpy.tan(numpy.radians(gamma))

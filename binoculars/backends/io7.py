@@ -14,11 +14,12 @@
   You should have received a copy of the GNU General Public License
   along with the hkl library.  If not, see <http://www.gnu.org/licenses/>.
 
-  Copyright (C) 2012-2015, 2023 European Synchrotron Radiation Facility
+  Copyright (C) 2012-2015, 2023, 2024 European Synchrotron Radiation Facility
                           Grenoble, France
 
   Authors: Willem Onderwaater <onderwaa@esrf.fr>
            Jonathan Rawle
+           Picca Frédéric-Emmnanuel <picca@synchrotron-soleil.fr>
 
 """
 import sys
@@ -145,7 +146,7 @@ class IO7Input(backend.InputBase):
         if not len(scans):
             sys.stderr.write("error: no scans selected, nothing to do\n")
         for scanno in scans:
-            util.status("processing scan {0}...".format(scanno))
+            util.status(f"processing scan {scanno}...")
             if self.config.pr:
                 pointcount = self.config.pr[1] - self.config.pr[0] + 1
                 start = self.config.pr[0]
@@ -185,9 +186,8 @@ class IO7Input(backend.InputBase):
         except Exception as exc:
             exc.args = errors.addmessage(
                 exc.args,
-                ", An error occured for scan {0} at point {1}. See above for more information".format(
-                    self.dbg_scanno, self.dbg_pointno
-                ),
+                f", An error occured for scan {self.dbg_scanno}"
+                f" at point {self.dbg_pointno}. See above for more information"
             )
             raise
         self.metadata.add_section("id7_backend", self.metadict)
@@ -229,9 +229,8 @@ class IO7Input(backend.InputBase):
                 return filename
             else:
                 raise errors.ConfigError(
-                    "image filename specified in the datafile does not exist '{0}'".format(
-                        filename
-                    )
+                    "image filename specified in the datafile"
+                    f" does not exist '{filename}'"
                 )
         else:
             head, tail = os.path.split(filename)
@@ -242,25 +241,24 @@ class IO7Input(backend.InputBase):
                 )
             except Exception as e:
                 raise errors.ConfigError(
-                    "invalid 'imagefolder' specification '{0}': {1}".format(
-                        self.config.imagefolder, e
-                    )
+                    "invalid 'imagefolder' specification"
+                    f" '{self.config.imagefolder}': {e!r}"
                 )
             else:
                 if not os.path.exists(imagefolder):
                     raise errors.ConfigError(
-                        "invalid 'imagefolder' specification '{0}'. Path {1} does not exist".format(
-                            self.config.imagefolder, imagefolder
-                        )
+                        "invalid 'imagefolder' specification"
+                        f"'{self.config.imagefolder}'."
+                        f" Path {imagefolder} does not exist"
                     )
             fn = os.path.join(imagefolder, tail)
             if os.path.exists(fn):
                 return fn
             else:
                 raise errors.ConfigError(
-                    "image filename does not exist '{0}', either imagefolder is wrongly specified or image file does not exist".format(
-                        filename
-                    )
+                    f"image filename does not exist '{filename}',"
+                    " either imagefolder is wrongly specified"
+                    " or image file does not exist"
                 )
 
     def parse_config(self, config):
@@ -310,7 +308,7 @@ class IO7Input(backend.InputBase):
         filename = os.path.join(self.config.datafilefolder, str(scanno) + ".dat")
         if not os.path.exists(filename):
             raise errors.ConfigError(
-                "datafile filename does not exist: {0}".format(filename)
+                f"datafile filename does not exist: {filename}"
             )
         return dnp.io.load(filename)
 
@@ -345,9 +343,8 @@ class EH2(IO7Input):
         weights = numpy.ones_like(image)
 
         util.status(
-            "{4}| gamma: {0}, delta: {1}, omega: {2}, mu: {3}".format(
-                gamma, delta, omega, alpha, time.ctime(time.time())
-            )
+            f"{time.ctime(time.time())}| gamma: {gamma}, delta: {delta},"
+            f" omega: {omega}, mu: {alpha}"
         )
 
         # pixels to angles
@@ -409,9 +406,8 @@ class EH1(IO7Input):
         weights = numpy.ones_like(image)
 
         util.status(
-            "{4}| gamma: {0}, delta: {1}, omega: {2}, mu: {3}".format(
-                gamma, delta, omega, alpha, time.ctime(time.time())
-            )
+            f"{time.ctime(time.time())}| gamma: {gamma}, delta: {delta},"
+            f" omega: {omega}, mu: {alpha}"
         )
 
         # pixels to angles
@@ -457,9 +453,9 @@ def load_matrix(filename):
             return numpy.array(numpy.load(filename), dtype=numpy.bool_)
         else:
             raise ValueError(
-                "unknown extension {0}, unable to load matrix!\n".format(ext)
+                f"unknown extension {ext}, unable to load matrix!\n"
             )
     else:
         raise IOError(
-            "filename: {0} does not exist. Can not load matrix".format(filename)
+            f"filename: {filename} does not exist. Can not load matrix"
         )
