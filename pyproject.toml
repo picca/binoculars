@@ -55,13 +55,13 @@ dependencies = [
 ]
 
 [project.scripts]
-binoculars="binoculars.scripts"
-binoculars-server="binoculars.scripts.server"
+binoculars="binoculars.scripts:main"
+binoculars-server="binoculars.scripts.server:main"
 
 [project.gui-scripts]
-binoculars-fitaid="binoculars.scripts.fitaid"
-binoculars-gui="binoculars.scripts.gui"
-binoculars-processgui="binoculars.scripts.process"
+binoculars-fitaid="binoculars.scripts.fitaid:main"
+binoculars-gui="binoculars.scripts.gui:main"
+binoculars-processgui="binoculars.scripts.process:main"
 
 [tool.setuptools.packages.find]
 include = ["binoculars*"]
