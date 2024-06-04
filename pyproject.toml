@@ -48,6 +48,7 @@ binoculars-gui="binoculars.scripts.gui:main"
 binoculars-processgui="binoculars.scripts.process:main"
 
 [tool.setuptools.packages.find]
+where = ['src/']
 include = ["binoculars*"]
 
 [tool.setuptools_scm]
