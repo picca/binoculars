@@ -6,7 +6,7 @@ import unittest
 
 class TestCase(unittest.TestCase):
     def setUp(self):
-        fn = "examples/configs/example_config_id03"
+        fn = "tests/data/example_config_id03"
         self.cfg = binoculars.util.ConfigFile.fromtxtfile(fn)
 
     def test_IO(self):

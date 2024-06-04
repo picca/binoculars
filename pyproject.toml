@@ -51,3 +51,8 @@ binoculars-processgui="binoculars.scripts.process:main"
 include = ["binoculars*"]
 
 [tool.setuptools_scm]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]

@@ -8,7 +8,7 @@ import unittest
 
 class MetaDataTestCase(unittest.TestCase):
     def setUp(self):
-        fn = "examples/configs/example_config_id03"
+        fn = "tests/data/example_config_id03"
         self.cfg = binoculars.util.ConfigFile.fromtxtfile(fn)
 
     @unittest.expectedFailure
