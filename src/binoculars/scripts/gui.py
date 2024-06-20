@@ -1033,11 +1033,14 @@ class ProjectWidget(QWidget):
             if ext == '.edf':
                 binoculars.util.space_to_edf(space, outfile)
                 self.parent.statusbar.showMessage(f"saved at {outfile}")
-            elif ext == '.txt':
-                binoculars.util.space_to_txt(space, outfile)
-                self.parent.statusbar.showMessage(f"saved at {outfile}")
             elif ext == '.hdf5':
                 space.tofile(outfile)
+                self.parent.statusbar.showMessage(f"saved at {outfile}")
+            elif ext == '.npy':
+                binoculars.util.space_to_npy(space, outfile)
+                self.parent.statusbar.showMessage(f"saved at {outfile}")
+            elif ext == '.txt':
+                binoculars.util.space_to_txt(space, outfile)
                 self.parent.statusbar.showMessage(f"saved at {outfile}")
             else:
                 self.parent.statusbar.showMessage(

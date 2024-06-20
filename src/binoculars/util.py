@@ -847,6 +847,10 @@ def space_to_txt(space, filename):
         fp.write("\tintensity\n")
         numpy.savetxt(fp, data, fmt="%.6g", delimiter="\t")
 
+def space_to_npy(space, filename):
+    data = space.get_masked().filled(0)
+    numpy.save(filename, data)
+
 
 @contextlib.contextmanager
 def open_h5py(fn, mode):
