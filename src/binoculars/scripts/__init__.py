@@ -319,7 +319,7 @@ available commands:
 
 run binoculars COMMAND --help more info on that command
 """.format(sys.argv[0], msg))
-    sys.exit(1)
+    sys.exit(2)
 
 
 def main():
