@@ -55,10 +55,10 @@ class FitData:
                         QMessageBox.Ignore
                     )
                     if result == QMessageBox.Open:
-                        spacename = str(QFileDialog.getOpenFileName(
+                        spacename, _ = QFileDialog.getOpenFileName(
                             caption=f'Open space {rodkey}',
                             directory='.',
-                            filter='*.hdf5'))
+                            filter='*.hdf5')
                         db[rodkey].attrs['filename'] = spacename
                     else:
                         raise OSError('Select proper input')
@@ -525,7 +525,7 @@ class TopWidget(QWidget):
             self.refresh_plot()
 
     def addspace(self, filename: Optional[str]=None) -> None:
-        self.table.addspace(filename or str(QFileDialog.getOpenFileName(self, 'Open Project', '.', '*.hdf5')))  # noqa
+        self.table.addspace(filename or QFileDialog.getOpenFileName(self, 'Open Project', '.', '*.hdf5')[0])  # noqa
 
     def active_change(self) -> None:
         rodkey, axis, resolution = self.table.currentkey()

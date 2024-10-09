@@ -949,8 +949,8 @@ class ProjectWidget(QWidget):
         dict['projection'] = self.projection
 
         if filename is None:
-            filename = str(QFileDialog.getSaveFileName(self,
-                                                       'Save Project', '.'))
+            filename, _ = QFileDialog.getSaveFileName(self,
+                                                      'Save Project', '.')
 
         with open(filename, 'w') as fp:
             json.dump(dict, fp)
@@ -958,10 +958,10 @@ class ProjectWidget(QWidget):
     @classmethod
     def fromfile(cls, filename=None, parent=None):
         if filename is None:
-            filename = str(QFileDialog.getOpenFileName(cls,
-                                                       'Open Project',
-                                                       '.',
-                                                       '*.proj'))
+            filename, _ = QFileDialog.getOpenFileName(cls,
+                                                      'Open Project',
+                                                      '.',
+                                                      '*.proj')
         try:
             with open(filename) as fp:
                 dict = json.load(fp)
@@ -979,8 +979,9 @@ class ProjectWidget(QWidget):
                                 ' locate proper space',
                                 buttons=QMessageBox.Open)
                 warningbox.exec_()
-                newname = str(QFileDialog.getOpenFileName(
-                    caption='Open space {fn}', directory='.', filter='*.hdf5'))
+                newname, _ = QFileDialog.getOpenFileName(caption='Open space {fn}',
+                                                         directory='.',
+                                                         filter='*.hdf5')
                 newlist.append(newname)
             else:
                 newlist.append(fn)
@@ -992,10 +993,11 @@ class ProjectWidget(QWidget):
 
     def addspace(self, filename=None, add=False):
         if filename is None:
-            filename = str(QFileDialog.getOpenFileName(self,
-                                                       'Open Project',
-                                                       '.',
-                                                       '*.hdf5'))
+            filename, _ = QFileDialog.getOpenFileName(self,
+                                                      'Open Project',
+                                                      '.',
+                                                      '*.hdf5')
+            print(filename)
         self.table.add_space(filename, add)
 
     def save(self):

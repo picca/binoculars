@@ -143,7 +143,7 @@ class Window(QMainWindow):
 
     #we call the load function
     def ShowFile(self):
-        filename = QFileDialog.getOpenFileName(self, 'Open File', '')
+        filename, _ = QFileDialog.getOpenFileName(self, 'Open File', '')
         confwidget = Conf_Tab(self)
         confwidget.read_data(str(filename))
         newIndex = self.tab_widget.addTab(confwidget, os.path.basename(str(filename)))
@@ -152,7 +152,7 @@ class Window(QMainWindow):
 
     #we call the save function
     def Save(self):
-        filename = QFileDialog().getSaveFileName(self, 'Save', '', '*.txt')
+        filename, _ = QFileDialog().getSaveFileName(self, 'Save', '', '*.txt')
         widget = self.tab_widget.currentWidget()
         widget.save(filename)
 
