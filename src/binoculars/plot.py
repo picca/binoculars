@@ -30,7 +30,7 @@ class DraggableColorbar:
             cmap_name = mappable.get_cmap().name
 
         self.index = self.cycle.index(cmap_name)
-        self.canvas = self.cbar.patch.figure.canvas
+        self.canvas = self.cbar.ax.figure.canvas
 
     def connect(self):
         self.cidpress = self.canvas.mpl_connect("button_press_event", self.on_press)
@@ -61,7 +61,7 @@ class DraggableColorbar:
             self.index = 0
         cmap = self.cycle[self.index]
         self.mappable.set_cmap(cmap)
-        self.cbar.patch.figure.canvas.draw()
+        self.cbar.ax.figure.canvas.draw()
 
     def on_motion(self, event):
         if self.press is None or event.inaxes != self.cbar.ax:
